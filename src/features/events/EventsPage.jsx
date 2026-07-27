@@ -20,7 +20,7 @@ export default function EventsPage({ onSelectEvent }) {
     setLoading(true)
     const { data, error } = await supabase
       .from('events')
-      .select('*')
+      .select('*, profiles(full_name)')
       .order('created_at', { ascending: false })
 
     if (error) {
@@ -172,7 +172,7 @@ export default function EventsPage({ onSelectEvent }) {
                 {event.type} · {event.start_date} → {event.end_date} · {event.location}
                 </p>
                 <span className="inline-block mt-2 text-xs px-2 py-1 bg-gray-100 rounded">
-                {event.status}
+                {event.status} by {event.profiles?.full_name}
                 </span>
             </div>
             ))}

@@ -17,6 +17,7 @@ export default function EventDetail({ eventId, onBack }) {
   const [showSubmissionForm, setShowSubmissionForm] = useState(false)
   const [reviewingId, setReviewingId] = useState(null)
   const [isOrganizer, setIsOrganizer] = useState(false)
+  const [isReviewer, setIsReviewer] = useState(false)
 
   const fetchEventData = async () => {
     setLoading(true)
@@ -24,7 +25,7 @@ export default function EventDetail({ eventId, onBack }) {
     // 1. Récupérer l'event
     const { data: eventData, error: eventError } = await supabase
       .from('events')
-      .select('*')
+      .select('*, profiles(full_name, email)')
       .eq('id', eventId)
       .single()
 
@@ -44,6 +45,7 @@ export default function EventDetail({ eventId, onBack }) {
       setIsOrganizer(true)
     }
 
+
     // 4. Récupérer les participants
     const { data: participantsData, error: participantsError } = await supabase
       .from('event_participants')
@@ -57,6 +59,13 @@ export default function EventDetail({ eventId, onBack }) {
     // 5. Check si l'user courant est inscrit
     if (currentUser && participantsData) {
       setIsRegistered(participantsData.some(p => p.profiles?.email === currentUser.email))
+    }
+
+    if (currentUser && participantsData) {
+      const myParticipation = participantsData.find(p => p.profiles?.email === currentUser.email)
+      if (myParticipation?.role_in_event === 'reviewer') {
+        setIsReviewer(true)
+      }
     }
 
     // 6. Récupérer les submissions
@@ -124,17 +133,25 @@ export default function EventDetail({ eventId, onBack }) {
         <span className="inline-block mt-2 text-xs px-2 py-1 bg-gray-100 rounded">
           {event.status}
         </span>
+        <p className="text-xs text-gray-500 mt-2">
+          Organisé par {event.profiles?.full_name} ({event.profiles?.email})
+        </p>
 
         {isOrganizer && event.status === 'draft' && (
           <button
             onClick={async () => {
-              await supabase.from('events').update({ status: 'published' }).eq('id', event.id)
+              await supabase.from('events').update({ status: 'pending_approval' }).eq('id', event.id)
               fetchEventData()
             }}
-            className="ml-2 text-xs text-green-600 underline"
+            className="ml-2 text-xs text-amber-600 underline"
           >
-            Publier l'événement
+            Demander la publication
           </button>
+        )}
+        {isOrganizer && event.status === 'pending_approval' && (
+          <p className="text-xs text-amber-600 mt-2">
+            ⏳ En attente de validation par un admin
+          </p>
         )}
 
         {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
@@ -217,7 +234,7 @@ export default function EventDetail({ eventId, onBack }) {
                     par {s.profiles?.full_name} · {s.status}
                   </p>
 
-                  {s.status === 'submitted' && (
+                  {s.status === 'submitted' && (isOrganizer || isReviewer) && (
                     <button
                       onClick={() => setReviewingId(reviewingId === s.id ? null : s.id)}
                       className="text-xs text-purple-600 mt-2"
