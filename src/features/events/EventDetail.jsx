@@ -4,6 +4,7 @@ import SubmissionForm from '../submissions/SubmissionForm'
 import ReviewForm from '../reviews/ReviewForm'
 import CertificateButton from '../certificates/CertificateButton'
 import PaymentButton from '../payments/PaymentButton'
+import ManageParticipants from './ManageParticipants'
 
 export default function EventDetail({ eventId, onBack }) {
   const [event, setEvent] = useState(null)
@@ -15,18 +16,12 @@ export default function EventDetail({ eventId, onBack }) {
   const [submissions, setSubmissions] = useState([])
   const [showSubmissionForm, setShowSubmissionForm] = useState(false)
   const [reviewingId, setReviewingId] = useState(null)
+  const [isOrganizer, setIsOrganizer] = useState(false)
 
   const fetchEventData = async () => {
-    const { data: submissionsData, error: submissionsError } = await supabase
-    .from('submissions')
-    .select('id, title, abstract, status, submitted_at, profiles(full_name)')
-    .eq('event_id', eventId)
-
-    if (!submissionsError) {
-    setSubmissions(submissionsData)
-    }
     setLoading(true)
 
+    // 1. Récupérer l'event
     const { data: eventData, error: eventError } = await supabase
       .from('events')
       .select('*')
@@ -41,6 +36,15 @@ export default function EventDetail({ eventId, onBack }) {
 
     setEvent(eventData)
 
+    // 2. Récupérer l'user courant (une seule fois, réutilisé partout en dessous)
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+    // 3. Check si c'est l'organisateur
+    if (currentUser && eventData.organizer_id === currentUser.id) {
+      setIsOrganizer(true)
+    }
+
+    // 4. Récupérer les participants
     const { data: participantsData, error: participantsError } = await supabase
       .from('event_participants')
       .select('id, role_in_event, registered_at, profiles(full_name, email)')
@@ -50,9 +54,19 @@ export default function EventDetail({ eventId, onBack }) {
       setParticipants(participantsData)
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user && participantsData) {
-      setIsRegistered(participantsData.some(p => p.profiles?.email === user.email))
+    // 5. Check si l'user courant est inscrit
+    if (currentUser && participantsData) {
+      setIsRegistered(participantsData.some(p => p.profiles?.email === currentUser.email))
+    }
+
+    // 6. Récupérer les submissions
+    const { data: submissionsData, error: submissionsError } = await supabase
+      .from('submissions')
+      .select('id, title, abstract, status, submitted_at, profiles(full_name)')
+      .eq('event_id', eventId)
+
+    if (!submissionsError) {
+      setSubmissions(submissionsData)
     }
 
     setLoading(false)
@@ -66,9 +80,9 @@ export default function EventDetail({ eventId, onBack }) {
     setRegistering(true)
     setError(null)
 
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
 
-    if (!user) {
+    if (!currentUser) {
       setError('Tu dois être connecté')
       setRegistering(false)
       return
@@ -78,7 +92,7 @@ export default function EventDetail({ eventId, onBack }) {
       .from('event_participants')
       .insert({
         event_id: eventId,
-        user_id: user.id,
+        user_id: currentUser.id,
         role_in_event: 'participant',
       })
 
@@ -111,6 +125,18 @@ export default function EventDetail({ eventId, onBack }) {
           {event.status}
         </span>
 
+        {isOrganizer && event.status === 'draft' && (
+          <button
+            onClick={async () => {
+              await supabase.from('events').update({ status: 'published' }).eq('id', event.id)
+              fetchEventData()
+            }}
+            className="ml-2 text-xs text-green-600 underline"
+          >
+            Publier l'événement
+          </button>
+        )}
+
         {error && <p className="text-red-600 text-sm mt-3">{error}</p>}
 
         <div className="mt-4">
@@ -138,18 +164,22 @@ export default function EventDetail({ eventId, onBack }) {
         </div>
       </div>
 
-      <div>
+      <div className="mt-8">
         <h2 className="font-bold mb-3">Participants ({participants.length})</h2>
-        {participants.length === 0 ? (
-          <p className="text-gray-500 text-sm">Aucun participant inscrit.</p>
+        {isOrganizer ? (
+          <ManageParticipants participants={participants} onUpdated={fetchEventData} />
         ) : (
-          <ul className="space-y-2">
-            {participants.map((p) => (
-              <li key={p.id} className="text-sm p-2 border rounded">
-                {p.profiles?.full_name} ({p.role_in_event})
-              </li>
-            ))}
-          </ul>
+          participants.length === 0 ? (
+            <p className="text-gray-500 text-sm">Aucun participant inscrit.</p>
+          ) : (
+            <ul className="space-y-2">
+              {participants.map((p) => (
+                <li key={p.id} className="text-sm p-2 border rounded">
+                  {p.profiles?.full_name} ({p.role_in_event})
+                </li>
+              ))}
+            </ul>
+          )
         )}
       </div>
       <div className="mt-8">
