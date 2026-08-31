@@ -43,33 +43,46 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-4 border rounded-lg">
-      <h3 className="font-bold">Soumettre un article</h3>
-      <input
-        type="text"
-        placeholder="Titre de l'article"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        className="w-full border p-2 rounded"
-        required
-      />
-      <textarea
-        placeholder="Résumé (abstract)"
-        value={abstract}
-        onChange={(e) => setAbstract(e.target.value)}
-        className="w-full border p-2 rounded"
-        rows={4}
-        required
-      />
+    <form onSubmit={handleSubmit} className="card-panel border border-ink/8 space-y-5">
+      <div>
+        <p className="section-label">Nouvelle soumission</p>
+        <h3 className="section-heading text-lg mt-1">Soumettre un article</h3>
+      </div>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      <div>
+        <label htmlFor="submission-title" className="form-label">Titre de l'article</label>
+        <input
+          id="submission-title"
+          type="text"
+          placeholder="Titre complet de la communication"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="input-field"
+          required
+        />
+      </div>
+
+      <div>
+        <label htmlFor="submission-abstract" className="form-label">Résumé (abstract)</label>
+        <textarea
+          id="submission-abstract"
+          placeholder="Résumé de votre communication (300–500 mots recommandés)"
+          value={abstract}
+          onChange={(e) => setAbstract(e.target.value)}
+          className="textarea-field"
+          rows={5}
+          required
+        />
+      </div>
+
+      {error && <div className="alert-error">{error}</div>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 disabled:opacity-50"
+        className="btn-primary w-full sm:w-auto"
       >
-        {submitting ? 'Envoi...' : 'Soumettre'}
+        {submitting ? 'Envoi…' : 'Soumettre'}
       </button>
     </form>
   )

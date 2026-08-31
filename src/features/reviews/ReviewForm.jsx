@@ -21,7 +21,6 @@ export default function ReviewForm({ submissionId, onReviewed }) {
       return
     }
 
-    // 1. Créer la review
     const { error: reviewError } = await supabase
       .from('reviews')
       .insert({
@@ -37,7 +36,6 @@ export default function ReviewForm({ submissionId, onReviewed }) {
       return
     }
 
-    // 2. Mettre à jour le statut de la soumission
     const { error: updateError } = await supabase
       .from('submissions')
       .update({ status: decision })
@@ -56,44 +54,66 @@ export default function ReviewForm({ submissionId, onReviewed }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 p-3 border-t mt-2">
+    <form
+      onSubmit={handleSubmit}
+      className="mt-4 pt-4 border-t border-dashed border-taupe/30 space-y-4"
+    >
+      <p className="section-label">Formulaire de review</p>
+
       <div>
-        <label className="text-xs text-gray-500">Score (1-5)</label>
+        <label htmlFor={`score-${submissionId}`} className="form-label">
+          Score (1–5)
+        </label>
         <input
+          id={`score-${submissionId}`}
           type="number"
           min="1"
           max="5"
           value={score}
           onChange={(e) => setScore(Number(e.target.value))}
-          className="w-full border p-2 rounded"
+          className="input-field font-mono w-24"
           required
         />
       </div>
-      <textarea
-        placeholder="Commentaires"
-        value={comments}
-        onChange={(e) => setComments(e.target.value)}
-        className="w-full border p-2 rounded"
-        rows={2}
-      />
-      <select
-        value={decision}
-        onChange={(e) => setDecision(e.target.value)}
-        className="w-full border p-2 rounded"
-      >
-        <option value="accepted">Accepter</option>
-        <option value="rejected">Rejeter</option>
-        <option value="revision_requested">Demander une révision</option>
-      </select>
 
-      {error && <p className="text-red-600 text-sm">{error}</p>}
+      <div>
+        <label htmlFor={`comments-${submissionId}`} className="form-label">
+          Commentaires
+        </label>
+        <textarea
+          id={`comments-${submissionId}`}
+          placeholder="Observations, points forts, suggestions d'amélioration…"
+          value={comments}
+          onChange={(e) => setComments(e.target.value)}
+          className="textarea-field"
+          rows={3}
+        />
+      </div>
+
+      <div>
+        <label htmlFor={`decision-${submissionId}`} className="form-label">
+          Décision
+        </label>
+        <select
+          id={`decision-${submissionId}`}
+          value={decision}
+          onChange={(e) => setDecision(e.target.value)}
+          className="select-field"
+        >
+          <option value="accepted">Accepter</option>
+          <option value="rejected">Rejeter</option>
+          <option value="revision_requested">Demander une révision</option>
+        </select>
+      </div>
+
+      {error && <div className="alert-error">{error}</div>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="w-full bg-purple-600 text-white py-2 rounded hover:bg-purple-700 disabled:opacity-50"
+        className="btn-primary w-full sm:w-auto"
       >
-        {submitting ? 'Envoi...' : 'Soumettre la review'}
+        {submitting ? 'Envoi…' : 'Soumettre la review'}
       </button>
     </form>
   )

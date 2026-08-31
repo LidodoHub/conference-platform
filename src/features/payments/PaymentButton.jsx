@@ -47,8 +47,6 @@ export default function PaymentButton({ eventId }) {
       return
     }
 
-    // Simulation : dans une vraie version, ici on appellerait Stripe/CIB
-    // et on attendrait la confirmation avant de marquer "paid"
     const { error: insertError } = await supabase
       .from('payments')
       .insert({
@@ -76,19 +74,27 @@ export default function PaymentButton({ eventId }) {
   return (
     <div>
       {paid ? (
-        <p className="text-green-600 text-sm font-medium">
-          ✓ Frais d'inscription payés ({amount} DZD)
-        </p>
+        <div className="alert-success">
+          Frais d'inscription payés —{' '}
+          <span className="font-mono">{amount.toLocaleString('fr-DZ')} DZD</span>
+        </div>
       ) : (
         <div>
           <button
             onClick={handlePay}
             disabled={processing}
-            className="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50"
+            className="btn-outline w-full"
           >
-            {processing ? 'Traitement...' : `Payer les frais d'inscription (${amount} DZD)`}
+            {processing ? 'Traitement…' : (
+              <>
+                Payer les frais d'inscription
+                <span className="font-mono text-xs opacity-70">
+                  ({amount.toLocaleString('fr-DZ')} DZD)
+                </span>
+              </>
+            )}
           </button>
-          {error && <p className="text-red-600 text-sm mt-2">{error}</p>}
+          {error && <div className="alert-error mt-3">{error}</div>}
         </div>
       )}
     </div>
