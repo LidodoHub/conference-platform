@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import FadeContent from '../../components/reactbits/FadeContent'
 
 const TYPE_LABELS = {
   conference: 'Conférence',
@@ -54,13 +55,13 @@ export default function AdminPanel() {
 
   return (
     <div className="page-container">
-      <div className="mb-10">
-        <p className="section-label mb-2">Administration</p>
+      <FadeContent className="mb-10">
+        <p className="section-label mb-2">Administration CONFERA</p>
         <h1 className="section-heading text-4xl sm:text-5xl">Panel Admin</h1>
         <p className="text-taupe text-sm mt-2 max-w-xl leading-relaxed">
           Validez ou refusez les demandes de publication soumises par les organisateurs.
         </p>
-      </div>
+      </FadeContent>
 
       {pendingEvents.length === 0 ? (
         <div className="card-panel text-center py-16">

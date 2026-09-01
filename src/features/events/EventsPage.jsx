@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import GlareHover from '../../components/reactbits/GlareHover'
+import FadeContent from '../../components/reactbits/FadeContent'
 
 const TYPE_LABELS = {
   conference: 'Conférence',
@@ -105,7 +107,7 @@ export default function EventsPage({ onSelectEvent }) {
   return (
     <div className="page-container">
       {/* En-tête de page */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
+      <FadeContent className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
         <div>
           <p className="section-label mb-2">Catalogue</p>
           <h1 className="section-heading text-4xl sm:text-5xl">Événements</h1>
@@ -119,7 +121,7 @@ export default function EventsPage({ onSelectEvent }) {
         >
           {showForm ? 'Annuler' : '+ Créer un événement'}
         </button>
-      </div>
+      </FadeContent>
 
       {/* Formulaire de création */}
       {showForm && (
@@ -259,48 +261,61 @@ export default function EventsPage({ onSelectEvent }) {
           )}
         </div>
       ) : (
+        <FadeContent delay={0.05}>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {events.map((event) => (
-            <article
+            <GlareHover
               key={event.id}
-              onClick={() => onSelectEvent(event.id)}
-              className="card-ticket group"
+              width="100%"
+              height="auto"
+              background="transparent"
+              borderRadius="12px"
+              borderColor="rgba(27,42,74,0.08)"
+              glareColor="#C8963E"
+              glareOpacity={0.22}
+              className="!border-ink/8"
             >
-              <div className="ticket-stripe group-hover:w-4 transition-all duration-300" />
-              <div className="ticket-perforation" />
-              <div className="p-5 sm:p-6 flex-1 flex flex-col">
-                <div className="flex justify-between items-start gap-3 mb-2">
-                  <h3 className="font-display font-semibold text-lg text-ink leading-snug group-hover:text-ink-light transition-colors">
-                    {event.title}
-                  </h3>
-                  <span className="badge-type">
-                    {TYPE_LABELS[event.type] || event.type}
-                  </span>
-                </div>
+                <article
+                  onClick={() => onSelectEvent(event.id)}
+                  className="card-ticket group !shadow-none !border-0"
+                >
+                  <div className="ticket-stripe group-hover:w-4 transition-all duration-300" />
+                  <div className="ticket-perforation" />
+                  <div className="p-5 sm:p-6 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start gap-3 mb-2">
+                      <h3 className="font-display font-semibold text-lg text-ink leading-snug group-hover:text-ink-light transition-colors">
+                        {event.title}
+                      </h3>
+                      <span className="badge-type">
+                        {TYPE_LABELS[event.type] || event.type}
+                      </span>
+                    </div>
 
-                {event.description && (
-                  <p className="text-sm text-taupe leading-relaxed line-clamp-2 flex-1">
-                    {event.description}
-                  </p>
-                )}
+                    {event.description && (
+                      <p className="text-sm text-taupe leading-relaxed line-clamp-2 flex-1">
+                        {event.description}
+                      </p>
+                    )}
 
-                <p className="font-mono text-xs text-ink/50 mt-4">
-                  {event.start_date} → {event.end_date}
-                  {event.location && <> · {event.location}</>}
-                </p>
+                    <p className="font-mono text-xs text-ink/50 mt-4">
+                      {event.start_date} → {event.end_date}
+                      {event.location && <> · {event.location}</>}
+                    </p>
 
-                <div className="flex items-center justify-between mt-4 pt-4 border-t border-dashed border-taupe/25">
-                  <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
-                    {STATUS_LABELS[event.status] || event.status}
-                  </span>
-                  <span className="text-xs text-taupe truncate max-w-[120px]">
-                    {event.profiles?.full_name}
-                  </span>
-                </div>
-              </div>
-            </article>
+                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-dashed border-taupe/25">
+                      <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
+                        {STATUS_LABELS[event.status] || event.status}
+                      </span>
+                      <span className="text-xs text-taupe truncate max-w-[120px]">
+                        {event.profiles?.full_name}
+                      </span>
+                    </div>
+                  </div>
+                </article>
+            </GlareHover>
           ))}
         </div>
+        </FadeContent>
       )}
     </div>
   )

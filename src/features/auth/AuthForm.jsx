@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import Aurora from '../../components/reactbits/Aurora'
+import FadeContent from '../../components/reactbits/FadeContent'
 
 export default function AuthForm() {
   const [isSignUp, setIsSignUp] = useState(true)
@@ -80,40 +82,41 @@ export default function AuthForm() {
 
   return (
     <div className="min-h-dvh flex">
-      {/* Panneau branding — desktop */}
+      {/* Panneau branding + Aurora React Bits */}
       <aside className="hidden lg:flex lg:w-[44%] xl:w-[48%] bg-ink relative overflow-hidden flex-col justify-between p-12 xl:p-16">
-        <div className="absolute inset-0 opacity-[0.04]"
-          style={{
-            backgroundImage: 'repeating-linear-gradient(45deg, #fff 0, #fff 1px, transparent 0, transparent 50%)',
-            backgroundSize: '24px 24px',
-          }}
+        <Aurora
+          colorStops={['#1B2A4A', '#2F6F62', '#C8963E']}
+          amplitude={0.9}
+          blend={0.6}
+          speed={0.6}
         />
 
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-16">
-            <div className="w-10 h-10 rounded-lg bg-gold flex items-center justify-center">
+        <div className="absolute inset-0 bg-ink/40 pointer-events-none" />
+
+          <FadeContent className="relative z-10">
+          <div className="flex items-center gap-3 mb-12">
+            <div className="w-10 h-10 rounded-lg bg-gold flex items-center justify-center shadow-lg shadow-gold/20">
               <span className="font-display font-bold text-ink text-lg">C</span>
             </div>
             <span className="font-display font-semibold text-2xl text-white tracking-tight">
-              ConfPlatform
+              CONFERA
             </span>
           </div>
 
-          <h1 className="font-display font-semibold text-4xl xl:text-5xl text-white leading-[1.15] tracking-tight text-balance max-w-md">
-            Votre badge d'accès aux événements scientifiques
+          <h1 className="font-display font-semibold text-4xl xl:text-[2.75rem] text-white leading-[1.15] tracking-tight max-w-md">
+            Écosystème intelligent de gestion scientifique
           </h1>
-          <p className="text-white/55 mt-6 text-base leading-relaxed max-w-sm">
-            Conférences, colloques, séminaires et workshops — inscrivez-vous, soumettez vos articles et gérez vos participations.
+          <p className="text-white/55 mt-5 text-base leading-relaxed max-w-sm">
+            Conférences, colloques, séminaires — soumissions, reviews, inscriptions et certificats en un seul écosystème.
           </p>
-        </div>
+          </FadeContent>
 
-        {/* Ticket décoratif */}
-        <div className="relative mt-12">
-          <div className="card-ticket max-w-xs pointer-events-none select-none opacity-90">
+        <div className="relative z-10 mt-12">
+          <div className="card-ticket-static max-w-xs pointer-events-none select-none">
             <div className="ticket-stripe" />
             <div className="ticket-perforation" />
-            <div className="p-5 flex-1 bg-cream/95">
-              <p className="section-label">Accès participant</p>
+            <div className="p-5 flex-1 bg-cream/95 backdrop-blur-sm">
+              <p className="section-label">Badge d'accès</p>
               <p className="font-display font-semibold text-ink mt-2 text-lg">Colloque IA &amp; Sciences</p>
               <p className="font-mono text-xs text-taupe mt-3">12–14 Nov 2026 · Alger</p>
               <div className="mt-4 pt-3 border-t border-dashed border-taupe/30">
@@ -125,14 +128,13 @@ export default function AuthForm() {
       </aside>
 
       {/* Formulaire */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-16">
-        <div className="w-full max-w-md">
-          {/* Logo mobile */}
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-16 relative">
+        <div className="w-full max-w-md relative z-10">
           <div className="flex items-center gap-2.5 mb-8 lg:hidden">
             <div className="w-8 h-8 rounded-md bg-gold flex items-center justify-center">
               <span className="font-display font-bold text-ink text-sm">C</span>
             </div>
-            <span className="font-display font-semibold text-xl text-ink">ConfPlatform</span>
+            <span className="font-display font-semibold text-xl text-ink">CONFERA</span>
           </div>
 
           <div className="mb-8">
@@ -144,7 +146,7 @@ export default function AuthForm() {
             </h2>
             <p className="text-taupe text-sm mt-2 leading-relaxed">
               {isSignUp
-                ? 'Rejoignez la plateforme pour participer aux événements scientifiques.'
+                ? 'Rejoignez l\'écosystème CONFERA pour participer aux événements scientifiques.'
                 : 'Accédez à vos événements, soumissions et certificats.'}
             </p>
           </div>
@@ -195,11 +197,7 @@ export default function AuthForm() {
               {error && <div className="alert-error">{error}</div>}
               {success && <div className="alert-success">{success}</div>}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="btn-primary w-full"
-              >
+              <button type="submit" disabled={loading} className="btn-primary w-full">
                 {loading ? 'Traitement en cours…' : isSignUp ? "S'inscrire" : 'Se connecter'}
               </button>
             </form>
