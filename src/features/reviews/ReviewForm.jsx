@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabaseClient'
 export default function ReviewForm({ submissionId, onReviewed }) {
   const [score, setScore] = useState(3)
   const [comments, setComments] = useState('')
-  const [decision, setDecision] = useState('accepted')
+  const [recommendation, setRecommendation] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -28,6 +28,7 @@ export default function ReviewForm({ submissionId, onReviewed }) {
         reviewer_id: user.id,
         score,
         comments,
+        recommendation,
       })
 
     if (reviewError) {
@@ -36,19 +37,9 @@ export default function ReviewForm({ submissionId, onReviewed }) {
       return
     }
 
-    const { error: updateError } = await supabase
-      .from('submissions')
-      .update({ status: decision })
-      .eq('id', submissionId)
-
-    if (updateError) {
-      setError(updateError.message)
-      setSubmitting(false)
-      return
-    }
-
     setComments('')
     setScore(3)
+    setRecommendation('')
     setSubmitting(false)
     onReviewed()
   }
@@ -91,19 +82,24 @@ export default function ReviewForm({ submissionId, onReviewed }) {
       </div>
 
       <div>
-        <label htmlFor={`decision-${submissionId}`} className="form-label">
-          Décision
+        <label htmlFor={`recommendation-${submissionId}`} className="form-label">
+          Recommandation
         </label>
         <select
-          id={`decision-${submissionId}`}
-          value={decision}
-          onChange={(e) => setDecision(e.target.value)}
+          id={`recommendation-${submissionId}`}
+          value={recommendation}
+          onChange={(e) => setRecommendation(e.target.value)}
           className="select-field"
+          required
         >
-          <option value="accepted">Accepter</option>
-          <option value="rejected">Rejeter</option>
-          <option value="revision_requested">Demander une révision</option>
+          <option value="" disabled>Choisir…</option>
+          <option value="accept">Recommander l'acceptation</option>
+          <option value="reject">Recommander le rejet</option>
+          <option value="revise">Recommander une révision</option>
         </select>
+        <p className="text-xs text-taupe mt-1">
+          Ta recommandation est transmise à l'organisateur, qui prend la décision finale.
+        </p>
       </div>
 
       {error && <div className="alert-error">{error}</div>}

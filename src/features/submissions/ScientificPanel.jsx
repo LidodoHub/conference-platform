@@ -5,6 +5,13 @@ import ReviewForm from '../reviews/ReviewForm'
 import { SUBMISSION_BADGE, SUBMISSION_LABELS } from '../../lib/constants'
 import EmptyState from '../../components/ui/EmptyState'
 
+const REC_TO_STATUS = { accept: 'accepted', reject: 'rejected', revise: 'revision_requested' }
+const REC_LABELS = {
+  accept: 'Recommande d\'accepter',
+  reject: 'Recommande de rejeter',
+  revise: 'Recommande une révision',
+}
+
 export default function ScientificPanel({
   eventId,
   submissions,
@@ -71,6 +78,9 @@ export default function ScientificPanel({
         <div>
           <p className="section-label">Cycle scientifique</p>
           <h2 className="section-heading text-xl mt-1">Soumissions et décisions</h2>
+          <p className="font-mono text-xs text-taupe/70 mb-2">
+            DEBUG isOrganizer={String(isOrganizer)} · isReviewer={String(isReviewer)} · isAdmin={String(isAdmin)} · soumissions={submissions.length}
+          </p>
         </div>
         <button
           type="button"
@@ -113,6 +123,28 @@ export default function ScientificPanel({
                 {s.submitted_at && <> · {s.submitted_at.split('T')[0]}</>}
               </p>
 
+              {canAssign && s.reviews?.some((r) => r.recommendation) && (
+                <div className="mt-4 pt-3 border-t border-dashed border-taupe/30">
+                  <p className="section-label mb-2">Recommandations des reviewers</p>
+                  <ul className="space-y-2">
+                    {s.reviews.filter((r) => r.recommendation).map((r) => (
+                      <li key={r.id} className="text-sm flex flex-wrap items-baseline gap-2">
+                        <span className="font-mono text-xs text-taupe">
+                          {participants.find((p) => p.user_id === r.reviewer_id)?.profiles?.full_name || 'Reviewer'}
+                        </span>
+                        <span className={SUBMISSION_BADGE[REC_TO_STATUS[r.recommendation]] || 'badge-submitted'}>
+                          {REC_LABELS[r.recommendation]}
+                        </span>
+                        <span className="font-mono text-xs text-taupe/70">score {r.score}/5</span>
+                        {r.comments && <span className="text-taupe">— {r.comments}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p className="font-mono text-xs text-taupe/70 mt-2">
+                DEBUG statut={s.status} · reviews={s.reviews ? s.reviews.length : 'non chargées'}
+              </p>
               <div className="flex flex-wrap gap-2 mt-4">
                 {s.status === 'submitted' && canReview && (
                   <button

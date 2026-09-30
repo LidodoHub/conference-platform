@@ -5,6 +5,8 @@ import ReviewForm from '../reviews/ReviewForm'
 import CertificateButton from '../certificates/CertificateButton'
 import PaymentButton from '../payments/PaymentButton'
 import ManageParticipants from './ManageParticipants'
+import ScientificPanel from '../submissions/ScientificPanel'
+
 
 const TYPE_LABELS = {
   conference: 'Conférence',
@@ -69,7 +71,7 @@ export default function EventDetail({ eventId, onBack }) {
 
     const { data: eventData, error: eventError } = await supabase
       .from('events')
-      .select('*, profiles(full_name, email)')
+      .select('*, profiles!organizer_id(full_name, email)')
       .eq('id', eventId)
       .single()
 
@@ -90,7 +92,7 @@ export default function EventDetail({ eventId, onBack }) {
 
     const { data: participantsData, error: participantsError } = await supabase
       .from('event_participants')
-      .select('id, role_in_event, registered_at, profiles(full_name, email)')
+      .select('id, user_id, role_in_event, registered_at, profiles(full_name, email)')
       .eq('event_id', eventId)
 
     if (!participantsError) {
@@ -110,10 +112,12 @@ export default function EventDetail({ eventId, onBack }) {
 
     const { data: submissionsData, error: submissionsError } = await supabase
       .from('submissions')
-      .select('id, title, abstract, status, submitted_at, profiles(full_name)')
+      .select('id, title, abstract, status, submitted_at, profiles(full_name), reviews(id, score, comments, recommendation, reviewer_id)')
       .eq('event_id', eventId)
 
-    if (!submissionsError) {
+    if (submissionsError) {
+      console.error('Erreur chargement soumissions :', submissionsError)
+    } else {
       setSubmissions(submissionsData)
     }
 
@@ -172,6 +176,7 @@ export default function EventDetail({ eventId, onBack }) {
     return (
       <div className="page-container text-center py-20">
         <p className="alert-error inline-block">Événement introuvable</p>
+        {error && <p className="font-mono text-xs text-taupe mt-3">{error}</p>}
       </div>
     )
   }
@@ -271,78 +276,16 @@ export default function EventDetail({ eventId, onBack }) {
             )}
           </section>
 
-          {/* Soumissions */}
-          <section>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-              <div className="flex items-baseline gap-3">
-                <h2 className="section-heading text-xl">Soumissions</h2>
-                <span className="font-mono text-xs text-taupe">{submissions.length}</span>
-              </div>
-              <button
-                onClick={() => setShowSubmissionForm(!showSubmissionForm)}
-                className={showSubmissionForm ? 'btn-outline btn-sm' : 'btn-ghost-gold btn-sm'}
-              >
-                {showSubmissionForm ? 'Annuler' : '+ Soumettre un article'}
-              </button>
-            </div>
-
-            {showSubmissionForm && (
-              <div className="mb-6">
-                <SubmissionForm
-                  eventId={eventId}
-                  onSubmitted={() => {
-                    setShowSubmissionForm(false)
-                    fetchEventData()
-                  }}
-                />
-              </div>
-            )}
-
-            {submissions.length === 0 ? (
-              <p className="text-taupe text-sm py-4">Aucune soumission pour l'instant.</p>
-            ) : (
-              <ul className="space-y-4">
-                {submissions.map((s) => (
-                  <li key={s.id} className="submission-card">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <h3 className="font-display font-semibold text-ink leading-snug">{s.title}</h3>
-                      <span className={SUBMISSION_BADGE[s.status] || 'badge-submitted'}>
-                        {SUBMISSION_LABELS[s.status] || s.status}
-                      </span>
-                    </div>
-
-                    {s.abstract && (
-                      <p className="text-sm text-taupe mt-3 leading-relaxed">{s.abstract}</p>
-                    )}
-
-                    <p className="font-mono text-xs text-taupe/70 mt-3">
-                      {s.profiles?.full_name}
-                      {s.submitted_at && <> · {s.submitted_at.split('T')[0]}</>}
-                    </p>
-
-                    {s.status === 'submitted' && (isOrganizer || isReviewer) && (
-                      <button
-                        onClick={() => setReviewingId(reviewingId === s.id ? null : s.id)}
-                        className="btn-ghost-gold btn-sm mt-4 -ml-2"
-                      >
-                        {reviewingId === s.id ? 'Annuler la review' : '+ Faire une review'}
-                      </button>
-                    )}
-
-                    {reviewingId === s.id && (
-                      <ReviewForm
-                        submissionId={s.id}
-                        onReviewed={() => {
-                          setReviewingId(null)
-                          fetchEventData()
-                        }}
-                      />
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                    {/* Soumissions et décisions */}
+          <ScientificPanel
+            eventId={eventId}
+            submissions={submissions}
+            participants={participants}
+            isOrganizer={isOrganizer}
+            isReviewer={isReviewer}
+            isAdmin={false}
+            onRefresh={fetchEventData}
+          />
         </div>
 
         {/* Sidebar actions */}
