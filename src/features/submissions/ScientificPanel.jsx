@@ -23,28 +23,11 @@ export default function ScientificPanel({
 }) {
   const [showForm, setShowForm] = useState(false)
   const [reviewingId, setReviewingId] = useState(null)
-  const [assigningId, setAssigningId] = useState(null)
   const [error, setError] = useState(null)
 
-  const reviewers = participants.filter((p) => p.role_in_event === 'reviewer' || p.role_in_event === 'organizer')
-  const canReview = isReviewer 
-  const canAssign = isOrganizer || isAdmin
-
-  const assign = async (submissionId, reviewerUserId) => {
-    setError(null)
-    const { error: insertError } = await supabase.from('reviews').insert({
-      submission_id: submissionId,
-      reviewer_id: reviewerUserId,
-      score: 0,
-      comments: 'Assignation — en attente de review',
-    })
-    if (insertError) {
-      setError(insertError.message)
-      return
-    }
-    setAssigningId(null)
-    onRefresh()
-  }
+  // seul un reviewer écrit une review ; seul l'organizer tranche et supprime
+  const canReview = isReviewer
+  const canDecide = isOrganizer || isAdmin
 
   const decide = async (submissionId, status) => {
     setError(null)
@@ -72,15 +55,32 @@ export default function ScientificPanel({
     onRefresh()
   }
 
+  const handleDelete = async (submissionId) => {
+    if (!window.confirm('Supprimer cette soumission ? Ses reviews et sa décision seront supprimées aussi.')) return
+    setError(null)
+
+    const { data, error: deleteError } = await supabase
+      .from('submissions')
+      .delete()
+      .eq('id', submissionId)
+      .select('id')
+
+    if (deleteError) {
+      setError(deleteError.message)
+    } else if (!data || data.length === 0) {
+      const msg = 'Suppression refusée : aucune ligne supprimée (policy RLS).'
+      setError(msg)
+    } else {
+      onRefresh()
+    }
+  }
+
   return (
     <section>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
         <div>
           <p className="section-label">Cycle scientifique</p>
           <h2 className="section-heading text-xl mt-1">Soumissions et décisions</h2>
-          <p className="font-mono text-xs text-taupe/70 mb-2">
-            DEBUG isOrganizer={String(isOrganizer)} · isReviewer={String(isReviewer)} · isAdmin={String(isAdmin)} · soumissions={submissions.length}
-          </p>
         </div>
         <button
           type="button"
@@ -123,7 +123,7 @@ export default function ScientificPanel({
                 {s.submitted_at && <> · {s.submitted_at.split('T')[0]}</>}
               </p>
 
-              {canAssign && s.reviews?.some((r) => r.recommendation) && (
+              {canDecide && s.reviews?.some((r) => r.recommendation) && (
                 <div className="mt-4 pt-3 border-t border-dashed border-taupe/30">
                   <p className="section-label mb-2">Recommandations des reviewers</p>
                   <ul className="space-y-2">
@@ -142,9 +142,7 @@ export default function ScientificPanel({
                   </ul>
                 </div>
               )}
-              <p className="font-mono text-xs text-taupe/70 mt-2">
-                DEBUG statut={s.status} · reviews={s.reviews ? s.reviews.length : 'non chargées'}
-              </p>
+
               <div className="flex flex-wrap gap-2 mt-4">
                 {s.status === 'submitted' && canReview && (
                   <button
@@ -155,40 +153,19 @@ export default function ScientificPanel({
                     {reviewingId === s.id ? 'Fermer la review' : 'Faire une review'}
                   </button>
                 )}
-                {canAssign && (
-                  <button
-                    type="button"
-                    className="btn-outline btn-sm"
-                    onClick={() => setAssigningId(assigningId === s.id ? null : s.id)}
-                  >
-                    Assigner un reviewer
-                  </button>
-                )}
-                {canAssign && s.status === 'submitted' && (
+                {canDecide && s.status === 'submitted' && (
                   <>
                     <button type="button" className="btn-success btn-sm" onClick={() => decide(s.id, 'accepted')}>Accepter</button>
                     <button type="button" className="btn-danger btn-sm" onClick={() => decide(s.id, 'rejected')}>Rejeter</button>
                     <button type="button" className="btn-outline btn-sm" onClick={() => decide(s.id, 'revision_requested')}>Révision</button>
                   </>
                 )}
+                {canDecide && (
+                  <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(s.id)}>
+                    Supprimer
+                  </button>
+                )}
               </div>
-
-              {assigningId === s.id && (
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {reviewers.length === 0 && <p className="text-xs text-taupe">Promouvez d'abord un participant en reviewer.</p>}
-                  {reviewers.map((r) => (
-                    <button
-                      key={r.id}
-                      type="button"
-                      className="btn-outline btn-sm"
-                      onClick={() => assign(s.id, r.user_id)}
-                      disabled={!r.user_id}
-                    >
-                      {r.profiles?.full_name}
-                    </button>
-                  ))}
-                </div>
-              )}
 
               {reviewingId === s.id && (
                 <ReviewForm

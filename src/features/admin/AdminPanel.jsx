@@ -9,35 +9,90 @@ const TYPE_LABELS = {
   workshop: 'Workshop',
 }
 
+const STATUS_BADGE = {
+  draft: 'badge-draft',
+  pending_approval: 'badge-pending',
+  published: 'badge-published',
+  ongoing: 'badge-ongoing',
+  closed: 'badge-closed',
+  archived: 'badge-archived',
+}
+
+const STATUS_LABELS = {
+  draft: 'Brouillon',
+  pending_approval: 'En validation',
+  published: 'Publié',
+  ongoing: 'En cours',
+  closed: 'Clôturé',
+  archived: 'Archivé',
+}
+
 export default function AdminPanel() {
   const [pendingEvents, setPendingEvents] = useState([])
+  const [allEvents, setAllEvents] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
 
   const fetchPendingEvents = async () => {
     setLoading(true)
-    const { data, error } = await supabase
+    const { data, error: fetchError } = await supabase
       .from('events')
       .select('*, profiles(full_name, email)')
       .eq('status', 'pending_approval')
 
-    if (!error) {
+    if (!fetchError) {
       setPendingEvents(data)
     }
     setLoading(false)
   }
 
+  const fetchAllEvents = async () => {
+    const { data, error: fetchError } = await supabase
+      .from('events')
+      .select('id, title, status, type, start_date, profiles(full_name)')
+      .order('start_date', { ascending: false })
+
+    if (fetchError) setError(fetchError.message)
+    else setAllEvents(data)
+  }
+
   useEffect(() => {
     fetchPendingEvents()
+    fetchAllEvents()
   }, [])
 
   const handleApprove = async (eventId) => {
     await supabase.from('events').update({ status: 'published' }).eq('id', eventId)
     fetchPendingEvents()
+    fetchAllEvents()
   }
 
   const handleReject = async (eventId) => {
     await supabase.from('events').update({ status: 'draft' }).eq('id', eventId)
     fetchPendingEvents()
+    fetchAllEvents()
+  }
+
+  const handleDeleteEvent = async (ev) => {
+    if (!window.confirm(`Supprimer définitivement « ${ev.title} » ? Ses participants, soumissions, reviews et paiements seront supprimés aussi.`)) return
+    setError(null)
+
+    const { data, error: deleteError } = await supabase
+      .from('events')
+      .delete()
+      .eq('id', ev.id)
+      .select('id')
+
+    if (deleteError) {
+      setError(deleteError.message)
+      return
+    }
+    if (!data || data.length === 0) {
+      setError('Suppression refusée : seul un administrateur peut supprimer cet événement.')
+      return
+    }
+    fetchPendingEvents()
+    fetchAllEvents()
   }
 
   if (loading) {
@@ -62,6 +117,8 @@ export default function AdminPanel() {
           Validez ou refusez les demandes de publication soumises par les organisateurs.
         </p>
       </FadeContent>
+
+      {error && <div className="alert-error mb-6">{error}</div>}
 
       {pendingEvents.length === 0 ? (
         <div className="card-panel text-center py-16">
@@ -137,6 +194,43 @@ export default function AdminPanel() {
           ))}
         </div>
       )}
+
+      <section className="mt-12">
+        <div className="flex items-baseline gap-3 mb-5">
+          <h2 className="section-heading text-xl">Tous les événements</h2>
+          <span className="font-mono text-xs text-taupe">{allEvents.length}</span>
+        </div>
+
+        {allEvents.length === 0 ? (
+          <p className="text-taupe text-sm py-4">Aucun événement.</p>
+        ) : (
+          <ul className="space-y-2">
+            {allEvents.map((ev) => (
+              <li key={ev.id} className="list-item">
+                <div className="min-w-0">
+                  <span className="text-sm font-medium text-ink block truncate">{ev.title}</span>
+                  <span className="font-mono text-xs text-taupe truncate block">
+                    {ev.profiles?.full_name}
+                    {ev.start_date && <> · {ev.start_date}</>}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <span className={STATUS_BADGE[ev.status] || 'badge-draft'}>
+                    {STATUS_LABELS[ev.status] || ev.status}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn-danger btn-sm"
+                    onClick={() => handleDeleteEvent(ev)}
+                  >
+                    Supprimer
+                  </button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
     </div>
   )
 }

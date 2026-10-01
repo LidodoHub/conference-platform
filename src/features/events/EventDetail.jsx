@@ -6,7 +6,8 @@ import CertificateButton from '../certificates/CertificateButton'
 import PaymentButton from '../payments/PaymentButton'
 import ManageParticipants from './ManageParticipants'
 import ScientificPanel from '../submissions/ScientificPanel'
-
+import SessionsPanel from '../sessions/SessionsPanel'
+import SponsorsPanel from '../sponsors/SponsorsPanel'
 
 const TYPE_LABELS = {
   conference: 'Conférence',
@@ -242,6 +243,27 @@ export default function EventDetail({ eventId, onBack }) {
                   Demander la publication
                 </button>
               )}
+              
+              {isOrganizer && event.status === 'draft' && (
+                <button
+                  onClick={async () => {
+                    if (!window.confirm('Supprimer ce brouillon ? Tout son contenu sera supprimé.')) return
+                    const { data, error: deleteError } = await supabase
+                      .from('events')
+                      .delete()
+                      .eq('id', event.id)
+                      .select('id')
+                    if (deleteError) setError(deleteError.message)
+                    else if (!data || data.length === 0) setError('Suppression refusée.')
+                    else onBack()
+                  }}
+                  className="btn-danger btn-sm mt-3"
+                >
+                  Supprimer le brouillon
+                </button>
+              )}
+
+
               {isOrganizer && event.status === 'pending_approval' && (
                 <div className="alert-info mt-5">
                   En attente de validation par un administrateur
@@ -286,6 +308,10 @@ export default function EventDetail({ eventId, onBack }) {
             isAdmin={false}
             onRefresh={fetchEventData}
           />
+
+          <SessionsPanel eventId={eventId} isOrganizer={isOrganizer} />
+
+          <SponsorsPanel eventId={eventId} isOrganizer={isOrganizer} />
         </div>
 
         {/* Sidebar actions */}
