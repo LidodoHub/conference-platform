@@ -1,23 +1,45 @@
-export default function Tabs({ tabs, value, onChange }) {
+export default function Tabs({ tabs, active, onChange, variant = 'main' }) {
+  const main = variant === 'main'
+
   return (
-    <div className="flex flex-wrap gap-1 border-b border-ink/10 mb-6">
-      {tabs.map((tab) => {
-        const active = tab.id === value
+    <div
+      role="tablist"
+      className={`tabs-scroll flex overflow-x-auto ${main ? 'gap-1 border-b border-taupe/30' : 'gap-2 pb-1'}`}
+    >
+      {tabs.map((t) => {
+        const isActive = t.id === active
+
+        const base = main
+          ? 'shrink-0 px-4 py-3 text-sm whitespace-nowrap border-b-2 -mb-px transition-colors min-h-[44px]'
+          : 'shrink-0 px-3.5 py-2 text-xs rounded-full border whitespace-nowrap transition-colors min-h-[40px]'
+
+        let state
+        if (main) {
+          state = isActive
+            ? 'border-transparent text-ink font-medium'
+            : 'border-transparent text-taupe hover:text-ink'
+        } else {
+          state = isActive
+            ? 'bg-ink text-white border-transparent'
+            : 'border-taupe/30 text-taupe hover:text-ink'
+        }
+
         return (
           <button
-            key={tab.id}
+            key={t.id}
             type="button"
-            onClick={() => onChange(tab.id)}
-            className={`px-3 sm:px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
-              active
-                ? 'text-ink border-b-2 border-gold -mb-px'
-                : 'text-taupe hover:text-ink'
-            }`}
+            role="tab"
+            aria-selected={isActive}
+            onClick={() => onChange(t.id)}
+            className={`${base} ${state}`}
+            style={main && isActive ? { borderBottomColor: '#c9a24a' } : undefined}
           >
-            {tab.label}
-            {typeof tab.count === 'number' && (
-              <span className="font-mono text-[10px] text-taupe ml-2">{tab.count}</span>
-            )}
+            {t.label}
+            {t.badge ? (
+              <span className={`ml-2 font-mono text-xs ${!main && isActive ? 'text-white/80' : 'text-taupe'}`}>
+                {t.badge}
+              </span>
+            ) : null}
           </button>
         )
       })}

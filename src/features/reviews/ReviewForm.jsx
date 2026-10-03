@@ -1,12 +1,24 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 
-export default function ReviewForm({ submissionId, onReviewed }) {
+export default function ReviewForm({ submissionId, eventId, onReviewed }) {
   const [score, setScore] = useState(3)
   const [comments, setComments] = useState('')
   const [recommendation, setRecommendation] = useState('')
+  const [sessionId, setSessionId] = useState('')
+  const [sessions, setSessions] = useState([])
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!eventId) return
+    supabase
+      .from('sessions')
+      .select('id, title')
+      .eq('event_id', eventId)
+      .order('title', { ascending: true })
+      .then(({ data }) => setSessions(data || []))
+  }, [eventId])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -29,6 +41,7 @@ export default function ReviewForm({ submissionId, onReviewed }) {
         score,
         comments,
         recommendation,
+        recommended_session_id: recommendation === 'accept' && sessionId ? sessionId : null,
       })
 
     if (reviewError) {
@@ -40,6 +53,7 @@ export default function ReviewForm({ submissionId, onReviewed }) {
     setComments('')
     setScore(3)
     setRecommendation('')
+    setSessionId('')
     setSubmitting(false)
     onReviewed()
   }
@@ -88,7 +102,10 @@ export default function ReviewForm({ submissionId, onReviewed }) {
         <select
           id={`recommendation-${submissionId}`}
           value={recommendation}
-          onChange={(e) => setRecommendation(e.target.value)}
+          onChange={(e) => {
+            setRecommendation(e.target.value)
+            if (e.target.value !== 'accept') setSessionId('')
+          }}
           className="select-field"
           required
         >
@@ -101,6 +118,32 @@ export default function ReviewForm({ submissionId, onReviewed }) {
           Ta recommandation est transmise à l'organisateur, qui prend la décision finale.
         </p>
       </div>
+
+      {recommendation === 'accept' && (
+        <div>
+          <label htmlFor={`session-${submissionId}`} className="form-label">
+            Session recommandée (optionnel)
+          </label>
+          {sessions.length === 0 ? (
+            <p className="text-xs text-taupe">Aucune session n'a encore été créée pour cet événement.</p>
+          ) : (
+            <select
+              id={`session-${submissionId}`}
+              value={sessionId}
+              onChange={(e) => setSessionId(e.target.value)}
+              className="select-field"
+            >
+              <option value="">Pas de préférence</option>
+              {sessions.map((s) => (
+                <option key={s.id} value={s.id}>{s.title}</option>
+              ))}
+            </select>
+          )}
+          <p className="text-xs text-taupe mt-1">
+            Simple suggestion : l'organisateur affectera définitivement l'article en phase organisationnelle.
+          </p>
+        </div>
+      )}
 
       {error && <div className="alert-error">{error}</div>}
 

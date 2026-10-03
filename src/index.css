@@ -330,3 +330,29 @@
     @apply border-t border-dashed border-taupe/30;
   }
 }
+
+/* --- Ajustements responsive --- */
+.tabs-scroll {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.tabs-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.list-item {
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+}
+
+.card,
+.card-panel,
+.submission-card {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 640px) {
+  .btn-sm {
+    min-height: 40px;
+  }
+}

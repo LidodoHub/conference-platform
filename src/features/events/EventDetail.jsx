@@ -8,6 +8,9 @@ import ManageParticipants from './ManageParticipants'
 import ScientificPanel from '../submissions/ScientificPanel'
 import SessionsPanel from '../sessions/SessionsPanel'
 import SponsorsPanel from '../sponsors/SponsorsPanel'
+import InvitationsPanel from '../registrations/InvitationsPanel'
+import RegistrationCard from '../registrations/RegistrationCard'
+import AttendancePanel from '../attendance/AttendancePanel'
 
 const TYPE_LABELS = {
   conference: 'Conférence',
@@ -54,6 +57,17 @@ const ROLE_LABELS = {
   organizer: 'Organisateur',
 }
 
+const PHASE_LABELS = {
+  scientific: 'Phase scientifique',
+  organizational: 'Phase organisationnelle',
+}
+
+const FORMAT_LABELS = {
+  onsite: 'Présentiel',
+  online: 'En ligne',
+  hybrid: 'Hybride',
+}
+
 export default function EventDetail({ eventId, onBack }) {
   const [event, setEvent] = useState(null)
   const [participants, setParticipants] = useState([])
@@ -68,7 +82,6 @@ export default function EventDetail({ eventId, onBack }) {
   const [isReviewer, setIsReviewer] = useState(false)
 
   const fetchEventData = async () => {
-    setLoading(true)
 
     const { data: eventData, error: eventError } = await supabase
       .from('events')
@@ -93,10 +106,12 @@ export default function EventDetail({ eventId, onBack }) {
 
     const { data: participantsData, error: participantsError } = await supabase
       .from('event_participants')
-      .select('id, user_id, role_in_event, registered_at, profiles(full_name, email)')
+      .select('id, user_id, role_in_event, registered_at, registration_status, invited_at, validated_at, profiles(full_name, email)')
       .eq('event_id', eventId)
 
-    if (!participantsError) {
+    if (participantsError) {
+      console.error('Erreur chargement participants :', participantsError)
+    } else {
       setParticipants(participantsData)
     }
 
@@ -113,7 +128,7 @@ export default function EventDetail({ eventId, onBack }) {
 
     const { data: submissionsData, error: submissionsError } = await supabase
       .from('submissions')
-      .select('id, title, abstract, status, submitted_at, profiles(full_name), reviews(id, score, comments, recommendation, reviewer_id)')
+      .select('id, author_id, title, abstract, status, submitted_at, profiles(full_name), reviews(id, score, comments, recommendation, reviewer_id, recommended_session_id), decisions(id, status, revision_type, decided_at)')
       .eq('event_id', eventId)
 
     if (submissionsError) {
@@ -126,6 +141,7 @@ export default function EventDetail({ eventId, onBack }) {
   }
 
   useEffect(() => {
+    setLoading(true)
     fetchEventData()
   }, [eventId])
 
@@ -157,6 +173,44 @@ export default function EventDetail({ eventId, onBack }) {
 
     setRegistering(false)
     fetchEventData()
+  }
+
+    const pendingCount = submissions.filter(
+    (s) => s.status === 'submitted' || s.status === 'revision_requested',
+  ).length
+
+  const changePhase = async (newPhase) => {
+    setError(null)
+    if (newPhase === 'organizational') {
+      const msg =
+        pendingCount > 0
+          ? `${pendingCount} article(s) sont encore en attente de décision ou de révision. Clore la phase scientifique bloquera les soumissions, les reviews et les décisions. Continuer ?`
+          : 'Clore la phase scientifique ? Plus aucune soumission, review ni décision ne sera possible (tu pourras la rouvrir).'
+      if (!window.confirm(msg)) return
+    }
+
+    const { data, error: updateError } = await supabase
+      .from('events')
+      .update({ phase: newPhase })
+      .eq('id', event.id)
+      .select('id')
+
+    if (updateError) setError(updateError.message)
+    else if (!data || data.length === 0) setError("Changement refusé : tu n'es pas organisateur de cet événement.")
+    else fetchEventData()
+  }
+
+  const changeFormat = async (newFormat) => {
+    setError(null)
+    const { data, error: updateError } = await supabase
+      .from('events')
+      .update({ format: newFormat })
+      .eq('id', event.id)
+      .select('id')
+
+    if (updateError) setError(updateError.message)
+    else if (!data || data.length === 0) setError("Changement refusé : tu n'es pas organisateur de cet événement.")
+    else fetchEventData()
   }
 
   if (loading) {
@@ -207,6 +261,12 @@ export default function EventDetail({ eventId, onBack }) {
                 <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
                   {STATUS_LABELS[event.status] || event.status}
                 </span>
+                <span className="badge-type">
+                  {FORMAT_LABELS[event.format] || event.format}
+                </span>
+                <span className={event.phase === 'scientific' ? 'badge-pending' : 'badge-ongoing'}>
+                  {PHASE_LABELS[event.phase] || event.phase}
+                </span>
               </div>
 
               <h1 className="section-heading text-3xl sm:text-4xl leading-tight text-balance">
@@ -214,7 +274,7 @@ export default function EventDetail({ eventId, onBack }) {
               </h1>
 
               {event.description && (
-                <p className="text-taupe mt-4 leading-relaxed max-w-2xl">
+                <p className="text-taupe mt-4 leading-relaxed max-w-2xl" style={{ overflowWrap: 'anywhere' }}>
                   {event.description}
                 </p>
               )}
@@ -269,6 +329,40 @@ export default function EventDetail({ eventId, onBack }) {
                   En attente de validation par un administrateur
                 </div>
               )}
+
+              {isOrganizer && (
+                <div className="mt-5 pt-4 border-t border-dashed border-taupe/30 space-y-3">
+                  <p className="section-label">Gestion de l'événement</p>
+                  <div className="flex flex-wrap items-center gap-3">
+                    <label htmlFor="event-format" className="text-xs text-taupe">Format</label>
+                    <select
+                      id="event-format"
+                      className="select-field w-auto text-xs py-1.5"
+                      value={event.format}
+                      onChange={(e) => changeFormat(e.target.value)}
+                    >
+                      <option value="onsite">Présentiel</option>
+                      <option value="online">En ligne</option>
+                      <option value="hybrid">Hybride</option>
+                    </select>
+
+                    {event.phase === 'scientific' ? (
+                      <button type="button" className="btn-outline btn-sm" onClick={() => changePhase('organizational')}>
+                        Clore la phase scientifique
+                      </button>
+                    ) : (
+                      <button type="button" className="btn-outline btn-sm" onClick={() => changePhase('scientific')}>
+                        Rouvrir la phase scientifique
+                      </button>
+                    )}
+                  </div>
+                  {event.phase === 'scientific' && pendingCount > 0 && (
+                    <p className="text-xs text-taupe">
+                      {pendingCount} article(s) en attente de décision ou de révision.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -306,10 +400,31 @@ export default function EventDetail({ eventId, onBack }) {
             isOrganizer={isOrganizer}
             isReviewer={isReviewer}
             isAdmin={false}
+            frozen={event.phase !== 'scientific'}
             onRefresh={fetchEventData}
           />
 
-          <SessionsPanel eventId={eventId} isOrganizer={isOrganizer} />
+          {isOrganizer && (
+            <InvitationsPanel
+              eventId={eventId}
+              event={event}
+              phase={event.phase}
+              submissions={submissions}
+              participants={participants}
+              onRefresh={fetchEventData}
+            />
+          )}
+
+          <SessionsPanel
+            eventId={eventId}
+            isOrganizer={isOrganizer}
+            phase={event.phase}
+            submissions={submissions}
+          />
+
+          {isOrganizer && event.phase === 'organizational' && (
+            <AttendancePanel eventId={eventId} participants={participants} />
+          )}
 
           <SponsorsPanel eventId={eventId} isOrganizer={isOrganizer} />
         </div>
@@ -321,23 +436,7 @@ export default function EventDetail({ eventId, onBack }) {
 
             {error && <div className="alert-error mb-4">{error}</div>}
 
-            {isRegistered ? (
-              <div className="space-y-4">
-                <div className="alert-success">
-                  Vous êtes inscrit à cet événement
-                </div>
-                <PaymentButton eventId={event.id} />
-                <CertificateButton event={event} />
-              </div>
-            ) : (
-              <button
-                onClick={handleRegister}
-                disabled={registering}
-                className="btn-primary w-full"
-              >
-                {registering ? 'Inscription…' : "S'inscrire à l'événement"}
-              </button>
-            )}
+            <RegistrationCard event={event} participants={participants} onRefresh={fetchEventData} />
           </div>
 
           {/* Meta sidebar */}
