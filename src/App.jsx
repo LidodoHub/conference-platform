@@ -68,11 +68,20 @@ function App() {
     )
   }
 
+  const isHome = view === VIEWS.home && !selectedEventId
+  const isEvents = view === VIEWS.events || !!selectedEventId
+  const isAdminView = view === VIEWS.admin
+
   const navClass = (active) =>
     `btn-nav ${active ? 'bg-white/10 text-white' : 'text-white/60 hover:text-white hover:bg-white/5'}`
 
+  const mobileTab = (active) =>
+    `flex-1 flex items-center justify-center min-h-[56px] text-xs font-medium border-t-2 transition-colors ${
+      active ? 'text-white border-gold' : 'text-white/50 border-transparent'
+    }`
+
   return (
-    <div className="min-h-dvh bg-paper flex flex-col">
+    <div className="min-h-dvh bg-paper flex flex-col pb-16 sm:pb-0">
       <header className="sticky top-0 z-50 bg-ink/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
           <div className="flex items-center justify-between h-16">
@@ -93,33 +102,28 @@ function App() {
               </div>
             </button>
 
-            <nav className="flex items-center gap-1 sm:gap-2">
-              <button
-                onClick={goHome}
-                className={navClass(view === VIEWS.home && !selectedEventId)}
-              >
-                Accueil
-              </button>
-              <button
-                onClick={goEvents}
-                className={navClass(view === VIEWS.events || !!selectedEventId)}
-              >
-                Événements
-              </button>
-              {isAdmin && (
-                <button
-                  onClick={goAdmin}
-                  className={`btn-nav ${
-                    view === VIEWS.admin
-                      ? 'bg-gold/20 text-gold'
-                      : 'text-white/60 hover:text-gold hover:bg-gold/10'
-                  }`}
-                >
-                  Admin
+            <nav className="flex items-center gap-1 sm:gap-2" aria-label="Navigation du compte">
+              <div className="hidden sm:flex items-center gap-2">
+                <button onClick={goHome} className={navClass(isHome)}>
+                  Accueil
                 </button>
-              )}
-
-              <div className="w-px h-5 bg-white/15 mx-1 sm:mx-2 hidden sm:block" />
+                <button onClick={goEvents} className={navClass(isEvents)}>
+                  Événements
+                </button>
+                {isAdmin && (
+                  <button
+                    onClick={goAdmin}
+                    className={`btn-nav ${
+                      isAdminView
+                        ? 'bg-gold/20 text-gold'
+                        : 'text-white/60 hover:text-gold hover:bg-gold/10'
+                    }`}
+                  >
+                    Admin
+                  </button>
+                )}
+                <div className="w-px h-5 bg-white/15 mx-1 sm:mx-2" />
+              </div>
 
               <button
                 onClick={() => supabase.auth.signOut()}
@@ -132,7 +136,7 @@ function App() {
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 min-w-0">
         {view === VIEWS.admin ? (
           <AdminPanel />
         ) : selectedEventId ? (
@@ -157,11 +161,29 @@ function App() {
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-taupe">
             CONFERA · PFE Master 2 IA
           </p>
-          <p className="text-xs text-taupe/70">
+          <p className="text-xs text-taupe/70 text-center sm:text-left">
             Gestion · Organisation · Pilotage des conférences scientifiques
           </p>
         </div>
       </footer>
+
+      {/* Navigation mobile : barre fixe en bas de l'écran */}
+      <nav
+        className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-ink border-t border-white/10 flex"
+        aria-label="Navigation principale"
+      >
+        <button onClick={goHome} className={mobileTab(isHome)}>
+          Accueil
+        </button>
+        <button onClick={goEvents} className={mobileTab(isEvents)}>
+          Événements
+        </button>
+        {isAdmin && (
+          <button onClick={goAdmin} className={mobileTab(isAdminView)}>
+            Admin
+          </button>
+        )}
+      </nav>
     </div>
   )
 }

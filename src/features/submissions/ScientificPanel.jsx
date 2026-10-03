@@ -4,6 +4,7 @@ import SubmissionForm from '../submissions/SubmissionForm'
 import ReviewForm from '../reviews/ReviewForm'
 import { SUBMISSION_BADGE, SUBMISSION_LABELS } from '../../lib/constants'
 import EmptyState from '../../components/ui/EmptyState'
+import Tabs from '../../components/ui/Tabs'
 
 const REC_TO_STATUS = { accept: 'accepted', reject: 'rejected', revise: 'revision_requested' }
 const REC_LABELS = {
@@ -80,6 +81,21 @@ function MyReviews({ reviews, sessionTitle }) {
   )
 }
 
+const FILTERS = [
+  { id: 'all', label: 'Tous' },
+  { id: 'submitted', label: 'En attente' },
+  { id: 'accepted', label: 'Acceptés' },
+  { id: 'revision_requested', label: 'Révision' },
+  { id: 'rejected', label: 'Rejetés' },
+]
+
+const STATUS_ACCENT = {
+  submitted: '#8A8578',
+  accepted: '#2F6F62',
+  rejected: '#9B3B3B',
+  revision_requested: '#C8963E',
+}
+
 export default function ScientificPanel({
   eventId,
   submissions,
@@ -107,6 +123,7 @@ export default function ScientificPanel({
   }, [])
 
   const [sessions, setSessions] = useState([])
+  const [filter, setFilter] = useState('all')
 
   useEffect(() => {
     supabase
@@ -210,6 +227,10 @@ export default function ScientificPanel({
     onRefresh()
   }
 
+  const countOf = (id) =>
+    id === 'all' ? submissions.length : submissions.filter((s) => s.status === id).length
+  const visible = filter === 'all' ? submissions : submissions.filter((s) => s.status === filter)
+
   return (
     <section>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
@@ -248,11 +269,25 @@ export default function ScientificPanel({
         </div>
       )}
 
+      {submissions.length > 0 && (
+        <div className="mb-4">
+          <Tabs
+            variant="pill"
+            active={filter}
+            onChange={setFilter}
+            tabs={FILTERS.map((f) => ({ ...f, badge: countOf(f.id) }))}
+          />
+        </div>
+      )}
+      {submissions.length > 0 && visible.length === 0 && (
+        <p className="text-sm text-taupe py-6 text-center">Aucun article dans cette catégorie.</p>
+      )}
+
       {submissions.length === 0 ? (
         <EmptyState title="Aucune soumission" body="Les auteurs déposent ici titre et résumé." />
       ) : (
         <ul className="space-y-4">
-          {submissions.map((s) => (
+          {visible.map((s) => (
             <li key={s.id} className="submission-card" style={{ overflowWrap: 'anywhere' }}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <h3 className="font-display font-semibold text-ink leading-snug">{s.title}</h3>

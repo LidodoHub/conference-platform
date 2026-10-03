@@ -32,7 +32,7 @@ export default function Tabs({ tabs, active, onChange, variant = 'main' }) {
             aria-selected={isActive}
             onClick={() => onChange(t.id)}
             className={`${base} ${state}`}
-            style={main && isActive ? { borderBottomColor: '#c9a24a' } : undefined}
+            style={main && isActive ? { borderBottomColor: 'var(--color-gold)' } : undefined}
           >
             {t.label}
             {t.badge ? (
