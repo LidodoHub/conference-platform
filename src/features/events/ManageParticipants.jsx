@@ -1,10 +1,24 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import Avatar from '../../components/ui/Avatar'
 
 const ROLE_LABELS = {
   participant: 'Participant',
   reviewer: 'Reviewer',
   organizer: 'Organisateur',
+}
+
+const ROLE_PLURALS = {
+  organizer: 'organisateur',
+  reviewer: 'reviewer',
+  participant: 'participant',
+}
+
+// trait de couleur à gauche de chaque ligne, selon le rôle
+const ROLE_COLOR = {
+  organizer: '#E6BE5A',
+  reviewer: '#7FB3FF',
+  participant: '#9AA3B5',
 }
 
 export default function ManageParticipants({ participants, onUpdated }) {
@@ -67,22 +81,47 @@ export default function ManageParticipants({ participants, onUpdated }) {
     )
   }
 
+  const countOf = (role) => participants.filter((p) => p.role_in_event === role).length
+
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      <div className="flex flex-wrap gap-2 mb-2">
+        {['organizer', 'reviewer', 'participant'].map((role) => {
+          const n = countOf(role)
+          return (
+            <span
+              key={role}
+              className="inline-flex items-center gap-2 rounded-full bg-ink text-white px-3 py-1 text-xs"
+            >
+              <span className="w-2 h-2 rounded-full" style={{ background: ROLE_COLOR[role] }} />
+              {n} {ROLE_PLURALS[role]}
+              {n > 1 ? 's' : ''}
+            </span>
+          )
+        })}
+      </div>
+
       {error && <div className="alert-error">{error}</div>}
 
       {participants.map((p) => {
         const isMe = p.user_id === myId
         return (
-          <div key={p.id} className="list-item">
-            <div className="min-w-0">
-              <span className="text-sm font-medium text-ink block truncate">
-                {p.profiles?.full_name}
-                {isMe && <span className="font-mono text-xs text-taupe ml-2">(vous)</span>}
-              </span>
-              <span className="font-mono text-xs text-taupe truncate block">
-                {p.profiles?.email}
-              </span>
+          <div
+            key={p.id}
+            className="list-item"
+            style={{ borderLeft: `4px solid ${ROLE_COLOR[p.role_in_event] || '#9AA3B5'}` }}
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <Avatar name={p.profiles?.full_name} size={38} tone="light" />
+              <div className="min-w-0">
+                <span className="text-sm font-medium text-ink block truncate">
+                  {p.profiles?.full_name}
+                  {isMe && <span className="font-mono text-xs text-taupe ml-2">(vous)</span>}
+                </span>
+                <span className="font-mono text-xs text-taupe truncate block">
+                  {p.profiles?.email}
+                </span>
+              </div>
             </div>
 
             <div className="flex items-center gap-2 flex-shrink-0">

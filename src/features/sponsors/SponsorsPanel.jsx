@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import EmptyState from '../../components/ui/EmptyState'
 
-const TIER_LABELS = {
-  platinum: 'Platine',
-  gold: 'Or',
-  silver: 'Argent',
-  partner: 'Partenaire',
+const TIERS = {
+  platinum: { label: 'Platine', color: '#D5DEEC' },
+  gold: { label: 'Or', color: '#E6BE5A' },
+  silver: { label: 'Argent', color: '#C4C9D2' },
+  partner: { label: 'Partenaire', color: '#8FD0BE' },
 }
 const TIER_ORDER = { platinum: 0, gold: 1, silver: 2, partner: 3 }
 const EMPTY_FORM = { name: '', tier: 'partner', website: '', benefits: '' }
@@ -16,6 +16,25 @@ const normalizeUrl = (value) => {
   const v = value.trim()
   if (!v) return null
   return /^https?:\/\//i.test(v) ? v : `https://${v}`
+}
+
+const hostOf = (url) => {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '')
+  } catch (e) {
+    return url
+  }
+}
+
+function Pill({ color, children }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider"
+      style={{ color, border: `1px solid ${color}66`, background: `${color}1A` }}
+    >
+      {children}
+    </span>
+  )
 }
 
 export default function SponsorsPanel({ eventId, isOrganizer }) {
@@ -142,8 +161,8 @@ export default function SponsorsPanel({ eventId, isOrganizer }) {
               value={form.tier}
               onChange={updateField('tier')}
             >
-              {Object.entries(TIER_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
+              {Object.entries(TIERS).map(([value, t]) => (
+                <option key={value} value={value}>{t.label}</option>
               ))}
             </select>
           </div>
@@ -181,55 +200,86 @@ export default function SponsorsPanel({ eventId, isOrganizer }) {
       )}
 
       {loading ? (
-        <div className="space-y-3">
-          <div className="skeleton h-16 w-full" />
-          <div className="skeleton h-16 w-full" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="skeleton h-40 w-full" />
+          <div className="skeleton h-40 w-full" />
         </div>
       ) : sponsors.length === 0 ? (
         <EmptyState title="Aucun sponsor" body="Les partenaires de l'événement apparaîtront ici." />
       ) : (
-        <ul className="space-y-3">
-          {sponsors.map((s) => (
-            <li key={s.id} className="card p-5">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <h3 className="font-display font-semibold text-ink leading-snug">{s.name}</h3>
-                <div className="flex items-center gap-2">
-                  <span className="badge-type">{TIER_LABELS[s.tier] || s.tier}</span>
-                  {isOrganizer && (
-                    <span className={s.published ? 'badge-published' : 'badge-draft'}>
-                      {s.published ? 'Publié' : 'Brouillon'}
-                    </span>
-                  )}
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {sponsors.map((s) => {
+            const tier = TIERS[s.tier] || TIERS.partner
+            return (
+              <li
+                key={s.id}
+                className="card p-5 sm:p-6 flex flex-col"
+                style={{ overflowWrap: 'anywhere', borderLeft: `6px solid ${tier.color}` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div
+                    className="w-14 h-14 rounded-xl flex items-center justify-center font-display text-2xl font-semibold shrink-0"
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: `1px solid ${tier.color}66`,
+                      color: tier.color,
+                    }}
+                  >
+                    {(s.name || '?').trim().charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-display text-xl font-semibold leading-snug tracking-tight text-white">
+                      {s.name}
+                    </h3>
+                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                      <Pill color={tier.color}>{tier.label}</Pill>
+                      {isOrganizer && (
+                        <Pill color={s.published ? '#34C38F' : '#9AA3B5'}>
+                          {s.published ? 'Publié' : 'Brouillon'}
+                        </Pill>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {s.website && (
-                <a
-                  href={s.website}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-mono text-xs text-taupe/70 hover:text-ink mt-2 inline-block break-all"
-                >
-                  {s.website}
-                </a>
-              )}
+                {s.benefits && (
+                  <div className="mt-4">
+                    <p className="section-label mb-2">Avantages</p>
+                    <p className="text-[15px] leading-7 text-white/75 whitespace-pre-line border-l-2 border-white/15 pl-4">
+                      {s.benefits}
+                    </p>
+                  </div>
+                )}
 
-              {s.benefits && (
-                <p className="text-sm text-taupe mt-3 leading-relaxed">{s.benefits}</p>
-              )}
-
-              {isOrganizer && (
-                <div className="flex flex-wrap gap-2 mt-4">
-                  <button type="button" className="btn-outline btn-sm" onClick={() => togglePublished(s)}>
-                    {s.published ? 'Dépublier' : 'Publier'}
-                  </button>
-                  <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(s)}>
-                    Supprimer
-                  </button>
-                </div>
-              )}
-            </li>
-          ))}
+                {(s.website || isOrganizer) && (
+                  <div className="mt-auto pt-5">
+                    <div className="flex flex-wrap items-center gap-2 pt-4 border-t border-white/10">
+                      {s.website && (
+                        <a
+                          href={s.website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-outline btn-sm"
+                        >
+                          {hostOf(s.website)} ↗
+                        </a>
+                      )}
+                      {isOrganizer && (
+                        <>
+                          <button type="button" className="btn-outline btn-sm" onClick={() => togglePublished(s)}>
+                            {s.published ? 'Dépublier' : 'Publier'}
+                          </button>
+                          <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(s)}>
+                            Supprimer
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>

@@ -2,16 +2,16 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #F5F4EF;
-  --color-paper-dark: #EBE9E1;
+  --color-paper: #DAD5C6;
+  --color-paper-dark: #CCC6B5;
   --color-ink: #1B2A4A;
   --color-ink-light: #2D4066;
   --color-gold: #C8963E;
   --color-gold-light: #E8D5B0;
   --color-sage: #2F6F62;
   --color-sage-light: #E4F0ED;
-  --color-taupe: #8A8578;
-  --color-cream: #FAFAF7;
+  --color-taupe: #5F5A4E;
+  --color-cream: #F3F0E6;
   --color-error: #9B3B3B;
   --color-error-light: #F5E8E8;
 
@@ -355,4 +355,112 @@
   .btn-sm {
     min-height: 40px;
   }
+}
+
+/* --- Fond du site --- */
+.min-h-dvh.bg-paper {
+  background-image:
+    radial-gradient(900px 500px at 90% -5%, rgba(200, 150, 62, 0.16), transparent 65%),
+    radial-gradient(700px 500px at -10% 105%, rgba(47, 111, 98, 0.12), transparent 60%);
+}
+
+/* --- Cartes sombres : soumissions (marine), sessions et sponsors (vert), personnes (ardoise) --- */
+.submission-card {
+  background: linear-gradient(135deg, #22365F 0%, #16233F 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  box-shadow: 0 6px 20px rgba(27, 42, 74, 0.25);
+}
+
+li.card {
+  background: linear-gradient(135deg, #1F5247 0%, #153B33 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid var(--color-gold);
+  border-radius: 1rem;
+  box-shadow: 0 6px 20px rgba(21, 59, 51, 0.28);
+}
+
+.list-item {
+  background: linear-gradient(135deg, #2D4066 0%, #233556 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 10px rgba(27, 42, 74, 0.18);
+}
+
+.grid > .card.p-4 {
+  background: linear-gradient(135deg, #22365F 0%, #16233F 100%);
+  border-bottom: 3px solid var(--color-gold);
+  box-shadow: 0 6px 20px rgba(27, 42, 74, 0.22);
+}
+
+/* Texte clair à l'intérieur de ces cartes */
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) {
+  color: #ffffff;
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) [class~="text-ink"] {
+  color: #ffffff;
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) [class*="text-ink/"] {
+  color: rgba(255, 255, 255, 0.78);
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) [class*="text-taupe"] {
+  color: rgba(255, 255, 255, 0.64);
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) .section-label {
+  color: var(--color-gold-light);
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) .section-heading {
+  color: #ffffff;
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) .form-label {
+  color: rgba(255, 255, 255, 0.8);
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) [class*="border-taupe"] {
+  border-color: rgba(255, 255, 255, 0.18);
+}
+:is(.submission-card, li.card, .list-item, .grid > .card.p-4) [class*="hover:text-ink"]:hover {
+  color: #ffffff;
+}
+
+/* Boutons lisibles sur fond sombre */
+:is(.submission-card, li.card, .list-item) .btn-outline {
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+:is(.submission-card, li.card, .list-item) .btn-outline:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+:is(.submission-card, li.card, .list-item) .btn-primary {
+  background: var(--color-gold);
+  color: var(--color-ink);
+}
+:is(.submission-card, li.card, .list-item) .btn-primary:hover {
+  background: var(--color-gold-light);
+}
+
+/* Message rouge de limite d'acceptation, lisible sur fond marine */
+.submission-card p[style*="rgb(154, 59, 46)"] {
+  color: #ffa899 !important;
+}
+
+/* Nombres des tuiles en doré (après la règle blanche ci-dessus) */
+.grid > .card.p-4 .font-display {
+  color: var(--color-gold);
+}
+
+/* --- Lecture des cartes sessions et sponsors --- */
+li.card {
+  border-left-width: 6px;
+}
+li.card h3 {
+  font-size: 1.3rem;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+li.card p[class*="leading-relaxed"] {
+  font-size: 0.95rem;
+  line-height: 1.75;
+  margin-top: 1rem;
+  padding-left: 1rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.18);
 }

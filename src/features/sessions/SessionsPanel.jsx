@@ -17,10 +17,18 @@ const EMPTY_FORM = {
   max_capacity: '',
 }
 
-const formatDate = (iso) =>
-  iso
-    ? new Date(iso).toLocaleString('fr-FR', { dateStyle: 'medium', timeStyle: 'short' })
-    : 'À planifier'
+const dateParts = (iso) => {
+  if (!iso) return null
+  const d = new Date(iso)
+  return {
+    day: d.getDate(),
+    month: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
+    time: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+  }
+}
+
+const timeOf = (iso) =>
+  iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
 
 // session la plus recommandée par les reviewers pour une soumission
 const suggestedSessionId = (s) => {
@@ -260,24 +268,34 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
 
       {canAssign && (
         <div className="card p-5 mb-6">
-          <p className="section-label mb-3">Articles acceptés à placer</p>
+          <div className="flex items-baseline gap-3 mb-4">
+            <p className="section-label">Articles acceptés à placer</p>
+            <span className="font-mono text-xs text-taupe">{unplaced.length}</span>
+          </div>
+
           {sessions.length === 0 ? (
             <p className="text-sm text-taupe">Crée d'abord des sessions pour pouvoir y placer des articles.</p>
           ) : unplaced.length === 0 ? (
             <p className="text-sm text-taupe">Tous les articles acceptés sont placés.</p>
           ) : (
-            <ul className="space-y-4">
+            <ul className="space-y-3">
               {unplaced.map((s) => {
                 const suggestion = suggestedSessionId(s)
                 const value = choices[s.id] ?? suggestion
                 return (
-                  <li key={s.id} className="text-sm" style={{ overflowWrap: 'anywhere' }}>
+                  <li
+                    key={s.id}
+                    className="rounded-lg border border-ink/10 bg-paper/60 p-3 text-sm"
+                    style={{ overflowWrap: 'anywhere' }}
+                  >
                     <p className="font-medium text-ink">{s.title}</p>
                     <p className="font-mono text-xs text-taupe mt-1">
                       {s.profiles?.full_name}
-                      {suggestion && <> · suggérée : {sessionTitle(suggestion) || 'session'}</>}
+                      {suggestion && (
+                        <span className="text-gold"> · suggérée : {sessionTitle(suggestion) || 'session'}</span>
+                      )}
                     </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-3">
                       <select
                         className="select-field w-auto min-w-[200px] text-xs py-1.5"
                         value={value}
@@ -307,69 +325,118 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
 
       {loading ? (
         <div className="space-y-3">
-          <div className="skeleton h-20 w-full" />
-          <div className="skeleton h-20 w-full" />
+          <div className="skeleton h-24 w-full" />
+          <div className="skeleton h-24 w-full" />
         </div>
       ) : sessions.length === 0 ? (
         <EmptyState title="Aucune session" body="Le programme de l'événement apparaîtra ici." />
       ) : (
-        <ul className="space-y-4">
+        <ul className="space-y-5">
           {sessions.map((s) => {
             const papers = papersOf(s.id)
-            return (
-              <li key={s.id} className="card p-5" style={{ overflowWrap: 'anywhere' }}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <h3 className="font-display font-semibold text-ink leading-snug">{s.title}</h3>
-                  <span className="badge-type">{TYPE_LABELS[s.session_type] || s.session_type}</span>
-                </div>
-                {s.description && (
-                  <p className="text-sm text-taupe mt-3 leading-relaxed whitespace-pre-line">{s.description}</p>
-                )}
-                <p className="font-mono text-xs text-taupe/70 mt-3">
-                  {formatDate(s.start_time)}
-                  {s.end_time && <> → {formatDate(s.end_time)}</>}
-                  {s.max_capacity && <> · {s.max_capacity} places</>}
-                </p>
+            const when = dateParts(s.start_time)
 
+            return (
+              <li key={s.id} className="card p-5 sm:p-6" style={{ overflowWrap: 'anywhere' }}>
+                <div className="flex gap-4 sm:gap-5">
+                  {/* Bloc date */}
+                  <div
+                    className="shrink-0 w-16 sm:w-20 rounded-xl text-center py-3 self-start"
+                    style={
+                      when
+                        ? { background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }
+                        : { border: '1px dashed rgba(255,255,255,0.3)' }
+                    }
+                  >
+                    {when ? (
+                      <>
+                        <p className="font-mono text-[10px] uppercase tracking-widest text-gold-light">{when.month}</p>
+                        <p className="font-display text-3xl sm:text-4xl font-semibold leading-none mt-1 text-white">
+                          {when.day}
+                        </p>
+                        <p className="font-mono text-[11px] text-white/70 mt-2">{when.time}</p>
+                      </>
+                    ) : (
+                      <p className="font-mono text-[10px] uppercase tracking-wider text-white/60 px-1 py-2 leading-4">
+                        À planifier
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center rounded-full border border-white/25 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-white/85">
+                        {TYPE_LABELS[s.session_type] || s.session_type}
+                      </span>
+                      {s.max_capacity && (
+                        <span className="font-mono text-[11px] text-white/60">{s.max_capacity} places</span>
+                      )}
+                    </div>
+
+                    <h3 className="mt-2 font-display text-xl sm:text-2xl font-semibold leading-snug tracking-tight text-white">
+                      {s.title}
+                    </h3>
+
+                    {s.end_time && (
+                      <p className="font-mono text-xs text-white/60 mt-1">
+                        {timeOf(s.start_time)} → {timeOf(s.end_time)}
+                      </p>
+                    )}
+
+                    {s.description && (
+                      <p className="mt-3 text-[15px] leading-7 text-white/75 whitespace-pre-line border-l-2 border-white/15 pl-4">
+                        {s.description}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Articles présentés */}
                 {papers.length > 0 ? (
-                  <ul className="mt-4 pt-3 border-t border-dashed border-taupe/30 space-y-2">
-                    {papers.map((a, i) => {
-                      const sub = submissionById.get(a.submission_id)
-                      return (
-                        <li key={a.id} className="text-sm flex flex-wrap items-baseline justify-between gap-2">
-                          <span>
-                            <span className="font-mono text-xs text-taupe mr-2">{i + 1}.</span>
-                            {sub?.title || 'Article'}
-                            {sub?.profiles?.full_name && (
-                              <span className="text-taupe"> — {sub.profiles.full_name}</span>
+                  <div className="mt-5 pt-4 border-t border-white/10">
+                    <p className="section-label mb-3">Articles présentés · {papers.length}</p>
+                    <ul className="space-y-2">
+                      {papers.map((a, i) => {
+                        const sub = submissionById.get(a.submission_id)
+                        return (
+                          <li
+                            key={a.id}
+                            className="flex items-start gap-3 rounded-lg bg-white/5 border border-white/10 px-3 py-2.5"
+                          >
+                            <span className="w-6 h-6 rounded-full border border-gold/60 text-gold text-xs font-mono flex items-center justify-center shrink-0 mt-0.5">
+                              {i + 1}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-medium text-white leading-snug">{sub?.title || 'Article'}</p>
+                              {sub?.profiles?.full_name && (
+                                <p className="text-xs text-white/60 mt-0.5">{sub.profiles.full_name}</p>
+                              )}
+                            </div>
+                            {canAssign && (
+                              <button
+                                type="button"
+                                className="btn-outline btn-sm"
+                                disabled={busy}
+                                onClick={() => assign(a.submission_id, null)}
+                              >
+                                Retirer
+                              </button>
                             )}
-                          </span>
-                          {canAssign && (
-                            <button
-                              type="button"
-                              className="btn-outline btn-sm"
-                              disabled={busy}
-                              onClick={() => assign(a.submission_id, null)}
-                            >
-                              Retirer
-                            </button>
-                          )}
-                        </li>
-                      )
-                    })}
-                  </ul>
+                          </li>
+                        )
+                      })}
+                    </ul>
+                  </div>
                 ) : (
-                  <p className="text-xs text-taupe mt-4">Aucun article affecté pour l'instant.</p>
+                  <p className="text-xs text-white/50 mt-5">Aucun article affecté pour l'instant.</p>
                 )}
 
                 {isOrganizer && (
-                  <button
-                    type="button"
-                    className="btn-danger btn-sm mt-4"
-                    onClick={() => handleDelete(s.id)}
-                  >
-                    Supprimer la session
-                  </button>
+                  <div className="mt-5 pt-4 border-t border-white/10">
+                    <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(s.id)}>
+                      Supprimer la session
+                    </button>
+                  </div>
                 )}
               </li>
             )

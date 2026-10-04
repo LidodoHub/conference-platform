@@ -2,15 +2,23 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import SubmissionForm from '../submissions/SubmissionForm'
 import ReviewForm from '../reviews/ReviewForm'
-import { SUBMISSION_BADGE, SUBMISSION_LABELS } from '../../lib/constants'
-import EmptyState from '../../components/ui/EmptyState'
 import Tabs from '../../components/ui/Tabs'
+import { SUBMISSION_LABELS } from '../../lib/constants'
+import EmptyState from '../../components/ui/EmptyState'
 
-const REC_TO_STATUS = { accept: 'accepted', reject: 'rejected', revise: 'revision_requested' }
 const REC_LABELS = {
-  accept: 'Recommande d\'accepter',
+  accept: "Recommande d'accepter",
   reject: 'Recommande de rejeter',
   revise: 'Recommande une révision',
+}
+const REC_COLOR = { accept: '#34C38F', reject: '#E5534B', revise: '#F2A93B' }
+
+// couleur de la bande de gauche : vert accepté, orange révision, rouge rejeté, blanc soumis
+const STATUS_ACCENT = {
+  submitted: '#F4F1E8',
+  accepted: '#34C38F',
+  revision_requested: '#F2A93B',
+  rejected: '#E5534B',
 }
 
 const MIN_REVIEWS_TO_DECIDE = 1
@@ -40,6 +48,23 @@ const REVISION_HINTS = {
   major: 'Remaniement important attendu (méthode, résultats ou structure).',
 }
 
+const FILTERS = [
+  { id: 'all', label: 'Tous' },
+  { id: 'submitted', label: 'En attente' },
+  { id: 'accepted', label: 'Acceptés' },
+  { id: 'revision_requested', label: 'Révision' },
+  { id: 'rejected', label: 'Rejetés' },
+]
+
+const ABSTRACT_FOLD = 280
+
+const formatDate = (iso) =>
+  iso
+    ? new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })
+    : ''
+
+const initialOf = (name) => (name || '?').trim().charAt(0).toUpperCase() || '?'
+
 // dernière décision "révision" d'une soumission (visible par l'organizer et l'auteur)
 const latestRevision = (s) => {
   const list = (s.decisions || []).filter((d) => d.status === 'revision_requested')
@@ -55,45 +80,87 @@ const statusLabel = (s) => {
   return SUBMISSION_LABELS[s.status] || s.status
 }
 
+const averageScore = (s) => {
+  const list = (s.reviews || []).filter((r) => r.recommendation)
+  if (list.length === 0) return null
+  return (list.reduce((sum, r) => sum + Number(r.score || 0), 0) / list.length).toFixed(1)
+}
+
+function Kicker({ children }) {
+  return (
+    <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-gold-light">{children}</p>
+  )
+}
+
+function Pill({ color, children }) {
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap"
+      style={{ background: `${color}26`, color, border: `1px solid ${color}66` }}
+    >
+      <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
+      {children}
+    </span>
+  )
+}
+
+function Stars({ value }) {
+  const n = Math.max(0, Math.min(5, Math.round(Number(value) || 0)))
+  return (
+    <span className="text-sm tracking-tight" aria-label={`${value} sur 5`}>
+      <span style={{ color: '#F2C14E' }}>{'★'.repeat(n)}</span>
+      <span style={{ color: 'rgba(255,255,255,0.25)' }}>{'★'.repeat(5 - n)}</span>
+    </span>
+  )
+}
+
+// un avis de reviewer sous forme de mini-carte
+function ReviewItem({ name, review, sessionTitle }) {
+  const color = REC_COLOR[review.recommendation] || '#9AA3B5'
+  const hasComment = review.comments && !review.comments.startsWith('Assignation')
+
+  return (
+    <li
+      className="rounded-xl bg-white/5 border border-white/10 p-3 sm:p-4"
+      style={{ borderLeft: `4px solid ${color}` }}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm font-medium text-white">{name}</span>
+        <Stars value={review.score} />
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mt-2">
+        {review.recommendation && <Pill color={color}>{REC_LABELS[review.recommendation]}</Pill>}
+        {review.recommended_session_id && (
+          <span className="font-mono text-[11px] text-white/70 border border-white/15 rounded-full px-2.5 py-0.5">
+            Session : {sessionTitle(review.recommended_session_id) || '—'}
+          </span>
+        )}
+      </div>
+
+      {hasComment && (
+        <p className="mt-3 text-sm leading-6 text-white/75 whitespace-pre-line">
+          « {review.comments} »
+        </p>
+      )}
+    </li>
+  )
+}
+
+// ce que le reviewer a lui-même écrit sur un article
 function MyReviews({ reviews, sessionTitle }) {
   return (
-    <div className="mt-4 pt-3 border-t border-dashed border-taupe/30">
-      <p className="section-label mb-2">{reviews.length > 1 ? 'Mes reviews' : 'Ma review'}</p>
-      <ul className="space-y-3">
+    <div className="mt-5 pt-4 border-t border-white/10">
+      <div className="mb-3">
+        <Kicker>{reviews.length > 1 ? 'Mes reviews' : 'Ma review'}</Kicker>
+      </div>
+      <ul className="space-y-2">
         {reviews.map((r) => (
-          <li key={r.id} className="text-sm">
-            <div className="flex flex-wrap items-baseline gap-2">
-              <span className={SUBMISSION_BADGE[REC_TO_STATUS[r.recommendation]] || 'badge-submitted'}>
-                {REC_LABELS[r.recommendation] || 'Review envoyée'}
-              </span>
-              <span className="font-mono text-xs text-taupe/70">score {r.score}/5</span>
-              {r.recommended_session_id && (
-                <span className="font-mono text-xs text-taupe">
-                  → {sessionTitle(r.recommended_session_id) || 'session'}
-                </span>
-              )}
-            </div>
-            {r.comments && <p className="text-taupe mt-1 whitespace-pre-line">{r.comments}</p>}
-          </li>
+          <ReviewItem key={r.id} name="Mon avis" review={r} sessionTitle={sessionTitle} />
         ))}
       </ul>
     </div>
   )
-}
-
-const FILTERS = [
-  { id: 'all', label: 'Tous' },
-  { id: 'submitted', label: 'En attente' },
-  { id: 'accepted', label: 'Acceptés' },
-  { id: 'revision_requested', label: 'Révision' },
-  { id: 'rejected', label: 'Rejetés' },
-]
-
-const STATUS_ACCENT = {
-  submitted: '#8A8578',
-  accepted: '#2F6F62',
-  rejected: '#9B3B3B',
-  revision_requested: '#C8963E',
 }
 
 export default function ScientificPanel({
@@ -114,16 +181,13 @@ export default function ScientificPanel({
   const [saving, setSaving] = useState(false)
   const [myId, setMyId] = useState(null)
   const [error, setError] = useState(null)
-  const [editingSettings, setEditingSettings] = useState(
-    !(Number(event?.registration_fee) > 0 || event?.payment_instructions),
-  )
+  const [filter, setFilter] = useState('all')
+  const [sessions, setSessions] = useState([])
+  const [expandedId, setExpandedId] = useState(null)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => setMyId(data?.user?.id ?? null))
   }, [])
-
-  const [sessions, setSessions] = useState([])
-  const [filter, setFilter] = useState('all')
 
   useEffect(() => {
     supabase
@@ -134,8 +198,9 @@ export default function ScientificPanel({
   }, [eventId])
 
   const sessionTitle = (id) => sessions.find((x) => x.id === id)?.title
-
   const myReviewsOf = (s) => (s.reviews || []).filter((r) => r.reviewer_id === myId)
+  const reviewerName = (id) =>
+    participants.find((p) => p.user_id === id)?.profiles?.full_name || 'Reviewer'
 
   // phase close : plus de review ni de décision ; la gestion (lecture, suppression) reste possible
   const canReview = isReviewer && !frozen
@@ -286,219 +351,289 @@ export default function ScientificPanel({
       {submissions.length === 0 ? (
         <EmptyState title="Aucune soumission" body="Les auteurs déposent ici titre et résumé." />
       ) : (
-        <ul className="space-y-4">
-          {visible.map((s) => (
-            <li key={s.id} className="submission-card" style={{ overflowWrap: 'anywhere' }}>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <h3 className="font-display font-semibold text-ink leading-snug">{s.title}</h3>
-                <span className={SUBMISSION_BADGE[s.status] || 'badge-submitted'}>
-                  {statusLabel(s)}
-                </span>
-              </div>
-              {s.abstract && <p className="text-sm text-taupe mt-3 leading-relaxed whitespace-pre-line">{s.abstract}</p>}
-              <p className="font-mono text-xs text-taupe/70 mt-3">
-                {s.profiles?.full_name}
-                {myReviewsOf(s).length > 0 && (
-                <MyReviews reviews={myReviewsOf(s)} sessionTitle={sessionTitle} />
-              )}
-                {s.submitted_at && <> · {s.submitted_at.split('T')[0]}</>}
-              </p>
+        <ul className="space-y-5">
+          {visible.map((s) => {
+            const accent = STATUS_ACCENT[s.status] || '#F4F1E8'
+            const expanded = expandedId === s.id
+            const longAbstract = (s.abstract || '').length > ABSTRACT_FOLD
+            const sentReviews = (s.reviews || []).filter((r) => r.recommendation)
+            const avg = averageScore(s)
+            const revision = latestRevision(s)
+            const authorComments = sentReviews.filter(
+              (r) => r.comments && !r.comments.startsWith('Assignation'),
+            )
+            const hasActions =
+              (s.status === 'submitted' && canReview) ||
+              (canDecide && s.status === 'submitted') ||
+              (canManage && s.status !== 'submitted')
 
-              {canManage && s.reviews?.some((r) => r.recommendation) && (
-                <div className="mt-4 pt-3 border-t border-dashed border-taupe/30">
-                  <p className="section-label mb-2">Recommandations des reviewers</p>
-                  <ul className="space-y-2">
-                    {s.reviews.filter((r) => r.recommendation).map((r) => (
-                      <li key={r.id} className="text-sm flex flex-wrap items-baseline gap-2">
-                        <span className="font-mono text-xs text-taupe">
-                          {participants.find((p) => p.user_id === r.reviewer_id)?.profiles?.full_name || 'Reviewer'}
-                        </span>
-                        <span className={SUBMISSION_BADGE[REC_TO_STATUS[r.recommendation]] || 'badge-submitted'}>
-                          {REC_LABELS[r.recommendation]}
-                        </span>
-                        <span className="font-mono text-xs text-taupe/70">score {r.score}/5</span>
-                        {r.recommended_session_id && (
-                          <span className="font-mono text-xs text-taupe">
-                            → {sessionTitle(r.recommended_session_id) || 'session'}
-                          </span>
-                        )}
-                        {r.comments && <span className="text-taupe">— {r.comments}</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Côté auteur : révision demandée */}
-              {s.status === 'revision_requested' && s.author_id === myId && (
-                <div className="mt-4 pt-3 border-t border-dashed border-taupe/30">
-                  <p className="section-label mb-1">
-                    {latestRevision(s)?.revision_type
-                      ? `${REVISION_LABELS[latestRevision(s).revision_type]} demandée`
-                      : 'Révision demandée'}
-                  </p>
-                  {latestRevision(s)?.revision_type && (
-                    <p className="text-xs text-taupe mb-3">
-                      {REVISION_HINTS[latestRevision(s).revision_type]}
-                    </p>
-                  )}
-
-                  {(s.reviews || []).some((r) => r.comments && !r.comments.startsWith('Assignation')) && (
-                    <ul className="space-y-2 mb-4">
-                      {(s.reviews || [])
-                        .filter((r) => r.comments && !r.comments.startsWith('Assignation'))
-                        .map((r, i) => (
-                          <li key={r.id} className="text-sm">
-                            <span className="font-mono text-xs text-taupe">Reviewer {i + 1}</span>
-                            <span className="text-taupe"> — {r.comments}</span>
-                          </li>
-                        ))}
-                    </ul>
-                  )}
-
-                  {frozen ? (
-                    <p className="text-xs text-taupe">
-                      La phase scientifique est close : la resoumission n'est plus possible.
-                    </p>
-                  ) : resubmittingId === s.id ? (
-                    <form onSubmit={(e) => handleResubmit(e, s)} className="space-y-3">
-                      <div>
-                        <label htmlFor={`rs-title-${s.id}`} className="form-label">Titre</label>
-                        <input
-                          id={`rs-title-${s.id}`}
-                          className="input-field"
-                          value={resubmitForm.title}
-                          onChange={(e) => setResubmitForm((f) => ({ ...f, title: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <label htmlFor={`rs-abstract-${s.id}`} className="form-label">Résumé</label>
-                        <textarea
-                          id={`rs-abstract-${s.id}`}
-                          className="textarea-field"
-                          rows={5}
-                          value={resubmitForm.abstract}
-                          onChange={(e) => setResubmitForm((f) => ({ ...f, abstract: e.target.value }))}
-                          required
-                        />
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        <button type="submit" disabled={saving} className="btn-primary btn-sm">
-                          {saving ? 'Envoi…' : 'Resoumettre'}
-                        </button>
-                        <button type="button" className="btn-outline btn-sm" onClick={() => setResubmittingId(null)}>
-                          Annuler
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <button type="button" className="btn-ghost-gold btn-sm" onClick={() => startResubmit(s)}>
-                      Corriger et resoumettre
-                    </button>
+            return (
+              <li
+                key={s.id}
+                className="submission-card sm:p-6"
+                style={{
+                  overflowWrap: 'anywhere',
+                  borderLeft: `8px solid ${accent}`,
+                  backgroundImage: `linear-gradient(90deg, ${accent}26 0%, transparent 40%), linear-gradient(135deg, #22365F 0%, #16233F 100%)`,
+                }}
+              >
+                {/* Statut et date */}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <Pill color={accent}>{statusLabel(s)}</Pill>
+                  {s.submitted_at && (
+                    <span className="font-mono text-xs text-white/50">
+                      Soumis le {formatDate(s.submitted_at)}
+                    </span>
                   )}
                 </div>
-              )}
 
-              {canDecide && s.status === 'submitted' && atLimit(s) && (
-                <p className="text-xs mt-3" style={{ color: '#9a3b2e' }}>
-                  Cet auteur a déjà {MAX_ACCEPTED_PER_AUTHOR} articles acceptés dans cet événement : l'acceptation
-                  est bloquée. Tu peux rejeter ou demander une révision.
-                </p>
-              )}
+                {/* Titre */}
+                <h3 className="mt-4 font-display text-xl sm:text-2xl font-semibold leading-snug tracking-tight text-white">
+                  {s.title}
+                </h3>
 
-              {canDecide && s.status === 'submitted' && !atLimit(s) && !isReady(s) && (
-                <p className="text-xs text-taupe mt-3">
-                  Aucune review pour l'instant : tu peux décider quand même, une confirmation te sera demandée.
-                </p>
-              )}
-
-              <div className="flex flex-wrap gap-2 mt-4">
-                {s.status === 'submitted' && canReview && (
-                  <button
-                    type="button"
-                    className="btn-ghost-gold btn-sm"
-                    onClick={() => setReviewingId(reviewingId === s.id ? null : s.id)}
+                {/* Auteur */}
+                <div className="flex items-center gap-2.5 mt-3">
+                  <span
+                    className="w-7 h-7 rounded-full bg-gold flex items-center justify-center text-xs font-display font-semibold shrink-0"
+                    style={{ color: '#1B2A4A' }}
                   >
-                    {reviewingId === s.id
-                      ? 'Fermer la review'
-                      : myReviewsOf(s).length > 0
-                        ? 'Ajouter une nouvelle review'
-                        : 'Faire une review'}
-                  </button>
+                    {initialOf(s.profiles?.full_name)}
+                  </span>
+                  <span className="text-sm text-white/90">{s.profiles?.full_name}</span>
+                </div>
+
+                {/* Résumé */}
+                {s.abstract && (
+                  <div className="mt-5">
+                    <Kicker>Résumé</Kicker>
+                    <p
+                      className={`mt-2 text-[15px] leading-7 text-white/80 whitespace-pre-line border-l-2 border-white/15 pl-4 ${
+                        expanded ? '' : 'line-clamp-4'
+                      }`}
+                    >
+                      {s.abstract}
+                    </p>
+                    {longAbstract && (
+                      <button
+                        type="button"
+                        className="mt-2 text-xs font-medium text-gold hover:text-gold-light"
+                        onClick={() => setExpandedId(expanded ? null : s.id)}
+                      >
+                        {expanded ? 'Réduire' : 'Lire la suite'}
+                      </button>
+                    )}
+                  </div>
                 )}
 
-                {canDecide && s.status === 'submitted' && (
-                  <>
-                    <button
-                      type="button"
-                      className={acceptClass(s)}
-                      style={acceptStyle(s)}
-                      disabled={atLimit(s)}
-                      title={acceptTitle(s)}
-                      onClick={() => decideWithCheck(s, 'accepted')}
-                    >
-                      Accepter
-                    </button>
-                    <button type="button" className="btn-danger btn-sm" onClick={() => decide(s.id, 'rejected')}>
-                      Rejeter
-                    </button>
+                {/* Ma review (reviewer) */}
+                {myReviewsOf(s).length > 0 && (
+                  <MyReviews reviews={myReviewsOf(s)} sessionTitle={sessionTitle} />
+                )}
 
-                    {revisionPickerId === s.id ? (
+                {/* Avis des reviewers (organizer) */}
+                {canManage && sentReviews.length > 0 && (
+                  <div className="mt-5 pt-4 border-t border-white/10">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                      <Kicker>
+                        Avis des reviewers · {sentReviews.length}
+                      </Kicker>
+                      {avg && <span className="font-mono text-xs text-white/60">moyenne {avg}/5</span>}
+                    </div>
+                    <ul className="space-y-2">
+                      {sentReviews.map((r) => (
+                        <ReviewItem
+                          key={r.id}
+                          name={reviewerName(r.reviewer_id)}
+                          review={r}
+                          sessionTitle={sessionTitle}
+                        />
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Côté auteur : révision demandée */}
+                {s.status === 'revision_requested' && s.author_id === myId && (
+                  <div
+                    className="mt-5 rounded-xl p-4"
+                    style={{
+                      background: 'rgba(242,169,59,0.10)',
+                      border: '1px solid rgba(242,169,59,0.35)',
+                    }}
+                  >
+                    <p className="text-sm font-semibold" style={{ color: '#F2A93B' }}>
+                      {revision?.revision_type
+                        ? `${REVISION_LABELS[revision.revision_type]} demandée`
+                        : 'Révision demandée'}
+                    </p>
+                    {revision?.revision_type && (
+                      <p className="text-xs text-white/70 mt-1">{REVISION_HINTS[revision.revision_type]}</p>
+                    )}
+
+                    {authorComments.length > 0 && (
+                      <ul className="space-y-2 mt-4">
+                        {authorComments.map((r, i) => (
+                          <ReviewItem
+                            key={r.id}
+                            name={`Reviewer ${i + 1}`}
+                            review={r}
+                            sessionTitle={sessionTitle}
+                          />
+                        ))}
+                      </ul>
+                    )}
+
+                    <div className="mt-4">
+                      {frozen ? (
+                        <p className="text-xs text-white/60">
+                          La phase scientifique est close : la resoumission n'est plus possible.
+                        </p>
+                      ) : resubmittingId === s.id ? (
+                        <form onSubmit={(e) => handleResubmit(e, s)} className="space-y-3">
+                          <div>
+                            <label htmlFor={`rs-title-${s.id}`} className="form-label">Titre</label>
+                            <input
+                              id={`rs-title-${s.id}`}
+                              className="input-field"
+                              value={resubmitForm.title}
+                              onChange={(e) => setResubmitForm((f) => ({ ...f, title: e.target.value }))}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label htmlFor={`rs-abstract-${s.id}`} className="form-label">Résumé</label>
+                            <textarea
+                              id={`rs-abstract-${s.id}`}
+                              className="textarea-field"
+                              rows={5}
+                              value={resubmitForm.abstract}
+                              onChange={(e) => setResubmitForm((f) => ({ ...f, abstract: e.target.value }))}
+                              required
+                            />
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <button type="submit" disabled={saving} className="btn-primary btn-sm">
+                              {saving ? 'Envoi…' : 'Resoumettre'}
+                            </button>
+                            <button type="button" className="btn-outline btn-sm" onClick={() => setResubmittingId(null)}>
+                              Annuler
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button type="button" className="btn-primary btn-sm" onClick={() => startResubmit(s)}>
+                          Corriger et resoumettre
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Messages pour l'organizer */}
+                {canDecide && s.status === 'submitted' && atLimit(s) && (
+                  <p className="text-xs mt-4" style={{ color: '#FFA899' }}>
+                    Cet auteur a déjà {MAX_ACCEPTED_PER_AUTHOR} articles acceptés dans cet événement : l'acceptation
+                    est bloquée. Tu peux rejeter ou demander une révision.
+                  </p>
+                )}
+
+                {canDecide && s.status === 'submitted' && !atLimit(s) && !isReady(s) && (
+                  <p className="text-xs text-white/60 mt-4">
+                    Aucune review pour l'instant : tu peux décider quand même, une confirmation te sera demandée.
+                  </p>
+                )}
+
+                {/* Actions */}
+                {hasActions && (
+                  <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-white/10">
+                    {s.status === 'submitted' && canReview && (
+                      <button
+                        type="button"
+                        className="btn-ghost-gold btn-sm"
+                        onClick={() => setReviewingId(reviewingId === s.id ? null : s.id)}
+                      >
+                        {reviewingId === s.id
+                          ? 'Fermer la review'
+                          : myReviewsOf(s).length > 0
+                            ? 'Ajouter une nouvelle review'
+                            : 'Faire une review'}
+                      </button>
+                    )}
+
+                    {canDecide && s.status === 'submitted' && (
                       <>
                         <button
                           type="button"
-                          className="btn-outline btn-sm"
-                          style={isReady(s) ? undefined : PENDING_STYLE}
-                          onClick={() => decideWithCheck(s, 'revision_requested', 'minor')}
+                          className={acceptClass(s)}
+                          style={acceptStyle(s)}
+                          disabled={atLimit(s)}
+                          title={acceptTitle(s)}
+                          onClick={() => decideWithCheck(s, 'accepted')}
                         >
-                          Révision mineure
+                          Accepter
                         </button>
-                        <button
-                          type="button"
-                          className="btn-outline btn-sm"
-                          style={isReady(s) ? undefined : PENDING_STYLE}
-                          onClick={() => decideWithCheck(s, 'revision_requested', 'major')}
-                        >
-                          Révision majeure
+                        <button type="button" className="btn-danger btn-sm" onClick={() => decide(s.id, 'rejected')}>
+                          Rejeter
                         </button>
-                        <button type="button" className="btn-ghost-gold btn-sm" onClick={() => setRevisionPickerId(null)}>
-                          Annuler
-                        </button>
+
+                        {revisionPickerId === s.id ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn-outline btn-sm"
+                              style={isReady(s) ? undefined : PENDING_STYLE}
+                              onClick={() => decideWithCheck(s, 'revision_requested', 'minor')}
+                            >
+                              Révision mineure
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-outline btn-sm"
+                              style={isReady(s) ? undefined : PENDING_STYLE}
+                              onClick={() => decideWithCheck(s, 'revision_requested', 'major')}
+                            >
+                              Révision majeure
+                            </button>
+                            <button type="button" className="btn-ghost-gold btn-sm" onClick={() => setRevisionPickerId(null)}>
+                              Annuler
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            type="button"
+                            className="btn-outline btn-sm"
+                            style={isReady(s) ? undefined : PENDING_STYLE}
+                            title={isReady(s) ? '' : 'Aucune review : une confirmation sera demandée'}
+                            onClick={() => setRevisionPickerId(s.id)}
+                          >
+                            Révision
+                          </button>
+                        )}
                       </>
-                    ) : (
-                      <button
-                        type="button"
-                        className="btn-outline btn-sm"
-                        style={isReady(s) ? undefined : PENDING_STYLE}
-                        title={isReady(s) ? '' : 'Aucune review : une confirmation sera demandée'}
-                        onClick={() => setRevisionPickerId(s.id)}
-                      >
-                        Révision
+                    )}
+
+                    {canManage && s.status !== 'submitted' && (
+                      <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(s.id)}>
+                        Supprimer
                       </button>
                     )}
-                  </>
+                  </div>
                 )}
 
-                {canManage && s.status !== 'submitted' && (
-                  <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(s.id)}>
-                    Supprimer
-                  </button>
+                {reviewingId === s.id && !frozen && (
+                  <ReviewForm
+                    submissionId={s.id}
+                    eventId={eventId}
+                    onReviewed={() => {
+                      setReviewingId(null)
+                      onRefresh()
+                    }}
+                  />
                 )}
-              </div>
-
-              {reviewingId === s.id && !frozen && (
-                <ReviewForm
-                  submissionId={s.id}
-                  eventId={eventId}
-                  onReviewed={() => {
-                    setReviewingId(null)
-                    onRefresh()
-                  }}
-                />
-              )}
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
     </section>
