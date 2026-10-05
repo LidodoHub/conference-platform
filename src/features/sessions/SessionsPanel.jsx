@@ -1,16 +1,29 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PlusIcon, XIcon, TrashIcon, ClockIcon, UsersThreeIcon, PresentationChartIcon, ArrowRightIcon } from '@phosphor-icons/react'
+import {
+  PlusIcon,
+  TrashIcon,
+  ClockIcon,
+  UsersThreeIcon,
+  PresentationChartIcon,
+  ArrowRightIcon,
+  PencilSimpleIcon,
+  DoorOpenIcon,
+  VideoCameraIcon,
+} from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
 import { SESSION_TYPE_LABELS } from '../../lib/constants'
 import EmptyState from '../../components/ui/EmptyState'
 import SectionTitle from '../../components/ui/SectionTitle'
-
-const EMPTY_FORM = { title: '', description: '', session_type: 'talk', start_time: '', end_time: '', max_capacity: '' }
+import SessionForm from './SessionForm'
 
 const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '')
-const dayOf = (iso) =>
-  iso ? new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'À planifier'
+const dayKey = (iso) => {
+  if (!iso) return 'none'
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+}
+const dayOf = (iso) => (iso ? new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'À planifier')
 
 // session la plus recommandée par les reviewers pour un article
 const suggestedSessionId = (s) => {
@@ -21,26 +34,29 @@ const suggestedSessionId = (s) => {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || ''
 }
 
-export default function SessionsPanel({ eventId, isOrganizer, phase, submissions = [] }) {
+export default function SessionsPanel({ eventId, event, isOrganizer, phase, submissions = [] }) {
   const [sessions, setSessions] = useState([])
+  const [rooms, setRooms] = useState([])
+  const [links, setLinks] = useState({})
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
+  const [editing, setEditing] = useState(null) // null | 'new' | id de session
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-  const [form, setForm] = useState(EMPTY_FORM)
   const [choices, setChoices] = useState({})
+  // heure de référence pour signaler la session en cours (figée au chargement du panneau)
+  const [now] = useState(() => Date.now())
 
   const organizational = phase === 'organizational'
   const canAssign = isOrganizer && organizational
+  const showMeeting = event?.format && event.format !== 'onsite'
 
   const load = useCallback(async () => {
     const { data: sessionsData, error: loadError } = await supabase
       .from('sessions')
-      .select('id, title, description, session_type, start_time, end_time, max_capacity')
+      .select('id, title, description, session_type, start_time, end_time, max_capacity, room_id')
       .eq('event_id', eventId)
       .order('start_time', { ascending: true, nullsFirst: false })
-
     if (loadError) {
       setError(frError(loadError))
       setLoading(false)
@@ -48,15 +64,18 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
     }
     setSessions(sessionsData)
     const ids = sessionsData.map((x) => x.id)
-    if (ids.length) {
-      const { data, error: assignError } = await supabase
-        .from('session_submissions')
-        .select('id, session_id, submission_id, presentation_order')
-        .in('session_id', ids)
-        .order('presentation_order', { ascending: true })
-      if (assignError) setError(frError(assignError))
-      else setAssignments(data)
-    } else setAssignments([])
+
+    const [roomsRes, assignRes, linksRes] = await Promise.all([
+      supabase.from('rooms').select('id, name, capacity, location').eq('event_id', eventId).order('name'),
+      ids.length
+        ? supabase.from('session_submissions').select('id, session_id, submission_id, presentation_order').in('session_id', ids).order('presentation_order')
+        : Promise.resolve({ data: [] }),
+      // la RLS ne renvoie les liens qu'aux membres de l'événement
+      ids.length ? supabase.from('session_links').select('session_id, url').in('session_id', ids) : Promise.resolve({ data: [] }),
+    ])
+    setRooms(roomsRes.data || [])
+    setAssignments(assignRes.data || [])
+    setLinks(Object.fromEntries((linksRes.data || []).map((l) => [l.session_id, l.url])))
     setLoading(false)
   }, [eventId])
 
@@ -64,33 +83,30 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
     load()
   }, [load])
 
-  const updateField = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
+  // enregistre la session puis son lien de visio (table séparée)
+  const saveSession = async (values) => {
+    const { meeting_url: url, ...fields } = values
+    let sessionId = editing
+    if (editing === 'new') {
+      const { data, error: insertError } = await supabase.from('sessions').insert({ ...fields, event_id: eventId }).select('id').single()
+      if (insertError) return frError(insertError)
+      sessionId = data.id
+    } else {
+      const res = await supabase.from('sessions').update(fields).eq('id', editing).select('id')
+      const msg = writeError(res, "Modification refusée : tu n'es pas organisateur de cet événement.")
+      if (msg) return msg
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError(null)
-    if (form.start_time && form.end_time && new Date(form.end_time) <= new Date(form.start_time)) {
-      setError('La fin doit être après le début.')
-      return
+    if (showMeeting) {
+      const linkRes = url
+        ? await supabase.from('session_links').upsert({ session_id: sessionId, url, updated_at: new Date().toISOString() })
+        : await supabase.from('session_links').delete().eq('session_id', sessionId)
+      if (linkRes.error) return `Session enregistrée, mais pas le lien : ${frError(linkRes.error)}`
     }
-    setBusy(true)
-    const { error: insertError } = await supabase.from('sessions').insert({
-      event_id: eventId,
-      title: form.title.trim(),
-      description: form.description.trim() || null,
-      session_type: form.session_type,
-      start_time: form.start_time ? new Date(form.start_time).toISOString() : null,
-      end_time: form.end_time ? new Date(form.end_time).toISOString() : null,
-      max_capacity: form.max_capacity ? Number(form.max_capacity) : null,
-    })
-    setBusy(false)
-    if (insertError) {
-      setError(frError(insertError))
-      return
-    }
-    setForm(EMPTY_FORM)
-    setShowForm(false)
+
+    setEditing(null)
     load()
+    return null
   }
 
   const handleDelete = async (s) => {
@@ -115,15 +131,15 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
   }
 
   const submissionById = new Map(submissions.map((s) => [s.id, s]))
+  const roomById = new Map(rooms.map((r) => [r.id, r]))
   const assignedIds = new Set(assignments.map((a) => a.submission_id))
   const unplaced = submissions.filter((s) => s.status === 'accepted' && !assignedIds.has(s.id))
   const papersOf = (sessionId) => assignments.filter((a) => a.session_id === sessionId)
   const sessionTitle = (id) => sessions.find((x) => x.id === id)?.title
 
-  // regroupement par jour pour un programme lisible
   const days = []
   for (const s of sessions) {
-    const key = s.start_time ? s.start_time.slice(0, 10) : 'none'
+    const key = dayKey(s.start_time)
     let day = days.find((d) => d.key === key)
     if (!day) {
       day = { key, label: dayOf(s.start_time), items: [] }
@@ -132,25 +148,32 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
     day.items.push(s)
   }
 
+  const formFor = (initial) => (
+    <SessionForm
+      initial={initial ? { ...initial, meeting_url: links[initial.id] } : null}
+      rooms={rooms}
+      sessions={sessions}
+      showMeeting={showMeeting}
+      submitLabel={initial ? 'Enregistrer' : 'Créer la session'}
+      onSubmit={saveSession}
+      onCancel={() => setEditing(null)}
+    />
+  )
+
   return (
     <section>
       <SectionTitle
         title="Programme"
         count={sessions.length}
-        description="Sessions, horaires et articles présentés. Le programme est visible par tous."
+        description="Sessions, horaires, salles et articles présentés. Le programme est visible par tous une fois l'événement publié."
         actions={
           isOrganizer &&
-          (showForm ? (
-            <button type="button" onClick={() => setShowForm(false)} className="btn-ghost">
-              <XIcon size={16} aria-hidden="true" />
-              Annuler
-            </button>
-          ) : (
-            <button type="button" onClick={() => setShowForm(true)} className="btn-accent">
+          editing === null && (
+            <button type="button" onClick={() => setEditing('new')} className="btn-accent">
               <PlusIcon size={16} weight="bold" aria-hidden="true" />
               Ajouter une session
             </button>
-          ))
+          )
         }
       />
 
@@ -166,67 +189,7 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
         </div>
       )}
 
-      {isOrganizer && showForm && (
-        <form onSubmit={handleSubmit} className="card-panel space-y-5 mb-8 rise">
-          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px] gap-5">
-            <div>
-              <label htmlFor="session-title" className="form-label">
-                Titre
-              </label>
-              <input id="session-title" className="input-field" value={form.title} onChange={updateField('title')} required />
-            </div>
-            <div>
-              <label htmlFor="session-type" className="form-label">
-                Type
-              </label>
-              <select id="session-type" className="select-field" value={form.session_type} onChange={updateField('session_type')}>
-                {Object.entries(SESSION_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            <div>
-              <label htmlFor="session-start" className="form-label">
-                Début
-              </label>
-              <input id="session-start" type="datetime-local" className="input-field num" value={form.start_time} onChange={updateField('start_time')} />
-            </div>
-            <div>
-              <label htmlFor="session-end" className="form-label">
-                Fin
-              </label>
-              <input id="session-end" type="datetime-local" className="input-field num" value={form.end_time} onChange={updateField('end_time')} />
-            </div>
-            <div>
-              <label htmlFor="session-capacity" className="form-label">
-                Capacité
-              </label>
-              <input
-                id="session-capacity"
-                type="number"
-                min="1"
-                inputMode="numeric"
-                className="input-field num"
-                value={form.max_capacity}
-                onChange={updateField('max_capacity')}
-              />
-            </div>
-          </div>
-          <div>
-            <label htmlFor="session-description" className="form-label">
-              Description
-            </label>
-            <textarea id="session-description" className="textarea-field" rows={3} value={form.description} onChange={updateField('description')} />
-          </div>
-          <button type="submit" disabled={busy} className="btn-primary">
-            {busy ? 'Enregistrement…' : 'Créer la session'}
-          </button>
-        </form>
-      )}
+      {editing === 'new' && <div className="mb-8">{formFor(null)}</div>}
 
       {canAssign && (
         <section className="card-panel mb-8">
@@ -292,88 +255,140 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
           <div className="skeleton h-28" />
         </div>
       ) : sessions.length === 0 ? (
-        <EmptyState icon={PresentationChartIcon} title="Programme à venir" body="Les sessions de l'événement apparaîtront ici." />
+        editing !== 'new' && <EmptyState icon={PresentationChartIcon} title="Programme à venir" body="Les sessions de l'événement apparaîtront ici." />
       ) : (
         <div className="space-y-10">
           {days.map((day) => (
             <section key={day.key}>
-              <h3 className="text-sm font-medium text-muted mb-3 first-letter:uppercase">{day.label}</h3>
-              <ol className="space-y-3">
-                {day.items.map((s, idx) => {
-                  const papers = papersOf(s.id)
-                  return (
-                    <li
+              <h3 className="flex items-center gap-3 text-sm font-medium text-muted mb-4">
+                <span className="first-letter:uppercase">{day.label}</span>
+                <span className="h-px flex-1 bg-line" aria-hidden="true" />
+              </h3>
+              {/* frise : l'heure à gauche, un fil vertical, la session à droite */}
+              <ol className="relative space-y-3 sm:pl-[104px]">
+                <span className="hidden sm:block absolute left-[88px] top-2 bottom-2 w-px bg-line" aria-hidden="true" />
+                {day.items.map((s, idx) =>
+                  editing === s.id ? (
+                    <li key={s.id}>{formFor(s)}</li>
+                  ) : (
+                    <SessionItem
                       key={s.id}
-                      className="entity rise grid grid-cols-1 sm:grid-cols-[88px_minmax(0,1fr)] gap-x-5 gap-y-3"
-                      style={{ '--stripe': 'var(--color-accent)', '--i': Math.min(idx, 8) }}
-                    >
-                      <div className="sm:pt-0.5">
-                        <p className="num text-xl font-semibold tracking-tight text-fg leading-none">
-                          {s.start_time ? timeOf(s.start_time) : '--:--'}
-                        </p>
-                        {s.end_time && <p className="num text-[13px] text-faint mt-1">{timeOf(s.end_time)}</p>}
-                      </div>
-
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="badge-type">{SESSION_TYPE_LABELS[s.session_type] || s.session_type}</span>
-                          {s.max_capacity && (
-                            <span className="inline-flex items-center gap-1 text-xs text-muted">
-                              <UsersThreeIcon size={14} aria-hidden="true" />
-                              {s.max_capacity} places
-                            </span>
-                          )}
-                          {!s.start_time && (
-                            <span className="inline-flex items-center gap-1 text-xs text-warn">
-                              <ClockIcon size={14} aria-hidden="true" />
-                              Horaire à fixer
-                            </span>
-                          )}
-                        </div>
-                        <h4 className="mt-2 text-lg font-semibold leading-snug tracking-tight text-fg">{s.title}</h4>
-                        {s.description && <p className="mt-1.5 text-sm leading-6 text-muted whitespace-pre-line max-w-[70ch]">{s.description}</p>}
-
-                        {papers.length > 0 ? (
-                          <ol className="mt-4 space-y-1.5">
-                            {papers.map((a, i) => {
-                              const sub = submissionById.get(a.submission_id)
-                              return (
-                                <li key={a.id} className="flex items-start gap-3 rounded-lg bg-surface-2/70 px-3 py-2.5">
-                                  <span className="num text-xs font-medium text-accent-ink w-5 shrink-0 pt-0.5">{i + 1}.</span>
-                                  <div className="min-w-0 flex-1">
-                                    <p className="text-sm font-medium text-fg leading-snug">{sub?.title || 'Article'}</p>
-                                    {sub?.profiles?.full_name && <p className="text-xs text-muted mt-0.5">{sub.profiles.full_name}</p>}
-                                  </div>
-                                  {canAssign && (
-                                    <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => assign(a.submission_id, null)}>
-                                      Retirer
-                                    </button>
-                                  )}
-                                </li>
-                              )
-                            })}
-                          </ol>
-                        ) : (
-                          <p className="text-[13px] text-faint mt-3">Aucun article placé pour l'instant.</p>
-                        )}
-
-                        {isOrganizer && (
-                          <div className="mt-4 flex justify-end">
-                            <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={() => handleDelete(s)}>
-                              <TrashIcon size={15} aria-hidden="true" />
-                              Supprimer la session
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </li>
-                  )
-                })}
+                      s={s}
+                      idx={idx}
+                      now={now}
+                      room={roomById.get(s.room_id)}
+                      link={showMeeting ? links[s.id] : null}
+                      papers={papersOf(s.id)}
+                      submissionById={submissionById}
+                      isOrganizer={isOrganizer}
+                      canAssign={canAssign}
+                      busy={busy}
+                      onEdit={() => setEditing(s.id)}
+                      onDelete={() => handleDelete(s)}
+                      onUnassign={(id) => assign(id, null)}
+                    />
+                  ),
+                )}
               </ol>
             </section>
           ))}
         </div>
       )}
     </section>
+  )
+}
+
+function SessionItem({ s, idx, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign }) {
+  const live = s.start_time && s.end_time && new Date(s.start_time).getTime() <= now && now <= new Date(s.end_time).getTime()
+
+  return (
+    <li className="relative rise" style={{ '--i': Math.min(idx, 8) }}>
+      {/* heure + point sur la frise (ordinateur) */}
+      <div className="hidden sm:block absolute -left-[104px] top-5 w-[76px] text-right">
+        <p className="num text-lg font-semibold tracking-tight text-fg leading-none">{s.start_time ? timeOf(s.start_time) : '--:--'}</p>
+        {s.end_time && <p className="num text-xs text-faint mt-1">{timeOf(s.end_time)}</p>}
+      </div>
+      <span
+        className={`hidden sm:block absolute -left-[20px] top-6 w-2.5 h-2.5 rounded-full ring-4 ring-bg ${live ? 'bg-ok' : 'bg-accent'}`}
+        aria-hidden="true"
+      />
+
+      <article className="entity" style={{ '--stripe': live ? 'var(--color-ok)' : 'var(--color-accent)' }}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="sm:hidden num text-sm font-semibold text-fg">
+            {s.start_time ? `${timeOf(s.start_time)}${s.end_time ? ` - ${timeOf(s.end_time)}` : ''}` : 'Horaire à fixer'}
+          </span>
+          <span className="badge-type">{SESSION_TYPE_LABELS[s.session_type] || s.session_type}</span>
+          {live && <span className="badge-published">En cours</span>}
+          {room && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted">
+              <DoorOpenIcon size={14} aria-hidden="true" />
+              {room.name}
+              {room.location && <span className="text-faint">, {room.location}</span>}
+            </span>
+          )}
+          {s.max_capacity && (
+            <span className="inline-flex items-center gap-1 text-xs text-muted">
+              <UsersThreeIcon size={14} aria-hidden="true" />
+              {s.max_capacity} places
+            </span>
+          )}
+          {!s.start_time && (
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs text-warn">
+              <ClockIcon size={14} aria-hidden="true" />
+              Horaire à fixer
+            </span>
+          )}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
+          <h4 className="text-lg font-semibold leading-snug tracking-tight text-fg min-w-0">{s.title}</h4>
+          {link && (
+            <a href={link} target="_blank" rel="noopener noreferrer" className={live ? 'btn-success btn-sm' : 'btn-outline btn-sm'}>
+              <VideoCameraIcon size={15} aria-hidden="true" />
+              Rejoindre
+            </a>
+          )}
+        </div>
+        {s.description && <p className="mt-1.5 text-sm leading-6 text-muted whitespace-pre-line max-w-[70ch]">{s.description}</p>}
+
+        {papers.length > 0 ? (
+          <ol className="mt-4 space-y-1.5">
+            {papers.map((a, i) => {
+              const sub = submissionById.get(a.submission_id)
+              return (
+                <li key={a.id} className="flex items-start gap-3 rounded-lg bg-surface-2/70 px-3 py-2.5">
+                  <span className="num text-xs font-medium text-accent-ink w-5 shrink-0 pt-0.5">{i + 1}.</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-fg leading-snug">{sub?.title || 'Article'}</p>
+                    {sub?.profiles?.full_name && <p className="text-xs text-muted mt-0.5">{sub.profiles.full_name}</p>}
+                  </div>
+                  {canAssign && (
+                    <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => onUnassign(a.submission_id)}>
+                      Retirer
+                    </button>
+                  )}
+                </li>
+              )
+            })}
+          </ol>
+        ) : (
+          <p className="text-[13px] text-faint mt-3">Aucun article placé pour l'instant.</p>
+        )}
+
+        {isOrganizer && (
+          <div className="mt-4 flex justify-end gap-1">
+            <button type="button" className="btn-ghost btn-sm" onClick={onEdit}>
+              <PencilSimpleIcon size={15} aria-hidden="true" />
+              Modifier
+            </button>
+            <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={onDelete}>
+              <TrashIcon size={15} aria-hidden="true" />
+              Supprimer
+            </button>
+          </div>
+        )}
+      </article>
+    </li>
   )
 }

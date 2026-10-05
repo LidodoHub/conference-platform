@@ -374,6 +374,15 @@ export default function SubmissionDetail({
           </section>
         )}
 
+        {isMine && !canManage && s.status === 'submitted' && !frozen && (
+          <div className="mt-10 pt-5 border-t border-line flex justify-end">
+            <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={remove}>
+              <TrashIcon size={15} aria-hidden="true" />
+              Retirer mon article
+            </button>
+          </div>
+        )}
+
         {canManage && s.status !== 'submitted' && (
           <div className="mt-10 pt-5 border-t border-line flex justify-end">
             <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={remove}>

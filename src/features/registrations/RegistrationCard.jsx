@@ -93,7 +93,7 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
         {event.format !== 'online' ? (
           <AttendanceBadge event={event} name={mine?.profiles?.full_name || ''} />
         ) : (
-          <p className="text-sm text-muted">Événement en ligne : la présence est pointée par l'organisateur.</p>
+          <p className="text-sm text-muted">Événement en ligne : les liens de visioconférence sont dans l'onglet Programme.</p>
         )}
         <div className="grid gap-2">
           {payment && (

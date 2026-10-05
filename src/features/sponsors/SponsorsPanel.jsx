@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PlusIcon, XIcon, ArrowUpRightIcon, EyeIcon, EyeSlashIcon, TrashIcon, HandshakeIcon } from '@phosphor-icons/react'
+import { PlusIcon, XIcon, ArrowUpRightIcon, EyeIcon, EyeSlashIcon, TrashIcon, HandshakeIcon, PencilSimpleIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
 import EmptyState from '../../components/ui/EmptyState'
@@ -37,6 +37,7 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
+  const [editingId, setEditingId] = useState(null)
 
   const loadSponsors = useCallback(async () => {
     let query = supabase.from('sponsors').select('id, name, tier, website, benefits, published').eq('event_id', eventId)
@@ -58,21 +59,24 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
     e.preventDefault()
     setError(null)
     setSaving(true)
-    const { error: insertError } = await supabase.from('sponsors').insert({
-      event_id: eventId,
+    const values = {
       name: form.name.trim(),
       tier: form.tier,
       website: normalizeUrl(form.website),
       benefits: form.benefits.trim() || null,
-      published: false,
-    })
+    }
+    const res = editingId
+      ? await supabase.from('sponsors').update(values).eq('id', editingId).select('id')
+      : await supabase.from('sponsors').insert({ ...values, event_id: eventId, published: false }).select('id')
     setSaving(false)
-    if (insertError) {
-      setError(frError(insertError))
+    const msg = writeError(res, "Enregistrement refusé : tu n'es pas organisateur de cet événement.")
+    if (msg) {
+      setError(msg)
       return
     }
     setForm(EMPTY_FORM)
     setShowForm(false)
+    setEditingId(null)
     loadSponsors()
   }
 
@@ -105,7 +109,15 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
         actions={
           isOrganizer &&
           (showForm ? (
-            <button type="button" onClick={() => setShowForm(false)} className="btn-ghost">
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false)
+                setEditingId(null)
+                setForm(EMPTY_FORM)
+              }}
+              className="btn-ghost"
+            >
               <XIcon size={16} aria-hidden="true" />
               Annuler
             </button>
@@ -160,7 +172,7 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
             <textarea id="sponsor-benefits" className="textarea-field" rows={3} value={form.benefits} onChange={updateField('benefits')} />
           </div>
           <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Enregistrement…' : 'Ajouter le sponsor'}
+            {saving ? 'Enregistrement…' : editingId ? 'Enregistrer' : 'Ajouter le sponsor'}
           </button>
         </form>
       )}
@@ -210,6 +222,20 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
                     )}
                     {isOrganizer && (
                       <span className="ml-auto flex gap-1">
+                        <button
+                          type="button"
+                          className="icon-btn w-9 h-9"
+                          onClick={() => {
+                            setEditingId(s.id)
+                            setForm({ name: s.name, tier: s.tier || 'partner', website: s.website || '', benefits: s.benefits || '' })
+                            setShowForm(true)
+                            window.scrollTo({ top: 0, behavior: 'smooth' })
+                          }}
+                          aria-label={`Modifier ${s.name}`}
+                          title="Modifier"
+                        >
+                          <PencilSimpleIcon size={16} />
+                        </button>
                         <button type="button" className="btn-outline btn-sm" onClick={() => togglePublished(s)}>
                           {s.published ? <EyeSlashIcon size={15} aria-hidden="true" /> : <EyeIcon size={15} aria-hidden="true" />}
                           {s.published ? 'Dépublier' : 'Publier'}

@@ -30,6 +30,7 @@ import EventSettings from './EventSettings'
 import ManageParticipants from './ManageParticipants'
 import ScientificPanel from '../submissions/ScientificPanel'
 import SessionsPanel from '../sessions/SessionsPanel'
+import RoomsPanel from '../sessions/RoomsPanel'
 import SponsorsPanel from '../sponsors/SponsorsPanel'
 import InvitationsPanel from '../registrations/InvitationsPanel'
 import RegistrationCard from '../registrations/RegistrationCard'
@@ -132,6 +133,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
     { id: 'settings', label: 'Événement' },
     { id: 'participants', label: 'Participants', badge: participants.length },
     { id: 'registrations', label: 'Inscriptions', badge: paymentsToValidate || null },
+    { id: 'rooms', label: 'Salles' },
     { id: 'sponsors', label: 'Sponsors' },
     { id: 'attendance', label: 'Présences' },
   ]
@@ -273,7 +275,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
 
         {activeTab === 'program' && (
           <div className="max-w-4xl">
-            <SessionsPanel eventId={eventId} isOrganizer={canManage} phase={event.phase} submissions={submissions} />
+            <SessionsPanel eventId={eventId} event={event} isOrganizer={canManage} phase={event.phase} submissions={submissions} />
           </div>
         )}
 
@@ -296,6 +298,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   onRefresh={fetchEventData}
                 />
               )}
+              {orgTab === 'rooms' && <RoomsPanel eventId={eventId} />}
               {orgTab === 'sponsors' && <SponsorsPanel eventId={eventId} isOrganizer />}
               {orgTab === 'attendance' &&
                 (event.phase === 'organizational' ? (

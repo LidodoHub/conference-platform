@@ -1,5 +1,6 @@
 // Onglets accessibles (flèches gauche/droite). variant="main" : soulignés ; variant="pill" : segments.
-export default function Tabs({ tabs, active, onChange, variant = 'main', label }) {
+// wrap : les segments passent à la ligne au lieu de défiler (colonnes étroites)
+export default function Tabs({ tabs, active, onChange, variant = 'main', label, wrap = false }) {
   const main = variant === 'main'
 
   const onKeyDown = (e) => {
@@ -19,8 +20,10 @@ export default function Tabs({ tabs, active, onChange, variant = 'main', label }
       role="tablist"
       aria-label={label}
       onKeyDown={onKeyDown}
-      className={`tabs-scroll flex overflow-x-auto ${
-        main ? 'gap-1 border-b border-line' : 'gap-1 p-1 rounded-xl bg-surface-2 border border-line w-fit max-w-full'
+      className={`tabs-scroll flex ${wrap ? '' : 'overflow-x-auto'} ${
+        main
+          ? 'gap-1 border-b border-line'
+          : `gap-1 p-1 rounded-xl bg-surface-2 border border-line max-w-full ${wrap ? 'flex-wrap w-full' : 'w-fit'}`
       }`}
     >
       {tabs.map((t) => {

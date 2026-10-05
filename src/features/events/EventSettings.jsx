@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { PencilSimpleIcon, PaperPlaneTiltIcon, LockSimpleIcon, ArrowCounterClockwiseIcon, TrashIcon } from '@phosphor-icons/react'
+import { PencilSimpleIcon, PaperPlaneTiltIcon, LockSimpleIcon, ArrowCounterClockwiseIcon, TrashIcon, ArrowRightIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { writeError } from '../../lib/errors'
 import { TYPE_LABELS, FORMAT_LABELS, PHASE_LABELS, STATUS_LABELS, STATUS_BADGE, formatDateRange } from '../../lib/constants'
@@ -41,6 +41,17 @@ export default function EventSettings({ event, pendingCount, onChanged, onDelete
       if (!window.confirm(msg)) return
     }
     update({ phase }, phase === 'organizational' ? 'Phase organisationnelle ouverte.' : 'Phase scientifique rouverte.')
+  }
+
+  const LIFECYCLE = {
+    published: { to: 'ongoing', label: "Démarrer l'événement", hint: "Marque l'événement comme en cours (le jour J)." },
+    ongoing: { to: 'closed', label: "Clôturer l'événement", hint: "L'événement est terminé : certificats et statistiques restent disponibles." },
+    closed: { to: 'archived', label: 'Archiver', hint: "Retire l'événement des listes actives. Les données sont conservées." },
+  }
+  const next = LIFECYCLE[event.status]
+  const advance = () => {
+    if (!window.confirm(`${next.label} ? ${next.hint}`)) return
+    update({ status: next.to }, 'Statut mis à jour.')
   }
 
   const requestPublication = () =>
@@ -129,6 +140,17 @@ export default function EventSettings({ event, pendingCount, onChanged, onDelete
               {['closed', 'archived'].includes(event.status) && "L'événement est terminé."}
             </p>
           </div>
+          {next && (
+            <button type="button" className="btn-outline" onClick={advance} title={next.hint}>
+              <ArrowRightIcon size={16} aria-hidden="true" />
+              {next.label}
+            </button>
+          )}
+          {event.status === 'pending_approval' && (
+            <button type="button" className="btn-ghost" onClick={() => update({ status: 'draft' }, 'Demande retirée : l’événement est revenu en brouillon.')}>
+              Retirer la demande
+            </button>
+          )}
           {event.status === 'draft' && (
             <button type="button" className="btn-accent" onClick={requestPublication}>
               <PaperPlaneTiltIcon size={16} aria-hidden="true" />

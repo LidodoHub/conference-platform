@@ -31,6 +31,19 @@ import EmptyState from '../../components/ui/EmptyState'
 
 const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`
 
+const localToday = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// "J-12", "Aujourd'hui" ou "En cours"
+const countdown = (ev) => {
+  const today = localToday()
+  if (ev.start_date <= today && today <= (ev.end_date || ev.start_date)) return ev.start_date === today ? "Aujourd'hui" : 'En cours'
+  const days = Math.round((new Date(`${ev.start_date}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000)
+  return days === 1 ? 'Demain' : `J-${days}`
+}
+
 // Construit la liste "À faire" à partir des rôles réels de l'utilisateur dans chaque événement.
 function buildTodos({ parts, subs, orgPending, orgPayments, toReview, pendingApprovals, isAdmin }) {
   const todos = []
@@ -201,6 +214,10 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
   }, [load])
 
   const firstName = (profile?.full_name || '').trim().split(/\s+/)[0]
+  const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
+  const nextEvent = data?.parts
+    .filter((p) => (p.events.end_date || p.events.start_date || '') >= localToday() && p.events.status !== 'draft')
+    .sort((x, y) => x.events.start_date.localeCompare(y.events.start_date))[0]
   const todos = data ? buildTodos({ ...data, isAdmin }) : []
 
   const open = (target) => {
@@ -220,17 +237,59 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
 
   return (
     <div className="page-container">
-      <header className="mb-10">
-        <h1 className="text-3xl sm:text-4xl font-semibold tracking-tight text-fg">
-          Bonjour{firstName ? `, ${firstName}` : ''}
-        </h1>
-        <p className="text-muted mt-2">
-          {!data
-            ? 'Chargement de ton espace…'
-            : todos.length === 0
-              ? 'Rien ne t’attend pour le moment.'
-              : `${plural(todos.length, 'chose demande', 'choses demandent')} ton attention.`}
-        </p>
+      <header className="mb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-8 items-end">
+        <div>
+          <p className="text-sm text-muted first-letter:uppercase">{todayLabel}</p>
+          <h1 className="mt-1 text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05] text-fg">
+            Bonjour{firstName ? `, ${firstName}` : ''}
+          </h1>
+          <p className="text-muted mt-3 text-lg">
+            {!data
+              ? 'Chargement de ton espace…'
+              : todos.length === 0
+                ? 'Rien ne t’attend pour le moment.'
+                : `${plural(todos.length, 'chose demande', 'choses demandent')} ton attention.`}
+          </p>
+          {data && (
+            <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3">
+              {[
+                ['Événements', data.parts.length],
+                ['Articles', data.subs.length],
+                ['Acceptés', data.subs.filter((x) => x.status === 'accepted').length],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-[13px] text-muted">{label}</dt>
+                  <dd className="num text-2xl font-semibold tracking-tight text-fg">{value}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+        </div>
+
+        {nextEvent && (
+          <button
+            type="button"
+            onClick={() => onOpenEvent(nextEvent.event_id)}
+            className="group card overflow-hidden text-left w-full rise transition-shadow hover:shadow-[var(--shadow-lift)]"
+          >
+            <div className="h-28 px-5 py-4 flex items-end justify-between gap-4" style={coverStyle(nextEvent.event_id)}>
+              <span className="text-sm font-medium text-white/85">Prochain rendez-vous</span>
+              <span className="text-right text-white">
+                <span className="num block text-4xl font-semibold tracking-tighter leading-none">{countdown(nextEvent.events)}</span>
+              </span>
+            </div>
+            <div className="px-5 py-4 flex items-center justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block font-semibold text-fg truncate group-hover:text-accent-ink transition-colors">{nextEvent.events.title}</span>
+                <span className="block text-[13px] text-muted num truncate">
+                  {formatDate(nextEvent.events.start_date)}
+                  {nextEvent.events.location ? `, ${nextEvent.events.location}` : ''}
+                </span>
+              </span>
+              <span className="text-xs font-medium text-accent-ink shrink-0">{ROLE_LABELS[nextEvent.role_in_event]}</span>
+            </div>
+          </button>
+        )}
       </header>
 
       {error && <div className="alert-error mb-6">{error}</div>}

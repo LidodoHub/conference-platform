@@ -6,13 +6,15 @@ import DashboardPage from './features/dashboard/DashboardPage'
 import EventsPage from './features/events/EventsPage'
 import EventDetail from './features/events/EventDetail'
 import AdminPanel from './features/admin/AdminPanel'
+import ProfilePage from './features/profile/ProfilePage'
+import NotificationsMenu from './components/ui/NotificationsMenu'
 import Logo from './components/ui/Logo'
 import Avatar from './components/ui/Avatar'
 import ThemeToggle from './components/ui/ThemeToggle'
 import { supabase } from './lib/supabaseClient'
 import { AuthContext } from './lib/auth'
 
-const VIEWS = { home: 'home', events: 'events', admin: 'admin' }
+const VIEWS = { home: 'home', events: 'events', admin: 'admin', profile: 'profile' }
 
 async function loadProfile(userId, setUserProfile, setIsAdmin) {
   const { data } = await supabase.from('profiles').select('full_name, email, role').eq('id', userId).single()
@@ -131,11 +133,21 @@ function App() {
             </nav>
 
             <div className="flex items-center gap-1">
+              <NotificationsMenu
+                onOpenEvent={openEvent}
+                className="icon-btn text-white/70 hover:text-white hover:bg-white/8 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/6"
+              />
               <ThemeToggle className="icon-btn text-white/70 hover:text-white hover:bg-white/8 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/6" />
-              <div className="hidden md:flex items-center gap-2.5 pl-3 ml-1 border-l border-white/12 dark:border-line">
+              <button
+                type="button"
+                onClick={() => go(VIEWS.profile)}
+                aria-current={view === VIEWS.profile ? 'page' : undefined}
+                aria-label="Mon profil"
+                className="flex items-center gap-2.5 ml-1 pl-1 md:pl-3 md:pr-2 h-10 rounded-[10px] md:border-l md:rounded-l-none border-white/12 dark:border-line hover:bg-white/6 dark:hover:bg-fg/5 transition-colors"
+              >
                 <Avatar name={name} size={30} tone="brand" />
-                <span className="text-sm text-white/85 dark:text-fg max-w-[160px] truncate">{name}</span>
-              </div>
+                <span className="hidden md:block text-sm text-white/85 dark:text-fg max-w-[160px] truncate">{name}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => supabase.auth.signOut()}
@@ -150,7 +162,9 @@ function App() {
         </header>
 
         <main id="contenu" className="flex-1 min-w-0">
-          {view === VIEWS.admin ? (
+          {view === VIEWS.profile ? (
+            <ProfilePage onSaved={() => loadProfile(session.user.id, setUserProfile, setIsAdmin)} />
+          ) : view === VIEWS.admin ? (
             <AdminPanel onOpenEvent={openEvent} />
           ) : selectedEventId ? (
             <EventDetail

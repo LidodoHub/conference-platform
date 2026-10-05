@@ -166,6 +166,7 @@ export default function ScientificPanel({ eventId, submissions, participants, is
             <div className="space-y-3 mb-4">
               <Tabs
                 variant="pill"
+                wrap
                 label="Filtrer par statut"
                 active={filter}
                 onChange={(id) => {
