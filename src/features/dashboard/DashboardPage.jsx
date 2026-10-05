@@ -245,7 +245,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-dots" aria-hidden="true" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 sm:pt-16 sm:pb-20 lg:min-h-[480px] lg:flex lg:flex-col lg:justify-end lg:pt-24 lg:pb-14">
-      <header className="hero-text grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-6 sm:gap-8 items-end">
+      <header className="hero-text grid grid-cols-1 gap-6 sm:gap-8 lg:max-w-xl">
         <div>
           <p className="text-sm text-white/65 first-letter:uppercase">{todayLabel}</p>
           <h1 className="mt-1 text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05] text-white">
