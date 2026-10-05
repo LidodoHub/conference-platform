@@ -441,6 +441,11 @@
   object-position: 50% 12%;
 }
 
+/* textes posés sur la photo : ombre douce pour rester lisibles quel que soit le ciel */
+.hero-text {
+  text-shadow: 0 1px 2px rgb(10 18 34 / 0.55), 0 4px 24px rgb(10 18 34 / 0.45);
+}
+
 .hero-photo--tall {
   object-position: 50% 70%;
 }
@@ -450,8 +455,9 @@
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(90deg, rgb(22 35 63 / 0.97) 0%, rgb(22 35 63 / 0.8) 30%, rgb(22 35 63 / 0.15) 65%, rgb(22 35 63 / 0.35) 100%),
-    linear-gradient(0deg, rgb(22 35 63 / 0.85) 0%, transparent 40%);
+    /* même recette que sur téléphone : voile surtout vertical, léger en haut, plus un peu d'ombre à gauche pour le texte */
+    linear-gradient(90deg, rgb(22 35 63 / 0.6) 0%, rgb(22 35 63 / 0.25) 35%, transparent 60%, rgb(22 35 63 / 0.25) 100%),
+    linear-gradient(180deg, rgb(22 35 63 / 0.35) 0%, rgb(22 35 63 / 0.15) 35%, rgb(22 35 63 / 0.55) 75%, rgb(22 35 63 / 0.92) 100%);
 }
 
 .hero-shade--panel {
