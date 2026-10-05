@@ -1,60 +1,54 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
+import { frError } from '../../lib/errors'
+
+const words = (t) => (t.trim() ? t.trim().split(/\s+/).length : 0)
 
 export default function SubmissionForm({ eventId, onSubmitted }) {
+  const { user } = useAuth()
   const [title, setTitle] = useState('')
   const [abstract, setAbstract] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
-  const { user } = useAuth()
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-
-    if (!user) {
-      setError('Tu dois être connecté')
-      setSubmitting(false)
-      return
-    }
-
-    const { error: insertError } = await supabase
-      .from('submissions')
-      .insert({
-        event_id: eventId,
-        author_id: user.id,
-        title,
-        abstract,
-        status: 'submitted',
-      })
-
+    const { error: insertError } = await supabase.from('submissions').insert({
+      event_id: eventId,
+      author_id: user.id,
+      title: title.trim(),
+      abstract: abstract.trim(),
+      status: 'submitted',
+    })
+    setSubmitting(false)
     if (insertError) {
-      setError(insertError.message)
-      setSubmitting(false)
+      setError(frError(insertError))
       return
     }
-
     setTitle('')
     setAbstract('')
-    setSubmitting(false)
     onSubmitted()
   }
 
+  const n = words(abstract)
+
   return (
-    <form onSubmit={handleSubmit} className="card-panel border border-ink/8 space-y-5">
+    <form onSubmit={handleSubmit} className="card-panel space-y-5 rise">
       <div>
-        <p className="section-label">Nouvelle soumission</p>
-        <h3 className="section-heading text-lg mt-1">Soumettre un article</h3>
+        <h3 className="text-lg font-semibold tracking-tight text-fg">Nouvel article</h3>
+        <p className="text-sm text-muted mt-1">Les reviewers de l'événement liront le titre et le résumé.</p>
       </div>
 
       <div>
-        <label htmlFor="submission-title" className="form-label">Titre de l'article</label>
+        <label htmlFor="submission-title" className="form-label">
+          Titre
+        </label>
         <input
           id="submission-title"
           type="text"
-          placeholder="Titre complet de la communication"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="input-field"
@@ -63,26 +57,30 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
       </div>
 
       <div>
-        <label htmlFor="submission-abstract" className="form-label">Résumé (abstract)</label>
+        <label htmlFor="submission-abstract" className="form-label">
+          Résumé
+        </label>
         <textarea
           id="submission-abstract"
-          placeholder="Résumé de votre communication (300–500 mots recommandés)"
           value={abstract}
           onChange={(e) => setAbstract(e.target.value)}
           className="textarea-field"
-          rows={5}
+          rows={8}
           required
         />
+        <p className="form-hint num">
+          {n} mot{n > 1 ? 's' : ''}. Entre 150 et 500 mots recommandés.
+        </p>
       </div>
 
-      {error && <div className="alert-error">{error}</div>}
+      {error && (
+        <div role="alert" className="alert-error">
+          {error}
+        </div>
+      )}
 
-      <button
-        type="submit"
-        disabled={submitting}
-        className="btn-primary w-full sm:w-auto"
-      >
-        {submitting ? 'Envoi…' : 'Soumettre'}
+      <button type="submit" disabled={submitting} className="btn-primary">
+        {submitting ? 'Envoi…' : "Soumettre l'article"}
       </button>
     </form>
   )

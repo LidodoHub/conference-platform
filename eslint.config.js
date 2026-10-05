@@ -13,6 +13,11 @@ export default defineConfig([
       reactHooks.configs.flat.recommended,
       reactRefresh.configs.vite,
     ],
+    rules: {
+      // Le chargement de données (await supabase... puis setState) dans un effet est volontaire ici :
+      // l'état est modifié après l'attente réseau, pas de façon synchrone.
+      'react-hooks/set-state-in-effect': 'off',
+    },
     languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },

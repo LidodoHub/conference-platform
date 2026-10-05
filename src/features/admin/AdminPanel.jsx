@@ -1,212 +1,263 @@
-import { useState, useEffect } from 'react'
-import { TYPE_LABELS, STATUS_LABELS, STATUS_BADGE } from '../../lib/constants'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  CheckIcon,
+  XIcon,
+  TrashIcon,
+  ArrowUpRightIcon,
+  MagnifyingGlassIcon,
+  ShieldCheckIcon,
+  MapPinIcon,
+} from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
-import FadeContent from '../../components/reactbits/FadeContent'
+import { frError, writeError } from '../../lib/errors'
+import { TYPE_LABELS, STATUS_LABELS, STATUS_BADGE, formatDateRange } from '../../lib/constants'
+import PageHeader from '../../components/ui/PageHeader'
+import SectionTitle from '../../components/ui/SectionTitle'
+import EmptyState from '../../components/ui/EmptyState'
+import Tabs from '../../components/ui/Tabs'
+import PlatformStats from '../stats/PlatformStats'
 
-export default function AdminPanel() {
-  const [pendingEvents, setPendingEvents] = useState([])
-  const [allEvents, setAllEvents] = useState([])
+export default function AdminPanel({ onOpenEvent }) {
+  const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [notice, setNotice] = useState(null)
+  const [busyId, setBusyId] = useState(null)
+  const [tab, setTab] = useState('requests')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [query, setQuery] = useState('')
 
-  const fetchPendingEvents = async () => {
-    setLoading(true)
+  const load = useCallback(async () => {
     const { data, error: fetchError } = await supabase
       .from('events')
-      .select('*, profiles(full_name, email)')
-      .eq('status', 'pending_approval')
-
-    if (!fetchError) {
-      setPendingEvents(data)
-    }
+      .select('id, title, description, status, type, start_date, end_date, location, created_at, profiles(full_name, email)')
+      .order('created_at', { ascending: false })
+    if (fetchError) setError(frError(fetchError))
+    else setEvents(data)
     setLoading(false)
-  }
-
-  const fetchAllEvents = async () => {
-    const { data, error: fetchError } = await supabase
-      .from('events')
-      .select('id, title, status, type, start_date, profiles(full_name)')
-      .order('start_date', { ascending: false })
-
-    if (fetchError) setError(fetchError.message)
-    else setAllEvents(data)
-  }
-
-  useEffect(() => {
-    fetchPendingEvents()
-    fetchAllEvents()
   }, [])
 
-  const handleApprove = async (eventId) => {
-    await supabase.from('events').update({ status: 'published' }).eq('id', eventId)
-    fetchPendingEvents()
-    fetchAllEvents()
-  }
+  useEffect(() => {
+    load()
+  }, [load])
 
-  const handleReject = async (eventId) => {
-    await supabase.from('events').update({ status: 'draft' }).eq('id', eventId)
-    fetchPendingEvents()
-    fetchAllEvents()
-  }
-
-  const handleDeleteEvent = async (ev) => {
-    if (!window.confirm(`Supprimer définitivement « ${ev.title} » ? Ses participants, soumissions, reviews et paiements seront supprimés aussi.`)) return
+  const setStatus = async (ev, status, okText) => {
     setError(null)
-
-    const { data, error: deleteError } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', ev.id)
-      .select('id')
-
-    if (deleteError) {
-      setError(deleteError.message)
-      return
+    setNotice(null)
+    setBusyId(ev.id)
+    const res = await supabase.from('events').update({ status }).eq('id', ev.id).select('id')
+    setBusyId(null)
+    const msg = writeError(res, "Modification refusée par la base : vérifie que ton compte est bien administrateur.")
+    if (msg) setError(msg)
+    else {
+      setNotice(okText)
+      load()
     }
-    if (!data || data.length === 0) {
-      setError('Suppression refusée : seul un administrateur peut supprimer cet événement.')
-      return
-    }
-    fetchPendingEvents()
-    fetchAllEvents()
   }
 
-  if (loading) {
-    return (
-      <div className="page-container">
-        <div className="skeleton h-8 w-64 mb-8" />
-        <div className="space-y-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="card-panel skeleton h-36" />
-          ))}
-        </div>
-      </div>
+  const approve = (ev) => setStatus(ev, 'published', `« ${ev.title} » est publié.`)
+
+  const refuse = (ev) => {
+    if (!window.confirm(`Renvoyer « ${ev.title} » en brouillon ? L'organisateur pourra le corriger et redemander la publication.`)) return
+    setStatus(ev, 'draft', `« ${ev.title} » est renvoyé en brouillon.`)
+  }
+
+  const remove = async (ev) => {
+    if (
+      !window.confirm(
+        `Supprimer définitivement « ${ev.title} » ? Participants, soumissions, reviews et paiements seront supprimés aussi.`,
+      )
     )
+      return
+    setError(null)
+    setNotice(null)
+    setBusyId(ev.id)
+    const res = await supabase.from('events').delete().eq('id', ev.id).select('id')
+    setBusyId(null)
+    const msg = writeError(res, 'Suppression refusée par la base.')
+    if (msg) setError(msg)
+    else {
+      setNotice(`« ${ev.title} » a été supprimé.`)
+      load()
+    }
   }
+
+  const pending = events.filter((e) => e.status === 'pending_approval')
+  const q = query.trim().toLowerCase()
+  const listed = events.filter(
+    (e) =>
+      (statusFilter === 'all' || e.status === statusFilter) &&
+      (!q || [e.title, e.profiles?.full_name].some((v) => (v || '').toLowerCase().includes(q))),
+  )
 
   return (
     <div className="page-container">
-      <FadeContent className="mb-10">
-        <p className="section-label mb-2">Administration CONFERA</p>
-        <h1 className="section-heading text-4xl sm:text-5xl">Panel Admin</h1>
-        <p className="text-taupe text-sm mt-2 max-w-xl leading-relaxed">
-          Validez ou refusez les demandes de publication soumises par les organisateurs.
-        </p>
-      </FadeContent>
+      <PageHeader
+        title="Administration"
+        description="Valide les demandes de publication, surveille l'activité de la plateforme et gère les événements."
+      />
 
-      {error && <div className="alert-error mb-6">{error}</div>}
+      <div className="mb-8">
+        <Tabs
+          label="Sections de l'administration"
+          active={tab}
+          onChange={setTab}
+          tabs={[
+            { id: 'requests', label: 'Demandes', badge: pending.length || null },
+            { id: 'events', label: 'Tous les événements' },
+            { id: 'stats', label: 'Statistiques' },
+          ]}
+        />
+      </div>
 
-      {pendingEvents.length === 0 ? (
-        <div className="card-panel text-center py-16">
-          <div className="w-12 h-12 rounded-full bg-sage-light flex items-center justify-center mx-auto mb-4">
-            <span className="text-sage text-xl">✓</span>
-          </div>
-          <p className="section-heading text-xl">Aucune demande en attente</p>
-          <p className="text-taupe text-sm mt-2">
-            Toutes les demandes de publication ont été traitées.
-          </p>
+      {error && (
+        <div role="alert" className="alert-error mb-6">
+          {error}
         </div>
-      ) : (
-        <div className="space-y-5">
-          <p className="font-mono text-xs text-taupe uppercase tracking-[0.12em]">
-            {pendingEvents.length} demande{pendingEvents.length > 1 ? 's' : ''} en attente
-          </p>
-
-          {pendingEvents.map((event) => (
-            <article key={event.id} className="card-ticket-static">
-              <div className="ticket-stripe" />
-              <div className="ticket-perforation" />
-              <div className="p-6 sm:p-8 flex-1">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-wrap items-center gap-2 mb-3">
-                      <span className="badge-pending">En validation</span>
-                      <span className="badge-type">
-                        {TYPE_LABELS[event.type] || event.type}
-                      </span>
-                    </div>
-
-                    <h3 className="font-display font-semibold text-xl text-ink leading-snug">
-                      {event.title}
-                    </h3>
-
-                    {event.description && (
-                      <p className="text-sm text-taupe mt-2 leading-relaxed max-w-2xl">
-                        {event.description}
-                      </p>
-                    )}
-
-                    <div className="flex flex-wrap gap-x-5 gap-y-1 mt-4 font-mono text-xs text-ink/50">
-                      {event.start_date && event.end_date && (
-                        <span>{event.start_date} → {event.end_date}</span>
-                      )}
-                      {event.location && <span>{event.location}</span>}
-                    </div>
-
-                    <p className="text-xs text-taupe mt-4">
-                      Soumis par{' '}
-                      <span className="font-medium text-ink">{event.profiles?.full_name}</span>
-                      <span className="font-mono ml-1">({event.profiles?.email})</span>
-                    </p>
-                  </div>
-
-                  <div className="flex gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => handleApprove(event.id)}
-                      className="btn-success"
-                    >
-                      Approuver
-                    </button>
-                    <button
-                      onClick={() => handleReject(event.id)}
-                      className="btn-danger"
-                    >
-                      Refuser
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </article>
-          ))}
+      )}
+      {notice && (
+        <div role="status" className="alert-success mb-6">
+          {notice}
         </div>
       )}
 
-      <section className="mt-12">
-        <div className="flex items-baseline gap-3 mb-5">
-          <h2 className="section-heading text-xl">Tous les événements</h2>
-          <span className="font-mono text-xs text-taupe">{allEvents.length}</span>
-        </div>
+      {tab === 'stats' && <PlatformStats />}
 
-        {allEvents.length === 0 ? (
-          <p className="text-taupe text-sm py-4">Aucun événement.</p>
+      {tab === 'requests' &&
+        (loading ? (
+          <div className="space-y-3">
+            <div className="skeleton h-40" />
+            <div className="skeleton h-40" />
+          </div>
+        ) : pending.length === 0 ? (
+          <EmptyState
+            icon={ShieldCheckIcon}
+            title="Aucune demande en attente"
+            body="Quand un organisateur demandera la publication de son événement, la demande apparaîtra ici."
+          />
         ) : (
-          <ul className="space-y-2">
-            {allEvents.map((ev) => (
-              <li key={ev.id} className="list-item">
-                <div className="min-w-0">
-                  <span className="text-sm font-medium text-ink block truncate">{ev.title}</span>
-                  <span className="font-mono text-xs text-taupe truncate block">
-                    {ev.profiles?.full_name}
-                    {ev.start_date && <> · {ev.start_date}</>}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  <span className={STATUS_BADGE[ev.status] || 'badge-draft'}>
-                    {STATUS_LABELS[ev.status] || ev.status}
-                  </span>
-                  <button
-                    type="button"
-                    className="btn-danger btn-sm"
-                    onClick={() => handleDeleteEvent(ev)}
-                  >
-                    Supprimer
-                  </button>
+          <ul className="space-y-4">
+            {pending.map((ev, i) => (
+              <li key={ev.id} className="card-ticket-static rise" style={{ '--i': i }}>
+                <div className="ticket-stripe" />
+                <div className="ticket-perforation" />
+                <div className="flex-1 min-w-0 p-5 sm:p-6 flex flex-col lg:flex-row lg:items-start gap-5">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap gap-1.5">
+                      <span className="badge-pending">En validation</span>
+                      <span className="badge-type">{TYPE_LABELS[ev.type] || ev.type}</span>
+                    </div>
+                    <h3 className="mt-3 text-lg font-semibold tracking-tight text-fg" style={{ overflowWrap: 'anywhere' }}>
+                      {ev.title}
+                    </h3>
+                    {ev.description && (
+                      <p className="text-sm text-muted mt-1.5 leading-relaxed max-w-[70ch] line-clamp-3">{ev.description}</p>
+                    )}
+                    <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-[13px] text-muted">
+                      <span className="num">{formatDateRange(ev.start_date, ev.end_date)}</span>
+                      {ev.location && (
+                        <span className="inline-flex items-center gap-1.5">
+                          <MapPinIcon size={14} aria-hidden="true" />
+                          {ev.location}
+                        </span>
+                      )}
+                      <span>
+                        Par <span className="text-fg font-medium">{ev.profiles?.full_name}</span>
+                        {ev.profiles?.email && <span className="text-faint"> ({ev.profiles.email})</span>}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 shrink-0">
+                    <button type="button" className="btn-ghost" onClick={() => onOpenEvent(ev.id)}>
+                      Voir
+                      <ArrowUpRightIcon size={15} aria-hidden="true" />
+                    </button>
+                    <button type="button" className="btn-danger" disabled={busyId === ev.id} onClick={() => refuse(ev)}>
+                      <XIcon size={15} weight="bold" aria-hidden="true" />
+                      Refuser
+                    </button>
+                    <button type="button" className="btn-success" disabled={busyId === ev.id} onClick={() => approve(ev)}>
+                      <CheckIcon size={15} weight="bold" aria-hidden="true" />
+                      Publier
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
-        )}
-      </section>
+        ))}
+
+      {tab === 'events' && (
+        <section>
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
+            <label className="relative sm:w-72">
+              <span className="sr-only">Rechercher</span>
+              <MagnifyingGlassIcon
+                size={16}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                className="input-field pl-10"
+                placeholder="Titre ou organisateur…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+            <label className="sm:w-56">
+              <span className="sr-only">Filtrer par statut</span>
+              <select className="select-field" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+                <option value="all">Tous les statuts</option>
+                {Object.entries(STATUS_LABELS).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          <SectionTitle title="Événements" count={listed.length} />
+
+          {loading ? (
+            <div className="skeleton h-64" />
+          ) : listed.length === 0 ? (
+            <EmptyState compact title="Aucun événement" body="Aucun événement ne correspond à ces critères." />
+          ) : (
+            <ul className="card divide-y divide-line overflow-hidden">
+              {listed.map((ev) => (
+                <li key={ev.id} className="px-4 py-3.5 flex flex-wrap items-center gap-x-4 gap-y-2">
+                  <button
+                    type="button"
+                    onClick={() => onOpenEvent(ev.id)}
+                    className="min-w-0 flex-1 text-left group"
+                  >
+                    <span className="block font-medium text-fg truncate group-hover:text-accent-ink transition-colors">
+                      {ev.title}
+                    </span>
+                    <span className="block text-[13px] text-muted truncate">
+                      {ev.profiles?.full_name}
+                      {ev.start_date && <span className="num">, {formatDateRange(ev.start_date, ev.end_date)}</span>}
+                    </span>
+                  </button>
+                  <span className={STATUS_BADGE[ev.status] || 'badge-draft'}>{STATUS_LABELS[ev.status] || ev.status}</span>
+                  <button
+                    type="button"
+                    className="icon-btn hover:text-bad"
+                    disabled={busyId === ev.id}
+                    onClick={() => remove(ev)}
+                    aria-label={`Supprimer ${ev.title}`}
+                    title="Supprimer"
+                  >
+                    <TrashIcon size={18} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
     </div>
   )
 }

@@ -1,15 +1,12 @@
 import { useState, useEffect } from 'react'
-import { jsPDF } from 'jspdf'
+import { CheckCircleIcon, HourglassIcon, ReceiptIcon, TicketIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
+import { frError } from '../../lib/errors'
+import { ROLE_LABELS } from '../../lib/constants'
 import CertificateButton from '../certificates/CertificateButton'
 import AttendanceBadge from '../attendance/AttendanceBadge'
-
-const ROLE_LABELS = {
-  organizer: 'organisateur',
-  reviewer: 'reviewer',
-  participant: 'participant',
-}
+import { receiptPDF, slug } from '../certificates/pdf'
 
 export default function RegistrationCard({ event, participants, onRefresh }) {
   const myId = useAuth().user?.id ?? null
@@ -22,12 +19,10 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
   const mine = participants.find((p) => p.user_id === myId)
   const status = mine?.registration_status
   const isParticipant = mine?.role_in_event === 'participant'
+  const needsPayment = Boolean(myId && isParticipant && status !== 'invited')
 
   useEffect(() => {
-    if (!myId || !isParticipant || status === 'invited') {
-      setPayment(null)
-      return
-    }
+    if (!needsPayment) return
     supabase
       .from('registration_payments')
       .select('reference, amount, declared_at, validated_at')
@@ -35,7 +30,7 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
       .eq('user_id', myId)
       .maybeSingle()
       .then(({ data }) => setPayment(data))
-  }, [myId, isParticipant, status, event.id])
+  }, [needsPayment, myId, status, event.id])
 
   const fee = Number(event.registration_fee || 0)
   const free = fee === 0
@@ -46,11 +41,11 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
     setBusy(true)
     const { error: rpcError } = await supabase.rpc('declare_payment', {
       p_event_id: event.id,
-      p_reference: free ? 'Sans frais' : reference,
+      p_reference: free ? 'Sans frais' : reference.trim(),
     })
     setBusy(false)
     if (rpcError) {
-      setError(rpcError.message)
+      setError(frError(rpcError))
       return
     }
     setReference('')
@@ -58,37 +53,31 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
     onRefresh()
   }
 
-  const downloadReceipt = () => {
-    const doc = new jsPDF()
-    doc.setFontSize(18)
-    doc.text('Accusé de paiement', 20, 25)
-    doc.setFontSize(12)
-    const lines = [
-      `Événement : ${event.title}`,
-      `Participant : ${mine?.profiles?.full_name || ''}`,
-      `Référence du bordereau : ${payment?.reference || ''}`,
-      `Montant : ${payment?.amount ?? 0} DA`,
-      `Déclaré le : ${(payment?.declared_at || '').split('T')[0]}`,
-      `Validé le : ${(payment?.validated_at || '').split('T')[0]}`,
-    ]
-    lines.forEach((line, i) => doc.text(line, 20, 45 + i * 10))
-    doc.save(`accuse-paiement-${event.title}.pdf`)
-  }
+  const downloadReceipt = () =>
+    receiptPDF({
+      eventTitle: event.title,
+      participantName: mine?.profiles?.full_name || '',
+      reference: payment?.reference,
+      amount: payment?.amount,
+      declaredAt: payment?.declared_at,
+      validatedAt: payment?.validated_at,
+    }).save(`accuse-paiement-${slug(event.title)}.pdf`)
 
   if (!myId) return null
 
   if (!mine) {
     return (
-      <p className="text-sm text-taupe leading-relaxed">
-        L'inscription se fait sur invitation de l'organisateur, une fois ton article accepté.
+      <p className="text-sm text-muted leading-relaxed">
+        L'inscription se fait sur invitation de l'organisateur, une fois ton article accepté. Commence par soumettre un article dans l'onglet
+        Scientifique.
       </p>
     )
   }
 
   if (!isParticipant) {
     return (
-      <p className="text-sm text-taupe leading-relaxed">
-        Tu fais partie de cet événement en tant que {ROLE_LABELS[mine.role_in_event] || mine.role_in_event}.
+      <p className="text-sm text-muted leading-relaxed">
+        Tu fais partie de cet événement en tant que <span className="font-medium text-fg">{ROLE_LABELS[mine.role_in_event]?.toLowerCase()}</span>.
       </p>
     )
   }
@@ -96,16 +85,24 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
   if (status === 'validated') {
     return (
       <div className="space-y-4">
-        <div className="alert-success">Inscription validée</div>
-        {event.format !== 'online' && (
+        <p className="flex items-center gap-2 text-sm font-medium text-ok">
+          <CheckCircleIcon size={18} weight="fill" aria-hidden="true" />
+          Inscription validée
+        </p>
+        {event.format !== 'online' ? (
           <AttendanceBadge event={event} name={mine?.profiles?.full_name || ''} />
+        ) : (
+          <p className="text-sm text-muted">Événement en ligne : la présence est pointée par l'organisateur.</p>
         )}
-        {payment && (
-          <button type="button" className="btn-outline btn-sm w-full" onClick={downloadReceipt}>
-            Télécharger l'accusé de paiement (PDF)
-          </button>
-        )}
-        <CertificateButton event={event} />
+        <div className="grid gap-2">
+          {payment && (
+            <button type="button" className="btn-outline w-full" onClick={downloadReceipt}>
+              <ReceiptIcon size={17} aria-hidden="true" />
+              Accusé de paiement (PDF)
+            </button>
+          )}
+          <CertificateButton event={event} />
+        </div>
       </div>
     )
   }
@@ -114,52 +111,58 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
     <form onSubmit={declare} className="space-y-3">
       {!free && (
         <div>
-          <label htmlFor="payment-ref" className="form-label">Référence du bordereau</label>
-          <input
-            id="payment-ref"
-            className="input-field font-mono"
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-            required
-          />
+          <label htmlFor="payment-ref" className="form-label">
+            Référence du bordereau
+          </label>
+          <input id="payment-ref" className="input-field num" value={reference} onChange={(e) => setReference(e.target.value)} required />
         </div>
       )}
       <button type="submit" disabled={busy} className="btn-primary w-full">
-        {busy ? 'Envoi…' : free ? "Confirmer mon inscription" : 'Déclarer mon paiement'}
+        {busy ? 'Envoi…' : free ? 'Confirmer mon inscription' : 'Déclarer mon paiement'}
       </button>
     </form>
   )
 
   return (
     <div className="space-y-4">
-      {error && <div className="alert-error">{error}</div>}
+      {error && (
+        <div role="alert" className="alert-error">
+          {error}
+        </div>
+      )}
 
       {status === 'payment_submitted' ? (
         <>
-          <div className="alert-info">
-            Paiement déclaré{payment?.reference ? ` (bordereau ${payment.reference})` : ''}. En attente de validation par l'organisateur.
-          </div>
+          <p className="flex items-start gap-2 text-sm text-fg">
+            <HourglassIcon size={18} className="text-warn shrink-0" aria-hidden="true" />
+            <span>
+              Paiement déclaré{payment?.reference && <> (bordereau <span className="num font-medium">{payment.reference}</span>)</>}. L'organisateur
+              va le vérifier.
+            </span>
+          </p>
           {editing ? (
             form
           ) : (
-            <button type="button" className="btn-outline btn-sm w-full" onClick={() => setEditing(true)}>
+            <button type="button" className="btn-ghost btn-sm -ml-2" onClick={() => setEditing(true)}>
               Corriger la référence
             </button>
           )}
         </>
       ) : (
         <>
-          <div className="alert-info">Tu es invité à cet événement. Règle les frais pour valider ton inscription.</div>
-          <div>
-            <p className="text-xs text-taupe">Frais d'inscription</p>
-            <p className="font-mono text-sm text-ink">{free ? 'Gratuit' : `${fee} DA`}</p>
+          <p className="flex items-start gap-2 text-sm text-fg">
+            <TicketIcon size={18} className="text-accent-ink shrink-0" aria-hidden="true" />
+            Tu es invité. Règle les frais pour valider ton inscription.
+          </p>
+          <div className="rounded-xl bg-surface-2/70 border border-line p-3.5">
+            <p className="text-xs text-muted">Frais d'inscription</p>
+            <p className="num text-2xl font-semibold tracking-tight text-fg">{free ? 'Gratuit' : `${fee.toLocaleString('fr-FR')} DA`}</p>
+            {event.payment_instructions && (
+              <p className="text-[13px] text-muted mt-2 whitespace-pre-line leading-5" style={{ overflowWrap: 'anywhere' }}>
+                {event.payment_instructions}
+              </p>
+            )}
           </div>
-          {event.payment_instructions && (
-            <div>
-              <p className="text-xs text-taupe">Modalités de paiement</p>
-              <p className="text-sm text-ink whitespace-pre-line">{event.payment_instructions}</p>
-            </div>
-          )}
           {form}
         </>
       )}

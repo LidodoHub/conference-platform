@@ -1,10 +1,31 @@
-import { useState, useEffect } from 'react'
-import { TYPE_LABELS, STATUS_LABELS, PHASE_LABELS, FORMAT_LABELS } from '../../lib/constants'
+import { useState, useEffect, useCallback } from 'react'
+import {
+  ArrowLeftIcon,
+  CalendarBlankIcon,
+  MapPinIcon,
+  UserIcon,
+  InfoIcon,
+  ArticleIcon,
+  PresentationChartIcon,
+  GearSixIcon,
+  ChartBarIcon,
+  EnvelopeSimpleIcon,
+} from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
+import { frError } from '../../lib/errors'
+import {
+  TYPE_LABELS,
+  STATUS_LABELS,
+  STATUS_BADGE,
+  FORMAT_LABELS,
+  formatDateRange,
+} from '../../lib/constants'
 import Tabs from '../../components/ui/Tabs'
-import { CalendarIcon, PinIcon, UserIcon } from '../../components/ui/Icons'
+import Avatar from '../../components/ui/Avatar'
+import Stat from '../../components/ui/Stat'
 import PhaseStepper from './PhaseStepper'
+import EventSettings from './EventSettings'
 import ManageParticipants from './ManageParticipants'
 import ScientificPanel from '../submissions/ScientificPanel'
 import SessionsPanel from '../sessions/SessionsPanel'
@@ -12,354 +33,230 @@ import SponsorsPanel from '../sponsors/SponsorsPanel'
 import InvitationsPanel from '../registrations/InvitationsPanel'
 import RegistrationCard from '../registrations/RegistrationCard'
 import AttendancePanel from '../attendance/AttendancePanel'
+import EventStats from '../stats/EventStats'
 
-// pastilles de l'en-tête (fond navy)
-const CHIP = 'inline-flex items-center font-mono text-[10px] uppercase tracking-[0.12em] rounded-full px-2.5 py-1 border'
-const STATUS_CHIP = {
-  draft: 'border-white/25 text-white/70',
-  pending_approval: 'border-gold/50 bg-gold/20 text-gold',
-  published: 'border-transparent bg-sage text-white',
-  ongoing: 'border-transparent bg-sage text-white',
-  closed: 'border-white/25 bg-white/10 text-white/80',
-  archived: 'border-white/20 text-white/50',
+const tile = (d) => {
+  if (!d) return null
+  const date = new Date(`${String(d).slice(0, 10)}T00:00:00`)
+  return { day: date.getDate(), month: date.toLocaleDateString('fr-FR', { month: 'long' }), year: date.getFullYear() }
 }
 
-const parseDate = (d) => (d ? new Date(`${d}T00:00:00`) : null)
-const fmtLong = (d) =>
-  parseDate(d)?.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' }) || ''
-
-export default function EventDetail({ eventId, onBack }) {
+export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab }) {
+  const { user, isAdmin } = useAuth()
   const [event, setEvent] = useState(null)
   const [participants, setParticipants] = useState([])
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [isOrganizer, setIsOrganizer] = useState(false)
-  const [isReviewer, setIsReviewer] = useState(false)
-  const [tab, setTab] = useState('overview')
-  const [orgTab, setOrgTab] = useState('settings')
-  const { user: currentUser } = useAuth()
+  const [tab, setTab] = useState(initialTab || 'overview')
+  const [orgTab, setOrgTab] = useState(initialOrgTab || 'settings')
 
-  const fetchEventData = async () => {
-    const { data: eventData, error: eventError } = await supabase
-      .from('events')
-      .select('*, profiles(full_name, email)')
-      .eq('id', eventId)
-      .single()
+  // Ne met jamais "loading" à vrai lors d'un rafraîchissement : seul le premier chargement affiche le squelette.
+  const fetchEventData = useCallback(async () => {
+    const [eventRes, partRes, subRes] = await Promise.all([
+      supabase.from('events').select('*, profiles(full_name, email)').eq('id', eventId).single(),
+      supabase
+        .from('event_participants')
+        .select('id, user_id, role_in_event, registered_at, registration_status, invited_at, validated_at, profiles(full_name, email)')
+        .eq('event_id', eventId),
+      supabase
+        .from('submissions')
+        .select(
+          'id, author_id, title, abstract, status, submitted_at, profiles(full_name), reviews(id, score, comments, recommendation, reviewer_id, recommended_session_id), decisions(id, status, revision_type, decided_at)',
+        )
+        .eq('event_id', eventId),
+    ])
 
-    if (eventError) {
-      setError(eventError.message)
-      setLoading(false)
-      return
-    }
-
-    setEvent(eventData)
-
-    const { data: participantsData, error: participantsError } = await supabase
-      .from('event_participants')
-      .select('id, user_id, role_in_event, registered_at, registration_status, invited_at, validated_at, profiles(full_name, email)')
-      .eq('event_id', eventId)
-
-    if (participantsError) {
-      console.error('Erreur chargement participants :', participantsError)
-    } else {
-      setParticipants(participantsData)
-    }
-
-    const mine =
-      currentUser && participantsData
-        ? participantsData.find((p) => p.user_id === currentUser.id)
-        : null
-
-    setIsOrganizer(
-      Boolean(currentUser && (eventData.organizer_id === currentUser.id || mine?.role_in_event === 'organizer')),
-    )
-    setIsReviewer(mine?.role_in_event === 'reviewer')
-
-    const { data: submissionsData, error: submissionsError } = await supabase
-      .from('submissions')
-      .select('id, author_id, title, abstract, status, submitted_at, profiles(full_name), reviews(id, score, comments, recommendation, reviewer_id, recommended_session_id), decisions(id, status, revision_type, decided_at)')
-      .eq('event_id', eventId)
-
-    if (submissionsError) {
-      console.error('Erreur chargement soumissions :', submissionsError)
-    } else {
-      setSubmissions(submissionsData)
-    }
-
+    if (eventRes.error) setError(frError(eventRes.error))
+    else setEvent(eventRes.data)
+    if (partRes.error) setError(frError(partRes.error))
+    else setParticipants(partRes.data)
+    if (subRes.error) setError(frError(subRes.error))
+    else setSubmissions(subRes.data)
     setLoading(false)
-  }
-
-  useEffect(() => {
-    setLoading(true)
-    fetchEventData()
   }, [eventId])
 
-  const pendingCount = submissions.filter(
-    (s) => s.status === 'submitted' || s.status === 'revision_requested',
-  ).length
-
-  const updateEvent = async (changes, refusedMessage) => {
-    setError(null)
-    const { data, error: updateError } = await supabase
-      .from('events')
-      .update(changes)
-      .eq('id', event.id)
-      .select('id')
-
-    if (updateError) setError(updateError.message)
-    else if (!data || data.length === 0) setError(refusedMessage)
-    else fetchEventData()
-  }
-
-  const changePhase = (newPhase) => {
-    if (newPhase === 'organizational') {
-      const msg =
-        pendingCount > 0
-          ? `${pendingCount} article(s) sont encore en attente de décision ou de révision. Clore la phase scientifique bloquera les soumissions, les reviews et les décisions. Continuer ?`
-          : 'Clore la phase scientifique ? Plus aucune soumission, review ni décision ne sera possible (tu pourras la rouvrir).'
-      if (!window.confirm(msg)) return
-    }
-    updateEvent({ phase: newPhase }, "Changement refusé : tu n'es pas organisateur de cet événement.")
-  }
-
-  const changeFormat = (newFormat) =>
-    updateEvent({ format: newFormat }, "Changement refusé : tu n'es pas organisateur de cet événement.")
-
-  const requestPublication = () =>
-    updateEvent({ status: 'pending_approval' }, 'Demande refusée.')
-
-  const deleteDraft = async () => {
-    if (!window.confirm('Supprimer ce brouillon ? Tout son contenu sera supprimé.')) return
-    setError(null)
-
-    const { data, error: deleteError } = await supabase
-      .from('events')
-      .delete()
-      .eq('id', event.id)
-      .select('id')
-
-    if (deleteError) setError(deleteError.message)
-    else if (!data || data.length === 0) setError('Suppression refusée.')
-    else onBack()
-  }
+  useEffect(() => {
+    fetchEventData()
+  }, [fetchEventData])
 
   if (loading) {
     return (
       <div className="page-container">
-        <div className="skeleton h-4 w-32 mb-6" />
-        <div className="card-panel space-y-4">
-          <div className="skeleton h-6 w-24" />
-          <div className="skeleton h-10 w-3/4" />
-          <div className="skeleton h-4 w-full" />
-          <div className="skeleton h-4 w-2/3" />
-        </div>
+        <div className="skeleton h-5 w-40 mb-6" />
+        <div className="skeleton h-64 mb-6" />
+        <div className="skeleton h-11 w-full max-w-lg" />
       </div>
     )
   }
 
   if (!event) {
     return (
-      <div className="page-container text-center py-20">
-        <p className="alert-error inline-block">Événement introuvable</p>
-        {error && <p className="font-mono text-xs text-taupe mt-3">{error}</p>}
+      <div className="page-container">
+        <button onClick={onBack} className="btn-ghost -ml-3 mb-6">
+          <ArrowLeftIcon size={16} aria-hidden="true" />
+          Événements
+        </button>
+        <div className="alert-error">Événement introuvable ou inaccessible.{error && ` (${error})`}</div>
       </div>
     )
   }
 
-  const tabs = [
-    { id: 'overview', label: 'Aperçu' },
-    {
-      id: 'scientific',
-      label: 'Scientifique',
-      badge: isOrganizer && pendingCount > 0 ? pendingCount : null,
-    },
-    { id: 'program', label: 'Programme' },
-    ...(isOrganizer ? [{ id: 'organization', label: 'Organisation' }] : []),
-  ]
-  const activeTab = tabs.some((t) => t.id === tab) ? tab : 'overview'
+  const mine = participants.find((p) => p.user_id === user.id)
+  const isOrganizer = event.organizer_id === user.id || mine?.role_in_event === 'organizer'
+  const isReviewer = mine?.role_in_event === 'reviewer'
+  const canManage = isOrganizer || isAdmin
 
-  const orgTabs = [
-    { id: 'settings', label: 'Événement' },
-    { id: 'participants', label: 'Participants', badge: participants.length },
-    { id: 'registrations', label: 'Inscriptions' },
-    { id: 'sponsors', label: 'Sponsors' },
-    { id: 'attendance', label: 'Présences' },
-  ]
-
-  const start = parseDate(event.start_date)
-  const tileMonth = start
-    ? start.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', '')
-    : ''
-  const tileDay = start ? start.getDate() : ''
-  const dateRange =
-    fmtLong(event.start_date) +
-    (event.end_date && event.end_date !== event.start_date ? ` → ${fmtLong(event.end_date)}` : '')
-
-  const organizerName = event.profiles?.full_name || ''
-  const organizerInitial = (organizerName.trim().charAt(0) || '?').toUpperCase()
-
+  const pendingCount = submissions.filter((s) => s.status === 'submitted' || s.status === 'revision_requested').length
   const acceptedCount = submissions.filter((s) => s.status === 'accepted').length
   const validatedCount = participants.filter(
     (p) => p.role_in_event === 'participant' && p.registration_status === 'validated',
   ).length
 
-  const stats = isOrganizer
-    ? [
-        ['Soumissions', submissions.length],
-        ['En attente', pendingCount],
-        ['Acceptés', acceptedCount],
-        ['Inscrits', validatedCount],
-      ]
-    : [
-        ['Articles acceptés', acceptedCount],
-        ['Inscrits', validatedCount],
-      ]
+  const tabs = [
+    { id: 'overview', label: 'Aperçu', icon: InfoIcon },
+    { id: 'scientific', label: 'Scientifique', icon: ArticleIcon, badge: canManage && pendingCount > 0 ? pendingCount : null },
+    { id: 'program', label: 'Programme', icon: PresentationChartIcon },
+    ...(canManage
+      ? [
+          { id: 'organization', label: 'Organisation', icon: GearSixIcon },
+          { id: 'stats', label: 'Statistiques', icon: ChartBarIcon },
+        ]
+      : []),
+  ]
+  const activeTab = tabs.some((t) => t.id === tab) ? tab : 'overview'
+
+  const paymentsToValidate = participants.filter((p) => p.registration_status === 'payment_submitted').length
+  const orgTabs = [
+    { id: 'settings', label: 'Événement' },
+    { id: 'participants', label: 'Participants', badge: participants.length },
+    { id: 'registrations', label: 'Inscriptions', badge: paymentsToValidate || null },
+    { id: 'sponsors', label: 'Sponsors' },
+    { id: 'attendance', label: 'Présences' },
+  ]
+
+  const t = tile(event.start_date)
+  const organizerName = event.profiles?.full_name || ''
 
   return (
     <div className="page-container">
-      <button onClick={onBack} className="btn-ghost-gold text-sm mb-6 -ml-3">
-        ← Retour à la liste
+      <button onClick={onBack} className="btn-ghost -ml-3 mb-5">
+        <ArrowLeftIcon size={16} aria-hidden="true" />
+        Événements
       </button>
 
-      {/* En-tête */}
-      <div className="relative overflow-hidden rounded-2xl bg-ink text-white shadow-lg">
-        <div className="h-1.5 bg-gold" />
-        <div aria-hidden="true" className="absolute -right-20 -top-24 w-72 h-72 rounded-full bg-gold/10" />
-        <div aria-hidden="true" className="absolute right-6 -bottom-16 w-44 h-44 rounded-full border border-gold/20" />
-
-        <div className="relative p-6 sm:p-10">
-          <div className="flex flex-wrap items-center gap-2 mb-5">
-            <span className={`${CHIP} border-white/25 text-white/80`}>
-              {TYPE_LABELS[event.type] || event.type}
-            </span>
-            <span className={`${CHIP} border-white/25 text-white/80`}>
-              {FORMAT_LABELS[event.format] || event.format}
-            </span>
-            <span className={`${CHIP} ${STATUS_CHIP[event.status] || STATUS_CHIP.draft}`}>
-              {STATUS_LABELS[event.status] || event.status}
-            </span>
-          </div>
-
-          <h1
-            className="font-display font-semibold tracking-tight text-3xl sm:text-5xl leading-tight text-balance max-w-3xl"
-            style={{ overflowWrap: 'anywhere' }}
-          >
-            {event.title}
-          </h1>
-
-          <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8 mt-7">
-            {start && (
-              <div className="shrink-0 w-20 rounded-xl bg-white/10 border border-white/15 py-3 text-center">
-                <p className="font-mono text-[10px] uppercase tracking-widest text-gold">{tileMonth}</p>
-                <p className="font-display text-4xl font-semibold leading-none mt-1">{tileDay}</p>
-              </div>
-            )}
-            <div className="space-y-2 text-sm text-white/80 min-w-0">
-              {dateRange && (
-                <p className="flex items-center gap-2">
-                  <CalendarIcon className="shrink-0 text-gold" />
-                  <span>{dateRange}</span>
-                </p>
-              )}
+      {/* En-tête de l'événement */}
+      <header className="card overflow-hidden">
+        <div className="h-1.5 bg-accent" aria-hidden="true" />
+        <div className="p-5 sm:p-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-8">
+          <div className="min-w-0">
+            <div className="flex flex-wrap gap-1.5">
+              <span className={STATUS_BADGE[event.status] || 'badge-draft'}>{STATUS_LABELS[event.status] || event.status}</span>
+              <span className="badge-type">{TYPE_LABELS[event.type] || event.type}</span>
+              <span className="badge-type">{FORMAT_LABELS[event.format] || event.format}</span>
+            </div>
+            <h1
+              className="mt-4 text-3xl sm:text-[2.5rem] font-semibold tracking-tight leading-[1.1] text-fg max-w-[24ch]"
+              style={{ overflowWrap: 'anywhere' }}
+            >
+              {event.title}
+            </h1>
+            <ul className="mt-5 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+              <li className="flex items-center gap-2">
+                <CalendarBlankIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
+                <span className="num">{formatDateRange(event.start_date, event.end_date)}</span>
+              </li>
               {event.location && (
-                <p className="flex items-center gap-2">
-                  <PinIcon className="shrink-0 text-gold" />
+                <li className="flex items-center gap-2 min-w-0">
+                  <MapPinIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
                   <span style={{ overflowWrap: 'anywhere' }}>{event.location}</span>
-                </p>
+                </li>
               )}
-              <p className="flex items-center gap-2">
-                <UserIcon className="shrink-0 text-gold" />
-                <span>Organisé par {organizerName}</span>
-              </p>
-            </div>
+              <li className="flex items-center gap-2">
+                <UserIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
+                Organisé par {organizerName}
+              </li>
+            </ul>
           </div>
 
-          {isOrganizer && event.status === 'draft' && (
-            <button onClick={requestPublication} className="btn-accent btn-sm mt-6">
-              Demander la publication
-            </button>
-          )}
-          {isOrganizer && event.status === 'pending_approval' && (
-            <div className="mt-6 rounded-lg bg-white/10 border border-white/15 px-4 py-3 text-sm text-white/80">
-              En attente de validation par un administrateur
+          {t && (
+            <div
+              className="hidden lg:flex flex-col items-center justify-center w-36 rounded-2xl border border-line bg-surface-2/70 py-4 self-start"
+              aria-hidden="true"
+            >
+              <span className="text-xs uppercase tracking-wider text-accent-ink font-medium">{t.month}</span>
+              <span className="num text-6xl font-semibold tracking-tighter text-fg leading-none mt-1">{t.day}</span>
+              <span className="num text-xs text-faint mt-1.5">{t.year}</span>
             </div>
           )}
-
+        </div>
+        <div className="px-5 sm:px-8 pb-5 sm:pb-8">
           <PhaseStepper phase={event.phase} />
         </div>
-      </div>
+      </header>
 
       {error && <div className="alert-error mt-4">{error}</div>}
 
-      {/* Navigation principale, collée sous la barre du haut */}
-      <div className="sticky top-16 z-40 bg-paper/95 backdrop-blur-sm mt-6 -mx-5 px-5 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
-        <Tabs tabs={tabs} active={activeTab} onChange={setTab} />
+      {/* Navigation, collée sous la barre du haut */}
+      <div className="sticky top-16 z-30 bg-bg/90 backdrop-blur-md mt-6 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
+        <Tabs label="Sections de l'événement" tabs={tabs} active={activeTab} onChange={setTab} />
       </div>
 
-      <div className="mt-6">
-        {/* APERÇU */}
+      <div className="mt-8">
         {activeTab === 'overview' && (
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-6 items-start">
-            <div className="space-y-6 min-w-0">
-              <div className={`grid gap-3 grid-cols-2 ${isOrganizer ? 'sm:grid-cols-4' : ''}`}>
-                {stats.map(([label, value]) => (
-                  <div key={label} className="card p-4">
-                    <p className="font-display text-3xl font-semibold text-ink leading-none">{value}</p>
-                    <p className="section-label mt-2">{label}</p>
-                  </div>
-                ))}
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8 items-start">
+            <div className="space-y-8 min-w-0">
+              <div className={`grid gap-3 grid-cols-2 ${canManage ? 'sm:grid-cols-4' : ''}`}>
+                {canManage && <Stat label="Articles soumis" value={submissions.length} />}
+                {canManage && <Stat label="En attente" value={pendingCount} />}
+                <Stat label="Articles acceptés" value={acceptedCount} />
+                <Stat label="Inscrits validés" value={validatedCount} />
               </div>
 
               {event.description && (
-                <div className="card p-5 sm:p-6 border-l-4 border-gold">
-                  <h2 className="section-heading text-xl mb-3">À propos</h2>
-                  <p
-                    className="text-taupe leading-relaxed whitespace-pre-line"
-                    style={{ overflowWrap: 'anywhere' }}
-                  >
+                <section>
+                  <h2 className="text-lg font-semibold tracking-tight text-fg mb-3">À propos</h2>
+                  <p className="text-fg/85 leading-7 whitespace-pre-line max-w-[70ch]" style={{ overflowWrap: 'anywhere' }}>
                     {event.description}
                   </p>
-                </div>
+                </section>
               )}
 
-              {!isOrganizer && <SponsorsPanel eventId={eventId} isOrganizer={false} />}
+              <SponsorsPanel eventId={eventId} isOrganizer={false} compact />
             </div>
 
-            <aside className="order-first lg:order-none space-y-4 lg:sticky lg:top-32">
-              <div className="card-ticket-static">
+            <aside className="order-first lg:order-none space-y-4 lg:sticky lg:top-36">
+              <section className="card-ticket-static">
                 <div className="ticket-stripe" />
                 <div className="ticket-perforation" />
                 <div className="p-5 flex-1 min-w-0">
-                  <p className="section-label mb-4">Ma participation</p>
+                  <h2 className="font-semibold text-fg mb-4">Ma participation</h2>
                   <RegistrationCard event={event} participants={participants} onRefresh={fetchEventData} />
                 </div>
-              </div>
+              </section>
 
-              <div className="card p-5">
-                <p className="section-label mb-3">Organisateur</p>
+              <section className="card p-5">
+                <h2 className="text-sm text-muted mb-3">Organisateur</h2>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-ink text-white flex items-center justify-center font-display font-semibold shrink-0">
-                    {organizerInitial}
-                  </div>
+                  <Avatar name={organizerName} size={40} />
                   <div className="min-w-0">
-                    <p className="text-sm font-medium text-ink truncate">{organizerName}</p>
+                    <p className="font-medium text-fg truncate">{organizerName}</p>
                     {event.profiles?.email && (
                       <a
                         href={`mailto:${event.profiles.email}`}
-                        className="font-mono text-xs text-taupe hover:text-ink truncate block"
+                        className="text-[13px] text-muted hover:text-accent-ink inline-flex items-center gap-1.5 max-w-full"
                       >
-                        {event.profiles.email}
+                        <EnvelopeSimpleIcon size={14} className="shrink-0" aria-hidden="true" />
+                        <span className="truncate">{event.profiles.email}</span>
                       </a>
                     )}
                   </div>
                 </div>
-              </div>
+              </section>
             </aside>
           </div>
         )}
 
-        {/* SCIENTIFIQUE */}
         {activeTab === 'scientific' && (
           <div className="max-w-4xl">
             <ScientificPanel
@@ -368,106 +265,28 @@ export default function EventDetail({ eventId, onBack }) {
               participants={participants}
               isOrganizer={isOrganizer}
               isReviewer={isReviewer}
-              isAdmin={false}
+              isAdmin={isAdmin}
               frozen={event.phase !== 'scientific'}
               onRefresh={fetchEventData}
             />
           </div>
         )}
 
-        {/* PROGRAMME */}
         {activeTab === 'program' && (
           <div className="max-w-4xl">
-            <SessionsPanel
-              eventId={eventId}
-              isOrganizer={isOrganizer}
-              phase={event.phase}
-              submissions={submissions}
-            />
+            <SessionsPanel eventId={eventId} isOrganizer={canManage} phase={event.phase} submissions={submissions} />
           </div>
         )}
 
-        {/* ORGANISATION */}
-        {activeTab === 'organization' && isOrganizer && (
-          <div className="space-y-6">
-            <Tabs tabs={orgTabs} active={orgTab} onChange={setOrgTab} variant="pill" />
+        {activeTab === 'organization' && canManage && (
+          <div className="space-y-8">
+            <Tabs label="Organisation" tabs={orgTabs} active={orgTab} onChange={setOrgTab} variant="pill" />
 
             <div className="max-w-4xl">
               {orgTab === 'settings' && (
-                <div className="space-y-4 max-w-2xl">
-                  <div className="card p-5 sm:p-6" style={{ borderLeft: '6px solid #C8963E' }}>
-                    <p className="section-label">Format</p>
-                    <h3 className="font-display text-xl font-semibold text-ink mt-1">
-                      {FORMAT_LABELS[event.format] || event.format}
-                    </h3>
-                    <p className="text-sm text-taupe mt-2 mb-4">
-                      En ligne : les inscrits n'ont pas de badge QR, la présence se pointe à la main.
-                    </p>
-                    <select
-                      className="select-field w-full sm:w-auto"
-                      value={event.format}
-                      onChange={(e) => changeFormat(e.target.value)}
-                    >
-                      <option value="onsite">Présentiel</option>
-                      <option value="online">En ligne</option>
-                      <option value="hybrid">Hybride</option>
-                    </select>
-                  </div>
-
-                  <div
-                    className="card p-5 sm:p-6"
-                    style={{ borderLeft: `6px solid ${event.phase === 'scientific' ? '#F2A93B' : '#34C38F'}` }}
-                  >
-                    <p className="section-label">Phase</p>
-                    <h3 className="font-display text-xl font-semibold text-ink mt-1">
-                      {PHASE_LABELS[event.phase]}
-                    </h3>
-                    {event.phase === 'scientific' ? (
-                      <>
-                        <p className="text-sm text-taupe mt-2 mb-4">
-                          Clore la phase gèle les soumissions, les reviews et les décisions, et ouvre les invitations et le programme définitif.
-                          {pendingCount > 0 && ` ${pendingCount} article(s) sont encore en attente.`}
-                        </p>
-                        <button type="button" className="btn-outline btn-sm" onClick={() => changePhase('organizational')}>
-                          Clore la phase scientifique
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-taupe mt-2 mb-4">
-                          La phase scientifique est close. Tu peux la rouvrir si une décision doit être corrigée.
-                        </p>
-                        <button type="button" className="btn-outline btn-sm" onClick={() => changePhase('scientific')}>
-                          Rouvrir la phase scientifique
-                        </button>
-                      </>
-                    )}
-                  </div>
-
-                  {event.status === 'draft' && (
-                    <div className="card p-5 sm:p-6" style={{ borderLeft: '6px solid #E5534B' }}>
-                      <p className="section-label">Zone sensible</p>
-                      <p className="text-sm text-taupe mt-2 mb-4">
-                        Supprimer un brouillon efface tout son contenu.
-                      </p>
-                      <button type="button" className="btn-danger btn-sm" onClick={deleteDraft}>
-                        Supprimer le brouillon
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <EventSettings event={event} pendingCount={pendingCount} onChanged={fetchEventData} onDeleted={onBack} />
               )}
-
-              {orgTab === 'participants' && (
-                <div>
-                  <div className="flex items-baseline gap-3 mb-5">
-                    <h2 className="section-heading text-xl">Participants</h2>
-                    <span className="font-mono text-xs text-taupe">{participants.length}</span>
-                  </div>
-                  <ManageParticipants participants={participants} onUpdated={fetchEventData} />
-                </div>
-              )}
-
+              {orgTab === 'participants' && <ManageParticipants participants={participants} onUpdated={fetchEventData} />}
               {orgTab === 'registrations' && (
                 <InvitationsPanel
                   eventId={eventId}
@@ -478,19 +297,19 @@ export default function EventDetail({ eventId, onBack }) {
                   onRefresh={fetchEventData}
                 />
               )}
-
               {orgTab === 'sponsors' && <SponsorsPanel eventId={eventId} isOrganizer />}
-
               {orgTab === 'attendance' &&
                 (event.phase === 'organizational' ? (
                   <AttendancePanel eventId={eventId} participants={participants} />
                 ) : (
-                  <div className="alert-info">
-                    Le pointage des présences s'ouvre en phase organisationnelle.
-                  </div>
+                  <div className="alert-info">Le pointage des présences s'ouvre en phase organisationnelle.</div>
                 ))}
             </div>
           </div>
+        )}
+
+        {activeTab === 'stats' && canManage && (
+          <EventStats eventId={eventId} submissions={submissions} participants={participants} />
         )}
       </div>
     </div>

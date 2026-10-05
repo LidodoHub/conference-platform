@@ -1,297 +1,201 @@
-import { useState, useEffect } from 'react'
-import { TYPE_LABELS, STATUS_LABELS, STATUS_BADGE } from '../../lib/constants'
+import { useState, useEffect, useCallback } from 'react'
+import { PlusIcon, MagnifyingGlassIcon, CalendarBlankIcon, XIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
-import GlareHover from '../../components/reactbits/GlareHover'
-import FadeContent from '../../components/reactbits/FadeContent'
+import { frError } from '../../lib/errors'
+import PageHeader from '../../components/ui/PageHeader'
+import Tabs from '../../components/ui/Tabs'
+import EmptyState from '../../components/ui/EmptyState'
+import SectionTitle from '../../components/ui/SectionTitle'
+import EventCard from './EventCard'
+import EventForm from './EventForm'
+
+const today = () => new Date().toISOString().slice(0, 10)
 
 export default function EventsPage({ onSelectEvent }) {
-  const [events, setEvents] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [type, setType] = useState('conference')
-  const [startDate, setStartDate] = useState('')
-  const [endDate, setEndDate] = useState('')
-  const [location, setLocation] = useState('')
-  const [error, setError] = useState(null)
-  const [submitting, setSubmitting] = useState(false)
   const { user } = useAuth()
+  const [events, setEvents] = useState([])
+  const [roles, setRoles] = useState({})
+  const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  const [showForm, setShowForm] = useState(false)
+  const [createError, setCreateError] = useState(null)
+  const [filter, setFilter] = useState('all')
+  const [query, setQuery] = useState('')
 
-  const fetchEvents = async () => {
-    setLoading(true)
-    const { data, error } = await supabase
-      .from('events')
-      .select('*, profiles(full_name)')
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error(error)
-    } else {
-      setEvents(data)
-    }
+  const load = useCallback(async () => {
+    const [eventsRes, rolesRes] = await Promise.all([
+      supabase
+        .from('events')
+        .select('id, title, description, type, format, status, start_date, end_date, location, organizer_id')
+        .order('start_date', { ascending: true }),
+      supabase.from('event_participants').select('event_id, role_in_event').eq('user_id', user.id),
+    ])
+    if (eventsRes.error) setLoadError(frError(eventsRes.error))
+    else setEvents(eventsRes.data)
+    setRoles(Object.fromEntries((rolesRes.data || []).map((r) => [r.event_id, r.role_in_event])))
     setLoading(false)
-  }
+  }, [user.id])
 
   useEffect(() => {
-    fetchEvents()
-  }, [])
+    load()
+  }, [load])
 
-  const handleCreateEvent = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setError(null)
-
-    if (!user) {
-      setError('Tu dois être connecté pour créer un événement')
-      setSubmitting(false)
-      return
-    }
-
-    const { error: insertError } = await supabase
+  const createEvent = async (values) => {
+    setCreateError(null)
+    const { data, error } = await supabase
       .from('events')
-      .insert({
-        title,
-        description,
-        type,
-        organizer_id: user.id,
-        start_date: startDate,
-        end_date: endDate,
-        location,
-        status: 'draft',
-      })
-
-    if (insertError) {
-      setError(insertError.message)
-      setSubmitting(false)
+      .insert({ ...values, organizer_id: user.id, status: 'draft' })
+      .select('id')
+      .single()
+    if (error) {
+      setCreateError(frError(error))
       return
     }
-
-    setTitle('')
-    setDescription('')
-    setType('conference')
-    setStartDate('')
-    setEndDate('')
-    setLocation('')
     setShowForm(false)
-    setSubmitting(false)
-    fetchEvents()
+    onSelectEvent(data.id)
   }
+
+  const q = query.trim().toLowerCase()
+  const matches = (e) => !q || [e.title, e.location, e.description].some((v) => (v || '').toLowerCase().includes(q))
+  const isMine = (e) => Boolean(roles[e.id]) || e.organizer_id === user.id
+
+  const filtered = events.filter((e) => {
+    if (!matches(e)) return false
+    if (filter === 'mine') return isMine(e)
+    if (filter === 'open') return ['published', 'ongoing'].includes(e.status)
+    return true
+  })
+
+  const now = today()
+  const upcoming = filtered.filter((e) => (e.end_date || e.start_date || '') >= now)
+  const past = filtered.filter((e) => (e.end_date || e.start_date || '') < now).reverse()
+  const mineCount = events.filter(isMine).length
+
+  const renderGrid = (list) => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {list.map((event, i) => (
+        <EventCard
+          key={event.id}
+          event={event}
+          role={roles[event.id] || (event.organizer_id === user.id ? 'organizer' : null)}
+          onOpen={onSelectEvent}
+          style={{ '--i': Math.min(i, 8) }}
+        />
+      ))}
+    </div>
+  )
 
   return (
     <div className="page-container">
-      {/* En-tête de page */}
-      <FadeContent className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-10">
-        <div>
-          <p className="section-label mb-2">Catalogue</p>
-          <h1 className="section-heading text-4xl sm:text-5xl">Événements</h1>
-          <p className="text-taupe text-sm mt-2 max-w-lg leading-relaxed">
-            Parcourez les conférences et colloques disponibles, ou créez le vôtre en tant qu'organisateur.
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className={showForm ? 'btn-outline flex-shrink-0' : 'btn-accent flex-shrink-0'}
-        >
-          {showForm ? 'Annuler' : '+ Créer un événement'}
-        </button>
-      </FadeContent>
-
-      {/* Formulaire de création */}
-      {showForm && (
-        <div className="card-panel mb-10 border border-gold/20">
-          <div className="flex items-start gap-4 mb-6">
-            <div className="w-1 self-stretch bg-gold rounded-full flex-shrink-0" />
-            <div>
-              <p className="section-label">Nouvel événement</p>
-              <h2 className="section-heading text-xl mt-1">Créer un événement</h2>
-              <p className="text-taupe text-xs mt-1">L'événement sera créé en brouillon et devra être validé par un admin.</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleCreateEvent} className="space-y-5">
-            <div>
-              <label htmlFor="event-title" className="form-label">Titre</label>
-              <input
-                id="event-title"
-                type="text"
-                placeholder="Colloque international sur l'IA appliquée"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                className="input-field"
-                required
-              />
-            </div>
-
-            <div>
-              <label htmlFor="event-desc" className="form-label">Description</label>
-              <textarea
-                id="event-desc"
-                placeholder="Présentation générale de l'événement, thématiques couvertes…"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="textarea-field"
-                rows={3}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label htmlFor="event-type" className="form-label">Type</label>
-                <select
-                  id="event-type"
-                  value={type}
-                  onChange={(e) => setType(e.target.value)}
-                  className="select-field"
-                >
-                  <option value="conference">Conférence</option>
-                  <option value="colloquium">Colloque</option>
-                  <option value="seminar">Séminaire</option>
-                  <option value="workshop">Workshop</option>
-                </select>
-              </div>
-              <div>
-                <label htmlFor="event-location" className="form-label">Lieu</label>
-                <input
-                  id="event-location"
-                  type="text"
-                  placeholder="Université d'Alger, Amphi A"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                  className="input-field"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label htmlFor="event-start" className="form-label">Date de début</label>
-                <input
-                  id="event-start"
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="input-field font-mono text-sm"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="event-end" className="form-label">Date de fin</label>
-                <input
-                  id="event-end"
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="input-field font-mono text-sm"
-                  required
-                />
-              </div>
-            </div>
-
-            {error && <div className="alert-error">{error}</div>}
-
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-primary w-full sm:w-auto"
-            >
-              {submitting ? 'Création en cours…' : "Créer l'événement"}
+      <PageHeader
+        title="Événements"
+        description="Conférences, colloques et séminaires de la plateforme. Ouvre une fiche pour soumettre, relire ou organiser."
+        actions={
+          !showForm && (
+            <button type="button" onClick={() => setShowForm(true)} className="btn-accent">
+              <PlusIcon size={16} weight="bold" aria-hidden="true" />
+              Créer un événement
             </button>
-          </form>
-        </div>
+          )
+        }
+      />
+
+      {showForm && (
+        <section className="card-panel mb-10 max-w-3xl rise" aria-labelledby="new-event-title">
+          <div className="flex items-start justify-between gap-4 mb-6">
+            <div>
+              <h2 id="new-event-title" className="text-xl font-semibold tracking-tight text-fg">
+                Nouvel événement
+              </h2>
+              <p className="text-sm text-muted mt-1">
+                Il est créé en brouillon. Tu en deviens l'organisateur et pourras demander sa publication.
+              </p>
+            </div>
+            <button type="button" onClick={() => setShowForm(false)} className="icon-btn -mr-2 -mt-1" aria-label="Fermer">
+              <XIcon size={18} />
+            </button>
+          </div>
+          <EventForm
+            submitLabel="Créer l'événement"
+            busyLabel="Création…"
+            error={createError}
+            onSubmit={createEvent}
+            onCancel={() => setShowForm(false)}
+          />
+        </section>
       )}
 
-      {/* Liste des événements */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-8">
+        <Tabs
+          variant="pill"
+          label="Filtrer les événements"
+          active={filter}
+          onChange={setFilter}
+          tabs={[
+            { id: 'all', label: 'Tous' },
+            { id: 'mine', label: 'Mes événements', badge: mineCount || null },
+            { id: 'open', label: 'Publiés' },
+          ]}
+        />
+        <label className="relative sm:ml-auto sm:w-72">
+          <span className="sr-only">Rechercher un événement</span>
+          <MagnifyingGlassIcon
+            size={16}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+            aria-hidden="true"
+          />
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Titre, lieu…"
+            className="input-field pl-10"
+          />
+        </label>
+      </div>
+
+      {loadError && <div className="alert-error mb-6">{loadError}</div>}
+
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="card-ticket h-48">
-              <div className="ticket-stripe skeleton" />
-              <div className="ticket-perforation" />
-              <div className="p-5 flex-1 space-y-3">
-                <div className="skeleton h-5 w-3/4" />
-                <div className="skeleton h-3 w-full" />
-                <div className="skeleton h-3 w-2/3" />
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[0, 1, 2, 3].map((i) => (
+            <div key={i} className="skeleton h-40" />
           ))}
         </div>
-      ) : events.length === 0 ? (
-        <div className="card-panel text-center py-16">
-          <div className="w-12 h-12 rounded-full bg-paper-dark flex items-center justify-center mx-auto mb-4">
-            <span className="font-display text-2xl text-taupe">∅</span>
-          </div>
-          <p className="section-heading text-xl">Aucun événement</p>
-          <p className="text-taupe text-sm mt-2 max-w-sm mx-auto">
-            Soyez le premier à créer un événement scientifique sur la plateforme.
-          </p>
-          {!showForm && (
-            <button
-              onClick={() => setShowForm(true)}
-              className="btn-accent mt-6"
-            >
-              + Créer un événement
-            </button>
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={CalendarBlankIcon}
+          title={events.length === 0 ? 'Aucun événement pour le moment' : 'Aucun événement ne correspond'}
+          body={
+            events.length === 0
+              ? 'Crée le premier : il restera en brouillon jusqu’à sa validation par un administrateur.'
+              : 'Change de filtre ou de recherche.'
+          }
+          action={
+            events.length === 0 && !showForm ? (
+              <button type="button" onClick={() => setShowForm(true)} className="btn-accent">
+                <PlusIcon size={16} weight="bold" aria-hidden="true" />
+                Créer un événement
+              </button>
+            ) : null
+          }
+        />
+      ) : (
+        <div className="space-y-12">
+          {upcoming.length > 0 && (
+            <section>
+              <SectionTitle title="À venir" count={upcoming.length} />
+              {renderGrid(upcoming)}
+            </section>
+          )}
+          {past.length > 0 && (
+            <section>
+              <SectionTitle title="Passés" count={past.length} />
+              {renderGrid(past)}
+            </section>
           )}
         </div>
-      ) : (
-        <FadeContent delay={0.05}>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {events.map((event) => (
-            <GlareHover
-              key={event.id}
-              width="100%"
-              height="auto"
-              background="transparent"
-              borderRadius="12px"
-              borderColor="rgba(27,42,74,0.08)"
-              glareColor="#C8963E"
-              glareOpacity={0.22}
-              className="!border-ink/8"
-            >
-                <article
-                  onClick={() => onSelectEvent(event.id)}
-                  className="card-ticket group !shadow-none !border-0"
-                >
-                  <div className="ticket-stripe group-hover:w-4 transition-all duration-300" />
-                  <div className="ticket-perforation" />
-                  <div className="p-5 sm:p-6 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start gap-3 mb-2">
-                      <h3 className="font-display font-semibold text-lg text-ink leading-snug group-hover:text-ink-light transition-colors">
-                        {event.title}
-                      </h3>
-                      <span className="badge-type">
-                        {TYPE_LABELS[event.type] || event.type}
-                      </span>
-                    </div>
-
-                    {event.description && (
-                      <p className="text-sm text-taupe leading-relaxed line-clamp-2 flex-1">
-                        {event.description}
-                      </p>
-                    )}
-
-                    <p className="font-mono text-xs text-ink/50 mt-4">
-                      {event.start_date} → {event.end_date}
-                      {event.location && <> · {event.location}</>}
-                    </p>
-
-                    <div className="flex items-center justify-between mt-4 pt-4 border-t border-dashed border-taupe/25">
-                      <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
-                        {STATUS_LABELS[event.status] || event.status}
-                      </span>
-                      <span className="text-xs text-taupe truncate max-w-[120px]">
-                        {event.profiles?.full_name}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-            </GlareHover>
-          ))}
-        </div>
-        </FadeContent>
       )}
     </div>
   )

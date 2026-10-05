@@ -26,6 +26,7 @@ function App() {
   const [session, setSession] = useState(null)
   const [ready, setReady] = useState(false)
   const [selectedEventId, setSelectedEventId] = useState(null)
+  const [eventTarget, setEventTarget] = useState(null)
   const [view, setView] = useState(VIEWS.home)
   const [isAdmin, setIsAdmin] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
@@ -68,8 +69,10 @@ function App() {
     setView(v)
     setSelectedEventId(null)
   }
-  const openEvent = (id) => {
+  // target (optionnel) : onglet à ouvrir directement, ex. { tab: 'scientific' }
+  const openEvent = (id, target = null) => {
     setView(VIEWS.events)
+    setEventTarget(target)
     setSelectedEventId(id)
   }
 
@@ -150,11 +153,21 @@ function App() {
           {view === VIEWS.admin ? (
             <AdminPanel onOpenEvent={openEvent} />
           ) : selectedEventId ? (
-            <EventDetail eventId={selectedEventId} onBack={() => go(VIEWS.events)} />
+            <EventDetail
+              key={selectedEventId}
+              eventId={selectedEventId}
+              initialTab={eventTarget?.tab}
+              initialOrgTab={eventTarget?.orgTab}
+              onBack={() => go(VIEWS.events)}
+            />
           ) : view === VIEWS.events ? (
             <EventsPage onSelectEvent={openEvent} />
           ) : (
-            <DashboardPage onOpenEvent={openEvent} onNavigateEvents={() => go(VIEWS.events)} />
+            <DashboardPage
+              onOpenEvent={openEvent}
+              onNavigateEvents={() => go(VIEWS.events)}
+              onNavigateAdmin={() => go(VIEWS.admin)}
+            />
           )}
         </main>
 

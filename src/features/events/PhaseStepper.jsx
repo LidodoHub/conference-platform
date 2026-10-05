@@ -1,5 +1,7 @@
+import { CheckIcon } from '@phosphor-icons/react'
+
 const STEPS = [
-  { label: 'Phase scientifique', hint: 'Dépôt, reviews, décisions' },
+  { label: 'Phase scientifique', hint: 'Dépôts, reviews, décisions' },
   { label: 'Phase organisationnelle', hint: 'Inscriptions, programme, présences' },
 ]
 
@@ -7,25 +9,29 @@ export default function PhaseStepper({ phase }) {
   const current = phase === 'organizational' ? 1 : 0
 
   return (
-    <ol className="flex flex-col sm:flex-row gap-4 sm:gap-10 mt-8 pt-6 border-t border-white/15">
+    <ol className="grid grid-cols-1 sm:grid-cols-2 gap-3" aria-label="Avancement de l'événement">
       {STEPS.map((step, i) => {
-        const reached = i <= current
+        const done = i < current
+        const now = i === current
         return (
-          <li key={step.label} className="flex items-start gap-3 flex-1 min-w-0">
+          <li
+            key={step.label}
+            aria-current={now ? 'step' : undefined}
+            className={`flex items-center gap-3 rounded-xl px-3.5 py-3 border ${
+              now ? 'border-accent/50 bg-accent/10' : 'border-line'
+            }`}
+          >
             <span
-              className="mt-0.5 w-7 h-7 rounded-full flex items-center justify-center text-xs font-mono shrink-0"
-              style={
-                reached
-                  ? { background: '#C8963E', color: '#1B2A4A' }
-                  : { background: 'rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.5)' }
-              }
+              className={`inline-flex w-7 h-7 items-center justify-center rounded-lg text-xs font-semibold shrink-0 ${
+                now || done ? 'bg-accent text-on-accent' : 'bg-fg/8 text-muted'
+              }`}
             >
-              {i < current ? '✓' : i + 1}
+              {done ? <CheckIcon size={14} weight="bold" /> : i + 1}
             </span>
-            <div className="min-w-0">
-              <p className={`text-sm ${reached ? 'font-medium text-white' : 'text-white/50'}`}>{step.label}</p>
-              <p className={`text-xs ${reached ? 'text-white/60' : 'text-white/40'}`}>{step.hint}</p>
-            </div>
+            <span className="min-w-0">
+              <span className={`block text-sm ${now ? 'font-medium text-fg' : 'text-muted'}`}>{step.label}</span>
+              <span className="block text-xs text-faint">{step.hint}</span>
+            </span>
           </li>
         )
       })}

@@ -1,14 +1,18 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Html5Qrcode } from 'html5-qrcode'
+import { QrCodeIcon, StopIcon, MagnifyingGlassIcon, CheckIcon, ArrowCounterClockwiseIcon, PresentationChartIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
+import { frError, writeError } from '../../lib/errors'
 import Avatar from '../../components/ui/Avatar'
-import Pill from '../../components/ui/Pill'
+import SectionTitle from '../../components/ui/SectionTitle'
+import EmptyState from '../../components/ui/EmptyState'
+import { BarList } from '../../components/charts/Charts'
 
-const RESULT_CLASS = {
-  ok: 'alert-success',
-  warn: 'alert-info',
-  error: 'alert-error',
-}
+const RESULT_CLASS = { ok: 'alert-success', warn: 'alert-info', error: 'alert-error' }
+
+const sessionLabel = (s) =>
+  s.start_time
+    ? `${s.title} (${new Date(s.start_time).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})`
+    : s.title
 
 export default function AttendancePanel({ eventId, participants }) {
   const [sessions, setSessions] = useState([])
@@ -20,16 +24,13 @@ export default function AttendancePanel({ eventId, participants }) {
   const [search, setSearch] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // le scanner garde sa fonction de rappel : on lit les valeurs courantes par des refs
+  // le scanner garde sa fonction de rappel : il lit les valeurs courantes via des refs
   const sessionIdRef = useRef('')
   const busyRef = useRef(false)
   const lastScanRef = useRef({ token: '', at: 0 })
-  const scannerRef = useRef(null)
-  sessionIdRef.current = sessionId
+  const onScanRef = useRef(() => {})
 
-  const members = participants.filter(
-    (p) => p.role_in_event === 'participant' && p.registration_status === 'validated',
-  )
+  const members = participants.filter((p) => p.role_in_event === 'participant' && p.registration_status === 'validated')
 
   useEffect(() => {
     supabase
@@ -45,7 +46,7 @@ export default function AttendancePanel({ eventId, participants }) {
       .from('attendance')
       .select('id, session_id, profile_id, checked_in_at, method')
       .eq('event_id', eventId)
-    if (loadError) setError(loadError.message)
+    if (loadError) setError(frError(loadError))
     else setRecords(data)
   }, [eventId])
 
@@ -76,33 +77,25 @@ export default function AttendancePanel({ eventId, participants }) {
     lastScanRef.current = { token, at: now }
 
     busyRef.current = true
-    const { data, error: rpcError } = await supabase.rpc('check_in_by_token', {
-      p_session_id: sessionIdRef.current,
-      p_token: token,
-    })
+    const { data, error: rpcError } = await supabase.rpc('check_in_by_token', { p_session_id: sessionIdRef.current, p_token: token })
     busyRef.current = false
-
-    if (rpcError) setResult({ type: 'error', text: rpcError.message })
+    if (rpcError) setResult({ type: 'error', text: frError(rpcError) })
     else {
       showResult(data)
       loadRecords()
     }
   }
 
-  const checkInMember = async (userId) => {
-    if (!sessionId) {
-      setResult({ type: 'error', text: "Choisis d'abord une session." })
-      return
-    }
-    setBusy(true)
-    const { data, error: rpcError } = await supabase.rpc('check_in_member', {
-      p_session_id: sessionId,
-      p_user_id: userId,
-      p_method: 'manual',
-    })
-    setBusy(false)
+  useEffect(() => {
+    sessionIdRef.current = sessionId
+    onScanRef.current = checkInToken
+  })
 
-    if (rpcError) setResult({ type: 'error', text: rpcError.message })
+  const checkInMember = async (userId) => {
+    setBusy(true)
+    const { data, error: rpcError } = await supabase.rpc('check_in_member', { p_session_id: sessionId, p_user_id: userId, p_method: 'manual' })
+    setBusy(false)
+    if (rpcError) setResult({ type: 'error', text: frError(rpcError) })
     else {
       showResult(data)
       loadRecords()
@@ -111,60 +104,52 @@ export default function AttendancePanel({ eventId, participants }) {
 
   const removeRecord = async (recordId) => {
     setBusy(true)
-    const { data, error: deleteError } = await supabase
-      .from('attendance')
-      .delete()
-      .eq('id', recordId)
-      .select('id')
+    const res = await supabase.from('attendance').delete().eq('id', recordId).select('id')
     setBusy(false)
-
-    if (deleteError) setResult({ type: 'error', text: deleteError.message })
-    else if (!data || data.length === 0) setResult({ type: 'error', text: 'Retrait refusé.' })
+    const msg = writeError(res, 'Retrait refusé.')
+    if (msg) setResult({ type: 'error', text: msg })
     else {
       setResult({ type: 'warn', text: 'Présence retirée.' })
       loadRecords()
     }
   }
 
-  // caméra : démarre quand "scanning" passe à vrai, s'arrête quand il repasse à faux
+  // caméra : la librairie n'est chargée qu'au premier scan (allège la page)
   useEffect(() => {
     if (!scanning) return undefined
-
     let cancelled = false
     let scanner = null
 
-    const startScanner = async () => {
+    const timer = setTimeout(async () => {
       try {
+        const { Html5Qrcode } = await import('html5-qrcode')
+        if (cancelled) return
         scanner = new Html5Qrcode('qr-reader')
-        scannerRef.current = scanner
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: 220 },
-          (text) => checkInToken(text),
-          () => {},
-        )
+        await scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: 220 }, (text) => onScanRef.current(text), () => {})
         if (cancelled) {
           await scanner.stop()
           scanner.clear()
         }
       } catch (err) {
         if (!cancelled) {
-          setError(`Caméra inaccessible : ${err?.message || err}. Utilise la liste ci-dessous.`)
+          setError(`Caméra inaccessible : ${err?.message || err}. Utilise le pointage manuel.`)
           setScanning(false)
         }
       }
-    }
-
-    const timer = setTimeout(startScanner, 150)
+    }, 150)
 
     return () => {
       clearTimeout(timer)
       cancelled = true
       if (scanner) {
+        // en mode strict React, stop() peut lever une exception de façon synchrone
         try {
-          scanner.stop().then(() => scanner.clear()).catch(() => {})
+          scanner
+            .stop()
+            .then(() => scanner.clear())
+            .catch(() => {})
         } catch {
-          // le scanner n'avait pas démarré : rien à arrêter
+          // le scanner n'avait pas démarré
         }
       }
     }
@@ -172,131 +157,122 @@ export default function AttendancePanel({ eventId, participants }) {
 
   const sessionRecords = records.filter((r) => r.session_id === sessionId)
   const recordByUser = new Map(sessionRecords.map((r) => [r.profile_id, r]))
+  const presentMembers = members.filter((m) => recordByUser.has(m.user_id)).length
 
   const countByUser = new Map()
   records.forEach((r) => {
     if (r.session_id) countByUser.set(r.profile_id, (countByUser.get(r.profile_id) || 0) + 1)
   })
 
-  const filtered = members.filter((p) =>
-    (p.profiles?.full_name || '').toLowerCase().includes(search.trim().toLowerCase()),
-  )
-
-  const summary = [...members].sort(
-    (a, b) => (countByUser.get(b.user_id) || 0) - (countByUser.get(a.user_id) || 0),
-  )
-
-  const percent = members.length ? Math.round((100 * sessionRecords.length) / members.length) : 0
+  const q = search.trim().toLowerCase()
+  const filtered = members
+    .filter((p) => (p.profiles?.full_name || '').toLowerCase().includes(q))
+    .sort((a, b) => Number(recordByUser.has(a.user_id)) - Number(recordByUser.has(b.user_id)) || (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || ''))
 
   return (
-    <section>
-      <div className="mb-5">
-        <p className="section-label">Présences</p>
-        <h2 className="section-heading text-xl mt-1">Pointage des sessions</h2>
-      </div>
+    <section className="space-y-8">
+      <SectionTitle title="Présences" description="Scanne les badges QR à l'entrée de chaque session, ou pointe à la main." />
 
-      {error && <div className="alert-error mb-4">{error}</div>}
+      {error && (
+        <div role="alert" className="alert-error">
+          {error}
+        </div>
+      )}
 
       {sessions.length === 0 ? (
-        <p className="text-sm text-taupe">Crée d'abord des sessions pour pouvoir pointer les présences.</p>
+        <EmptyState icon={PresentationChartIcon} title="Aucune session" body="Crée d'abord des sessions dans l'onglet Programme." />
       ) : (
-        <div className="card p-5 sm:p-6 space-y-5">
-          <div>
-            <label htmlFor="attendance-session" className="form-label">Session</label>
-            <select
-              id="attendance-session"
-              className="select-field"
-              value={sessionId}
-              onChange={(e) => {
-                setSessionId(e.target.value)
-                setResult(null)
-              }}
-            >
-              <option value="">Choisir une session…</option>
-              {sessions.map((s) => (
-                <option key={s.id} value={s.id}>{s.title}</option>
-              ))}
-            </select>
-          </div>
-
-          {sessionId && (
+        <div className="card-panel space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-4 md:items-end">
             <div>
-              <div className="flex items-baseline justify-between gap-3">
-                <p className="font-display text-4xl font-semibold text-ink leading-none">
-                  {sessionRecords.length}
-                  <span className="text-xl text-taupe"> / {members.length}</span>
-                </p>
-                <p className="section-label">présents</p>
-              </div>
-              <div className="mt-3 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(27,42,74,0.12)' }}>
-                <div className="h-full rounded-full" style={{ width: `${percent}%`, background: '#C8963E' }} />
-              </div>
+              <label htmlFor="attendance-session" className="form-label">
+                Session
+              </label>
+              <select
+                id="attendance-session"
+                className="select-field"
+                value={sessionId}
+                onChange={(e) => {
+                  setSessionId(e.target.value)
+                  setResult(null)
+                }}
+              >
+                <option value="">Choisir une session…</option>
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {sessionLabel(s)}
+                  </option>
+                ))}
+              </select>
             </div>
-          )}
-
-          <div className="flex flex-wrap gap-2">
             <button
               type="button"
-              className={scanning ? 'btn-outline btn-sm' : 'btn-primary btn-sm'}
+              className={scanning ? 'btn-outline' : 'btn-primary'}
               disabled={!sessionId}
               onClick={() => {
                 setError(null)
                 setScanning((v) => !v)
               }}
             >
+              {scanning ? <StopIcon size={17} aria-hidden="true" /> : <QrCodeIcon size={17} aria-hidden="true" />}
               {scanning ? 'Arrêter le scan' : 'Scanner les badges'}
             </button>
           </div>
 
-          {scanning && <div id="qr-reader" style={{ width: '100%', maxWidth: 360 }} />}
+          {sessionId && (
+            <div className="flex items-end gap-4">
+              <p className="num text-5xl font-semibold tracking-tight text-fg leading-none">
+                {presentMembers}
+                <span className="text-2xl text-faint font-normal"> / {members.length}</span>
+              </p>
+              <p className="text-sm text-muted pb-1">inscrits présents dans cette session</p>
+            </div>
+          )}
 
-          {result && <div className={RESULT_CLASS[result.type]}>{result.text}</div>}
+          {scanning && <div id="qr-reader" className="w-full max-w-sm overflow-hidden rounded-xl border border-line" />}
+
+          {result && (
+            <div role="status" className={RESULT_CLASS[result.type]}>
+              {result.text}
+            </div>
+          )}
 
           {sessionId && (
-            <div>
-              <p className="section-label mb-2">Pointage manuel</p>
-              <input
-                className="input-field mb-3"
-                placeholder="Rechercher un inscrit…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+            <div className="pt-2">
+              <h3 className="font-medium text-fg mb-3">Pointage manuel</h3>
+              <label className="relative block mb-3">
+                <span className="sr-only">Rechercher un inscrit</span>
+                <MagnifyingGlassIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none" aria-hidden="true" />
+                <input className="input-field pl-10" type="search" placeholder="Rechercher un inscrit…" value={search} onChange={(e) => setSearch(e.target.value)} />
+              </label>
               {filtered.length === 0 ? (
-                <p className="text-sm text-taupe">Aucun inscrit validé.</p>
+                <p className="text-sm text-muted">Aucun inscrit validé.</p>
               ) : (
                 <ul className="space-y-2">
                   {filtered.map((p) => {
                     const rec = recordByUser.get(p.user_id)
                     return (
-                      <li
-                        key={p.id}
-                        className="list-item"
-                        style={{ borderLeft: `4px solid ${rec ? '#34C38F' : '#9AA3B5'}` }}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Avatar name={p.profiles?.full_name} size={34} tone="light" />
-                          <span className="text-sm font-medium text-ink truncate">{p.profiles?.full_name}</span>
+                      <li key={p.id} className="row" style={{ '--stripe': rec ? 'var(--color-ok)' : 'transparent' }}>
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <Avatar name={p.profiles?.full_name} size={34} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-fg truncate">{p.profiles?.full_name}</p>
+                            {rec && (
+                              <p className="text-xs text-ok">
+                                Présent{rec.method === 'manual' ? ', pointé à la main' : ', badge scanné'}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         {rec ? (
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <Pill color="#34C38F">Présent{rec.method === 'manual' ? ' (manuel)' : ''}</Pill>
-                            <button
-                              type="button"
-                              className="btn-outline btn-sm"
-                              disabled={busy}
-                              onClick={() => removeRecord(rec.id)}
-                            >
-                              Retirer
-                            </button>
-                          </div>
+                          <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => removeRecord(rec.id)}>
+                            <ArrowCounterClockwiseIcon size={15} aria-hidden="true" />
+                            Annuler
+                          </button>
                         ) : (
-                          <button
-                            type="button"
-                            className="btn-ghost-gold btn-sm"
-                            disabled={busy}
-                            onClick={() => checkInMember(p.user_id)}
-                          >
-                            Marquer présent
+                          <button type="button" className="btn-outline btn-sm" disabled={busy} onClick={() => checkInMember(p.user_id)}>
+                            <CheckIcon size={15} weight="bold" aria-hidden="true" />
+                            Présent
                           </button>
                         )}
                       </li>
@@ -310,31 +286,20 @@ export default function AttendancePanel({ eventId, participants }) {
       )}
 
       {records.length > 0 && (
-        <div className="card p-5 sm:p-6 mt-6">
-          <p className="section-label mb-3">Présence par participant</p>
-          <ul className="space-y-2">
-            {summary.map((p) => {
-              const n = countByUser.get(p.user_id) || 0
-              const pct = sessions.length ? Math.round((100 * n) / sessions.length) : 0
-              return (
-                <li key={p.id} className="list-item">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <Avatar name={p.profiles?.full_name} size={34} tone="light" />
-                    <div className="min-w-0">
-                      <span className="text-sm text-ink block truncate">{p.profiles?.full_name}</span>
-                      <div className="mt-1.5 h-1.5 w-28 rounded-full bg-white/15 overflow-hidden">
-                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#C8963E' }} />
-                      </div>
-                    </div>
-                  </div>
-                  <span className="font-mono text-xs text-taupe">
-                    {n} / {sessions.length} session{sessions.length > 1 ? 's' : ''}
-                  </span>
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+        <section className="card-panel">
+          <h3 className="font-semibold text-fg mb-5">Assiduité par participant</h3>
+          <BarList
+            max={Math.max(1, sessions.length)}
+            items={[...members]
+              .sort((a, b) => (countByUser.get(b.user_id) || 0) - (countByUser.get(a.user_id) || 0))
+              .map((p) => ({
+                key: p.id,
+                label: p.profiles?.full_name,
+                value: countByUser.get(p.user_id) || 0,
+                detail: `/ ${sessions.length} session${sessions.length > 1 ? 's' : ''}`,
+              }))}
+          />
+        </section>
       )}
     </section>
   )

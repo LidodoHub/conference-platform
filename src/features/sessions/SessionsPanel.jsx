@@ -1,40 +1,24 @@
 import { useState, useEffect, useCallback } from 'react'
-import { SESSION_TYPE_LABELS } from '../../lib/constants'
+import { PlusIcon, XIcon, TrashIcon, ClockIcon, UsersThreeIcon, PresentationChartIcon, ArrowRightIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
+import { frError, writeError } from '../../lib/errors'
+import { SESSION_TYPE_LABELS } from '../../lib/constants'
 import EmptyState from '../../components/ui/EmptyState'
+import SectionTitle from '../../components/ui/SectionTitle'
 
-const EMPTY_FORM = {
-  title: '',
-  description: '',
-  session_type: 'talk',
-  start_time: '',
-  end_time: '',
-  max_capacity: '',
-}
+const EMPTY_FORM = { title: '', description: '', session_type: 'talk', start_time: '', end_time: '', max_capacity: '' }
 
-const dateParts = (iso) => {
-  if (!iso) return null
-  const d = new Date(iso)
-  return {
-    day: d.getDate(),
-    month: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
-    time: d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-  }
-}
+const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '')
+const dayOf = (iso) =>
+  iso ? new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'À planifier'
 
-const timeOf = (iso) =>
-  iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : ''
-
-// session la plus recommandée par les reviewers pour une soumission
+// session la plus recommandée par les reviewers pour un article
 const suggestedSessionId = (s) => {
   const counts = {}
   for (const r of s.reviews || []) {
-    if (r.recommended_session_id) {
-      counts[r.recommended_session_id] = (counts[r.recommended_session_id] || 0) + 1
-    }
+    if (r.recommended_session_id) counts[r.recommended_session_id] = (counts[r.recommended_session_id] || 0) + 1
   }
-  const best = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]
-  return best ? best[0] : ''
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || ''
 }
 
 export default function SessionsPanel({ eventId, isOrganizer, phase, submissions = [] }) {
@@ -42,7 +26,6 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [form, setForm] = useState(EMPTY_FORM)
@@ -59,27 +42,21 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
       .order('start_time', { ascending: true, nullsFirst: false })
 
     if (loadError) {
-      setError(loadError.message)
+      setError(frError(loadError))
       setLoading(false)
       return
     }
     setSessions(sessionsData)
-
     const ids = sessionsData.map((x) => x.id)
-    if (ids.length === 0) {
-      setAssignments([])
-      setLoading(false)
-      return
-    }
-
-    const { data: assignData, error: assignError } = await supabase
-      .from('session_submissions')
-      .select('id, session_id, submission_id, presentation_order')
-      .in('session_id', ids)
-      .order('presentation_order', { ascending: true })
-
-    if (assignError) setError(assignError.message)
-    else setAssignments(assignData)
+    if (ids.length) {
+      const { data, error: assignError } = await supabase
+        .from('session_submissions')
+        .select('id, session_id, submission_id, presentation_order')
+        .in('session_id', ids)
+        .order('presentation_order', { ascending: true })
+      if (assignError) setError(frError(assignError))
+      else setAssignments(data)
+    } else setAssignments([])
     setLoading(false)
   }, [eventId])
 
@@ -92,13 +69,11 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
-
     if (form.start_time && form.end_time && new Date(form.end_time) <= new Date(form.start_time)) {
       setError('La fin doit être après le début.')
       return
     }
-
-    setSaving(true)
+    setBusy(true)
     const { error: insertError } = await supabase.from('sessions').insert({
       event_id: eventId,
       title: form.title.trim(),
@@ -108,10 +83,9 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
       end_time: form.end_time ? new Date(form.end_time).toISOString() : null,
       max_capacity: form.max_capacity ? Number(form.max_capacity) : null,
     })
-    setSaving(false)
-
+    setBusy(false)
     if (insertError) {
-      setError(insertError.message)
+      setError(frError(insertError))
       return
     }
     setForm(EMPTY_FORM)
@@ -119,18 +93,12 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
     load()
   }
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('Supprimer cette session ? Les articles qui y sont placés redeviendront à placer.')) return
+  const handleDelete = async (s) => {
+    if (!window.confirm(`Supprimer la session « ${s.title} » ? Ses articles redeviendront à placer.`)) return
     setError(null)
-
-    const { data, error: deleteError } = await supabase
-      .from('sessions')
-      .delete()
-      .eq('id', id)
-      .select('id')
-
-    if (deleteError) setError(deleteError.message)
-    else if (!data || data.length === 0) setError("Suppression refusée : tu n'es pas organisateur de cet événement.")
+    const res = await supabase.from('sessions').delete().eq('id', s.id).select('id')
+    const msg = writeError(res, "Suppression refusée : tu n'es pas organisateur de cet événement.")
+    if (msg) setError(msg)
     else load()
   }
 
@@ -142,12 +110,8 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
       p_session_id: sessionId || null,
     })
     setBusy(false)
-
-    if (rpcError) {
-      setError(rpcError.message)
-      return
-    }
-    load()
+    if (rpcError) setError(frError(rpcError))
+    else load()
   }
 
   const submissionById = new Map(submissions.map((s) => [s.id, s]))
@@ -156,287 +120,259 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
   const papersOf = (sessionId) => assignments.filter((a) => a.session_id === sessionId)
   const sessionTitle = (id) => sessions.find((x) => x.id === id)?.title
 
+  // regroupement par jour pour un programme lisible
+  const days = []
+  for (const s of sessions) {
+    const key = s.start_time ? s.start_time.slice(0, 10) : 'none'
+    let day = days.find((d) => d.key === key)
+    if (!day) {
+      day = { key, label: dayOf(s.start_time), items: [] }
+      days.push(day)
+    }
+    day.items.push(s)
+  }
+
   return (
     <section>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-        <div>
-          <p className="section-label">Programme</p>
-          <h2 className="section-heading text-xl mt-1">Sessions et ateliers</h2>
-        </div>
-        {isOrganizer && (
-          <button
-            type="button"
-            onClick={() => setShowForm((v) => !v)}
-            className={showForm ? 'btn-outline btn-sm' : 'btn-ghost-gold btn-sm'}
-          >
-            {showForm ? 'Annuler' : '+ Ajouter une session'}
-          </button>
-        )}
-      </div>
+      <SectionTitle
+        title="Programme"
+        count={sessions.length}
+        description="Sessions, horaires et articles présentés. Le programme est visible par tous."
+        actions={
+          isOrganizer &&
+          (showForm ? (
+            <button type="button" onClick={() => setShowForm(false)} className="btn-ghost">
+              <XIcon size={16} aria-hidden="true" />
+              Annuler
+            </button>
+          ) : (
+            <button type="button" onClick={() => setShowForm(true)} className="btn-accent">
+              <PlusIcon size={16} weight="bold" aria-hidden="true" />
+              Ajouter une session
+            </button>
+          ))
+        }
+      />
 
-      {error && <div className="alert-error mb-4">{error}</div>}
+      {error && (
+        <div role="alert" className="alert-error mb-5">
+          {error}
+        </div>
+      )}
 
       {isOrganizer && !organizational && (
-        <div className="alert-info mb-4">
-          L'affectation définitive des articles aux sessions se fait en phase organisationnelle. D'ici là, les reviewers peuvent seulement suggérer une session.
+        <div className="alert-info mb-5">
+          Le placement définitif des articles se fait en phase organisationnelle. D'ici là, les reviewers peuvent suggérer une session.
         </div>
       )}
 
       {isOrganizer && showForm && (
-        <form onSubmit={handleSubmit} className="card p-5 space-y-4 mb-6">
-          <div>
-            <label htmlFor="session-title" className="form-label">Titre</label>
-            <input
-              id="session-title"
-              className="input-field"
-              value={form.title}
-              onChange={updateField('title')}
-              required
-            />
-          </div>
-
-          <div>
-            <label htmlFor="session-type" className="form-label">Type</label>
-            <select
-              id="session-type"
-              className="select-field"
-              value={form.session_type}
-              onChange={updateField('session_type')}
-            >
-              {Object.entries(SESSION_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit} className="card-panel space-y-5 mb-8 rise">
+          <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px] gap-5">
             <div>
-              <label htmlFor="session-start" className="form-label">Début</label>
-              <input
-                id="session-start"
-                type="datetime-local"
-                className="input-field"
-                value={form.start_time}
-                onChange={updateField('start_time')}
-              />
+              <label htmlFor="session-title" className="form-label">
+                Titre
+              </label>
+              <input id="session-title" className="input-field" value={form.title} onChange={updateField('title')} required />
             </div>
             <div>
-              <label htmlFor="session-end" className="form-label">Fin</label>
+              <label htmlFor="session-type" className="form-label">
+                Type
+              </label>
+              <select id="session-type" className="select-field" value={form.session_type} onChange={updateField('session_type')}>
+                {Object.entries(SESSION_TYPE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div>
+              <label htmlFor="session-start" className="form-label">
+                Début
+              </label>
+              <input id="session-start" type="datetime-local" className="input-field num" value={form.start_time} onChange={updateField('start_time')} />
+            </div>
+            <div>
+              <label htmlFor="session-end" className="form-label">
+                Fin
+              </label>
+              <input id="session-end" type="datetime-local" className="input-field num" value={form.end_time} onChange={updateField('end_time')} />
+            </div>
+            <div>
+              <label htmlFor="session-capacity" className="form-label">
+                Capacité
+              </label>
               <input
-                id="session-end"
-                type="datetime-local"
-                className="input-field"
-                value={form.end_time}
-                onChange={updateField('end_time')}
+                id="session-capacity"
+                type="number"
+                min="1"
+                inputMode="numeric"
+                className="input-field num"
+                value={form.max_capacity}
+                onChange={updateField('max_capacity')}
               />
             </div>
           </div>
-
           <div>
-            <label htmlFor="session-capacity" className="form-label">Capacité (optionnel)</label>
-            <input
-              id="session-capacity"
-              type="number"
-              min="1"
-              className="input-field font-mono w-32"
-              value={form.max_capacity}
-              onChange={updateField('max_capacity')}
-            />
+            <label htmlFor="session-description" className="form-label">
+              Description
+            </label>
+            <textarea id="session-description" className="textarea-field" rows={3} value={form.description} onChange={updateField('description')} />
           </div>
-
-          <div>
-            <label htmlFor="session-description" className="form-label">Description (optionnel)</label>
-            <textarea
-              id="session-description"
-              className="textarea-field"
-              rows={3}
-              value={form.description}
-              onChange={updateField('description')}
-            />
-          </div>
-
-          <button type="submit" disabled={saving} className="btn-primary w-full sm:w-auto">
-            {saving ? 'Enregistrement…' : 'Créer la session'}
+          <button type="submit" disabled={busy} className="btn-primary">
+            {busy ? 'Enregistrement…' : 'Créer la session'}
           </button>
         </form>
       )}
 
       {canAssign && (
-        <div className="card p-5 mb-6">
-          <div className="flex items-baseline gap-3 mb-4">
-            <p className="section-label">Articles acceptés à placer</p>
-            <span className="font-mono text-xs text-taupe">{unplaced.length}</span>
+        <section className="card-panel mb-8">
+          <h3 className="font-semibold text-fg flex items-baseline gap-2">
+            Articles acceptés à placer
+            <span className="num font-mono text-sm font-normal text-faint">{unplaced.length}</span>
+          </h3>
+          <div className="mt-4">
+            {sessions.length === 0 ? (
+              <p className="text-sm text-muted">Crée d'abord des sessions pour y placer des articles.</p>
+            ) : unplaced.length === 0 ? (
+              <p className="text-sm text-ok">Tous les articles acceptés sont placés.</p>
+            ) : (
+              <ul className="divide-y divide-line">
+                {unplaced.map((s) => {
+                  const suggestion = suggestedSessionId(s)
+                  const value = choices[s.id] ?? suggestion
+                  return (
+                    <li key={s.id} className="py-3.5 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-fg leading-snug" style={{ overflowWrap: 'anywhere' }}>
+                          {s.title}
+                        </p>
+                        <p className="text-[13px] text-muted mt-0.5">
+                          {s.profiles?.full_name}
+                          {suggestion && <span className="text-accent-ink"> · suggérée : {sessionTitle(suggestion) || 'session'}</span>}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <label className="sr-only" htmlFor={`place-${s.id}`}>
+                          Session pour {s.title}
+                        </label>
+                        <select
+                          id={`place-${s.id}`}
+                          className="select-field md:w-56"
+                          value={value}
+                          onChange={(e) => setChoices((c) => ({ ...c, [s.id]: e.target.value }))}
+                        >
+                          <option value="">Choisir une session…</option>
+                          {sessions.map((x) => (
+                            <option key={x.id} value={x.id}>
+                              {x.title}
+                            </option>
+                          ))}
+                        </select>
+                        <button type="button" className="btn-primary" disabled={busy || !value} onClick={() => assign(s.id, value)}>
+                          Placer
+                          <ArrowRightIcon size={15} aria-hidden="true" />
+                        </button>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </div>
-
-          {sessions.length === 0 ? (
-            <p className="text-sm text-taupe">Crée d'abord des sessions pour pouvoir y placer des articles.</p>
-          ) : unplaced.length === 0 ? (
-            <p className="text-sm text-taupe">Tous les articles acceptés sont placés.</p>
-          ) : (
-            <ul className="space-y-3">
-              {unplaced.map((s) => {
-                const suggestion = suggestedSessionId(s)
-                const value = choices[s.id] ?? suggestion
-                return (
-                  <li
-                    key={s.id}
-                    className="rounded-lg border border-ink/10 bg-paper/60 p-3 text-sm"
-                    style={{ overflowWrap: 'anywhere' }}
-                  >
-                    <p className="font-medium text-ink">{s.title}</p>
-                    <p className="font-mono text-xs text-taupe mt-1">
-                      {s.profiles?.full_name}
-                      {suggestion && (
-                        <span className="text-gold"> · suggérée : {sessionTitle(suggestion) || 'session'}</span>
-                      )}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-3">
-                      <select
-                        className="select-field w-auto min-w-[200px] text-xs py-1.5"
-                        value={value}
-                        onChange={(e) => setChoices((c) => ({ ...c, [s.id]: e.target.value }))}
-                      >
-                        <option value="">Choisir une session…</option>
-                        {sessions.map((x) => (
-                          <option key={x.id} value={x.id}>{x.title}</option>
-                        ))}
-                      </select>
-                      <button
-                        type="button"
-                        className="btn-primary btn-sm"
-                        disabled={busy || !value}
-                        onClick={() => assign(s.id, value)}
-                      >
-                        Placer
-                      </button>
-                    </div>
-                  </li>
-                )
-              })}
-            </ul>
-          )}
-        </div>
+        </section>
       )}
 
       {loading ? (
         <div className="space-y-3">
-          <div className="skeleton h-24 w-full" />
-          <div className="skeleton h-24 w-full" />
+          <div className="skeleton h-28" />
+          <div className="skeleton h-28" />
         </div>
       ) : sessions.length === 0 ? (
-        <EmptyState title="Aucune session" body="Le programme de l'événement apparaîtra ici." />
+        <EmptyState icon={PresentationChartIcon} title="Programme à venir" body="Les sessions de l'événement apparaîtront ici." />
       ) : (
-        <ul className="space-y-5">
-          {sessions.map((s) => {
-            const papers = papersOf(s.id)
-            const when = dateParts(s.start_time)
-
-            return (
-              <li key={s.id} className="card p-5 sm:p-6" style={{ overflowWrap: 'anywhere' }}>
-                <div className="flex gap-4 sm:gap-5">
-                  {/* Bloc date */}
-                  <div
-                    className="shrink-0 w-16 sm:w-20 rounded-xl text-center py-3 self-start"
-                    style={
-                      when
-                        ? { background: 'rgba(255,255,255,0.10)', border: '1px solid rgba(255,255,255,0.15)' }
-                        : { border: '1px dashed rgba(255,255,255,0.3)' }
-                    }
-                  >
-                    {when ? (
-                      <>
-                        <p className="font-mono text-[10px] uppercase tracking-widest text-gold-light">{when.month}</p>
-                        <p className="font-display text-3xl sm:text-4xl font-semibold leading-none mt-1 text-white">
-                          {when.day}
+        <div className="space-y-10">
+          {days.map((day) => (
+            <section key={day.key}>
+              <h3 className="text-sm font-medium text-muted mb-3 first-letter:uppercase">{day.label}</h3>
+              <ol className="space-y-3">
+                {day.items.map((s, idx) => {
+                  const papers = papersOf(s.id)
+                  return (
+                    <li
+                      key={s.id}
+                      className="entity rise grid grid-cols-1 sm:grid-cols-[88px_minmax(0,1fr)] gap-x-5 gap-y-3"
+                      style={{ '--stripe': 'var(--color-accent)', '--i': Math.min(idx, 8) }}
+                    >
+                      <div className="sm:pt-0.5">
+                        <p className="num text-xl font-semibold tracking-tight text-fg leading-none">
+                          {s.start_time ? timeOf(s.start_time) : '--:--'}
                         </p>
-                        <p className="font-mono text-[11px] text-white/70 mt-2">{when.time}</p>
-                      </>
-                    ) : (
-                      <p className="font-mono text-[10px] uppercase tracking-wider text-white/60 px-1 py-2 leading-4">
-                        À planifier
-                      </p>
-                    )}
-                  </div>
+                        {s.end_time && <p className="num text-[13px] text-faint mt-1">{timeOf(s.end_time)}</p>}
+                      </div>
 
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="inline-flex items-center rounded-full border border-white/25 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-white/85">
-                        {SESSION_TYPE_LABELS[s.session_type] || s.session_type}
-                      </span>
-                      {s.max_capacity && (
-                        <span className="font-mono text-[11px] text-white/60">{s.max_capacity} places</span>
-                      )}
-                    </div>
-
-                    <h3 className="mt-2 font-display text-xl sm:text-2xl font-semibold leading-snug tracking-tight text-white">
-                      {s.title}
-                    </h3>
-
-                    {s.end_time && (
-                      <p className="font-mono text-xs text-white/60 mt-1">
-                        {timeOf(s.start_time)} → {timeOf(s.end_time)}
-                      </p>
-                    )}
-
-                    {s.description && (
-                      <p className="mt-3 text-[15px] leading-7 text-white/75 whitespace-pre-line border-l-2 border-white/15 pl-4">
-                        {s.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Articles présentés */}
-                {papers.length > 0 ? (
-                  <div className="mt-5 pt-4 border-t border-white/10">
-                    <p className="section-label mb-3">Articles présentés · {papers.length}</p>
-                    <ul className="space-y-2">
-                      {papers.map((a, i) => {
-                        const sub = submissionById.get(a.submission_id)
-                        return (
-                          <li
-                            key={a.id}
-                            className="flex items-start gap-3 rounded-lg bg-white/5 border border-white/10 px-3 py-2.5"
-                          >
-                            <span className="w-6 h-6 rounded-full border border-gold/60 text-gold text-xs font-mono flex items-center justify-center shrink-0 mt-0.5">
-                              {i + 1}
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="badge-type">{SESSION_TYPE_LABELS[s.session_type] || s.session_type}</span>
+                          {s.max_capacity && (
+                            <span className="inline-flex items-center gap-1 text-xs text-muted">
+                              <UsersThreeIcon size={14} aria-hidden="true" />
+                              {s.max_capacity} places
                             </span>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-medium text-white leading-snug">{sub?.title || 'Article'}</p>
-                              {sub?.profiles?.full_name && (
-                                <p className="text-xs text-white/60 mt-0.5">{sub.profiles.full_name}</p>
-                              )}
-                            </div>
-                            {canAssign && (
-                              <button
-                                type="button"
-                                className="btn-outline btn-sm"
-                                disabled={busy}
-                                onClick={() => assign(a.submission_id, null)}
-                              >
-                                Retirer
-                              </button>
-                            )}
-                          </li>
-                        )
-                      })}
-                    </ul>
-                  </div>
-                ) : (
-                  <p className="text-xs text-white/50 mt-5">Aucun article affecté pour l'instant.</p>
-                )}
+                          )}
+                          {!s.start_time && (
+                            <span className="inline-flex items-center gap-1 text-xs text-warn">
+                              <ClockIcon size={14} aria-hidden="true" />
+                              Horaire à fixer
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="mt-2 text-lg font-semibold leading-snug tracking-tight text-fg">{s.title}</h4>
+                        {s.description && <p className="mt-1.5 text-sm leading-6 text-muted whitespace-pre-line max-w-[70ch]">{s.description}</p>}
 
-                {isOrganizer && (
-                  <div className="mt-5 pt-4 border-t border-white/10">
-                    <button type="button" className="btn-danger btn-sm" onClick={() => handleDelete(s.id)}>
-                      Supprimer la session
-                    </button>
-                  </div>
-                )}
-              </li>
-            )
-          })}
-        </ul>
+                        {papers.length > 0 ? (
+                          <ol className="mt-4 space-y-1.5">
+                            {papers.map((a, i) => {
+                              const sub = submissionById.get(a.submission_id)
+                              return (
+                                <li key={a.id} className="flex items-start gap-3 rounded-lg bg-surface-2/70 px-3 py-2.5">
+                                  <span className="num text-xs font-medium text-accent-ink w-5 shrink-0 pt-0.5">{i + 1}.</span>
+                                  <div className="min-w-0 flex-1">
+                                    <p className="text-sm font-medium text-fg leading-snug">{sub?.title || 'Article'}</p>
+                                    {sub?.profiles?.full_name && <p className="text-xs text-muted mt-0.5">{sub.profiles.full_name}</p>}
+                                  </div>
+                                  {canAssign && (
+                                    <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => assign(a.submission_id, null)}>
+                                      Retirer
+                                    </button>
+                                  )}
+                                </li>
+                              )
+                            })}
+                          </ol>
+                        ) : (
+                          <p className="text-[13px] text-faint mt-3">Aucun article placé pour l'instant.</p>
+                        )}
+
+                        {isOrganizer && (
+                          <div className="mt-4 flex justify-end">
+                            <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={() => handleDelete(s)}>
+                              <TrashIcon size={15} aria-hidden="true" />
+                              Supprimer la session
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </li>
+                  )
+                })}
+              </ol>
+            </section>
+          ))}
+        </div>
       )}
     </section>
   )
