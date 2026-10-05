@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
+import { SESSION_TYPE_LABELS } from '../../lib/constants'
 import { supabase } from '../../lib/supabaseClient'
 import EmptyState from '../../components/ui/EmptyState'
-
-const TYPE_LABELS = {
-  talk: 'Présentation',
-  workshop: 'Atelier',
-  panel: 'Table ronde',
-}
 
 const EMPTY_FORM = {
   title: '',
@@ -208,7 +203,7 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
               value={form.session_type}
               onChange={updateField('session_type')}
             >
-              {Object.entries(TYPE_LABELS).map(([value, label]) => (
+              {Object.entries(SESSION_TYPE_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
             </select>
@@ -366,7 +361,7 @@ export default function SessionsPanel({ eventId, isOrganizer, phase, submissions
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center rounded-full border border-white/25 px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider text-white/85">
-                        {TYPE_LABELS[s.session_type] || s.session_type}
+                        {SESSION_TYPE_LABELS[s.session_type] || s.session_type}
                       </span>
                       {s.max_capacity && (
                         <span className="font-mono text-[11px] text-white/60">{s.max_capacity} places</span>

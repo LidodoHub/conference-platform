@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../lib/auth'
 import { generateCertificatePDF } from './generateCertificate'
 
 export default function CertificateButton({ event }) {
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState(null)
+  const { user } = useAuth()
 
   const handleGenerate = async () => {
     setGenerating(true)
     setError(null)
-
-    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       setError('Tu dois être connecté')

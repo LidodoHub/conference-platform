@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
+import { TYPE_LABELS, STATUS_LABELS, PHASE_LABELS, FORMAT_LABELS } from '../../lib/constants'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../lib/auth'
 import Tabs from '../../components/ui/Tabs'
 import { CalendarIcon, PinIcon, UserIcon } from '../../components/ui/Icons'
 import PhaseStepper from './PhaseStepper'
@@ -10,33 +12,6 @@ import SponsorsPanel from '../sponsors/SponsorsPanel'
 import InvitationsPanel from '../registrations/InvitationsPanel'
 import RegistrationCard from '../registrations/RegistrationCard'
 import AttendancePanel from '../attendance/AttendancePanel'
-
-const TYPE_LABELS = {
-  conference: 'Conférence',
-  colloquium: 'Colloque',
-  seminar: 'Séminaire',
-  workshop: 'Workshop',
-}
-
-const STATUS_LABELS = {
-  draft: 'Brouillon',
-  pending_approval: 'En validation',
-  published: 'Publié',
-  ongoing: 'En cours',
-  closed: 'Clôturé',
-  archived: 'Archivé',
-}
-
-const PHASE_LABELS = {
-  scientific: 'Phase scientifique',
-  organizational: 'Phase organisationnelle',
-}
-
-const FORMAT_LABELS = {
-  onsite: 'Présentiel',
-  online: 'En ligne',
-  hybrid: 'Hybride',
-}
 
 // pastilles de l'en-tête (fond navy)
 const CHIP = 'inline-flex items-center font-mono text-[10px] uppercase tracking-[0.12em] rounded-full px-2.5 py-1 border'
@@ -63,6 +38,7 @@ export default function EventDetail({ eventId, onBack }) {
   const [isReviewer, setIsReviewer] = useState(false)
   const [tab, setTab] = useState('overview')
   const [orgTab, setOrgTab] = useState('settings')
+  const { user: currentUser } = useAuth()
 
   const fetchEventData = async () => {
     const { data: eventData, error: eventError } = await supabase
@@ -78,8 +54,6 @@ export default function EventDetail({ eventId, onBack }) {
     }
 
     setEvent(eventData)
-
-    const { data: { user: currentUser } } = await supabase.auth.getUser()
 
     const { data: participantsData, error: participantsError } = await supabase
       .from('event_participants')

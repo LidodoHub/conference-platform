@@ -1,19 +1,8 @@
 import { useState, useEffect } from 'react'
+import { REGISTRATION_LABELS, REGISTRATION_COLOR } from '../../lib/constants'
 import { supabase } from '../../lib/supabaseClient'
 import Avatar from '../../components/ui/Avatar'
 import Pill from '../../components/ui/Pill'
-
-const STATUS_LABELS = {
-  invited: 'Invité',
-  payment_submitted: 'Paiement déclaré',
-  validated: 'Inscription validée',
-}
-
-const STATUS_COLOR = {
-  invited: '#9AA3B5',
-  payment_submitted: '#F2A93B',
-  validated: '#34C38F',
-}
 
 // les paiements à valider d'abord
 const STATUS_ORDER = { payment_submitted: 0, invited: 1, validated: 2 }
@@ -278,8 +267,8 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                   </div>
                   {existing ? (
                     existing.role_in_event === 'participant' ? (
-                      <Pill color={STATUS_COLOR[existing.registration_status] || '#9AA3B5'}>
-                        {STATUS_LABELS[existing.registration_status] || existing.registration_status}
+                      <Pill color={REGISTRATION_COLOR[existing.registration_status] || 'var(--color-st-muted)'}>
+                        {REGISTRATION_LABELS[existing.registration_status] || existing.registration_status}
                       </Pill>
                     ) : (
                       <Pill color="#7FB3FF">Déjà membre</Pill>
@@ -313,7 +302,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
           <ul className="space-y-2">
             {registrants.map((p) => {
               const pay = payments[p.user_id]
-              const color = STATUS_COLOR[p.registration_status] || '#9AA3B5'
+              const color = REGISTRATION_COLOR[p.registration_status] || 'var(--color-st-muted)'
               return (
                 <li key={p.id} className="list-item" style={{ borderLeft: `4px solid ${color}` }}>
                   <div className="flex items-center gap-3 min-w-0">
@@ -351,7 +340,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                         </button>
                       </>
                     )}
-                    <Pill color={color}>{STATUS_LABELS[p.registration_status] || p.registration_status}</Pill>
+                    <Pill color={color}>{REGISTRATION_LABELS[p.registration_status] || p.registration_status}</Pill>
                   </div>
                 </li>
               )

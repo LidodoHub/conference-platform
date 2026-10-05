@@ -163,7 +163,7 @@ export default function AttendancePanel({ eventId, participants }) {
       if (scanner) {
         try {
           scanner.stop().then(() => scanner.clear()).catch(() => {})
-        } catch (stopError) {
+        } catch {
           // le scanner n'avait pas démarré : rien à arrêter
         }
       }

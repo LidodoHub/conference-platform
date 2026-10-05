@@ -1,3 +1,6 @@
+// Source unique des libellés et des couleurs de statut.
+// Les couleurs renvoient aux tokens définis dans index.css (@theme) pour rester cohérentes partout.
+
 export const TYPE_LABELS = {
   conference: 'Conférence',
   colloquium: 'Colloque',
@@ -23,6 +26,17 @@ export const STATUS_BADGE = {
   archived: 'badge-archived',
 }
 
+export const PHASE_LABELS = {
+  scientific: 'Phase scientifique',
+  organizational: 'Phase organisationnelle',
+}
+
+export const FORMAT_LABELS = {
+  onsite: 'Présentiel',
+  online: 'En ligne',
+  hybrid: 'Hybride',
+}
+
 export const SUBMISSION_LABELS = {
   submitted: 'Soumis',
   accepted: 'Accepté',
@@ -30,11 +44,26 @@ export const SUBMISSION_LABELS = {
   revision_requested: 'Révision demandée',
 }
 
-export const SUBMISSION_BADGE = {
-  submitted: 'badge-submitted',
-  accepted: 'badge-accepted',
-  rejected: 'badge-rejected',
-  revision_requested: 'badge-revision',
+// blanc = soumis, vert = accepté, orange = révision, rouge = rejeté
+export const SUBMISSION_COLOR = {
+  submitted: 'var(--color-st-neutral)',
+  accepted: 'var(--color-st-ok)',
+  revision_requested: 'var(--color-st-warn)',
+  rejected: 'var(--color-st-bad)',
+}
+
+export const REVISION_LABELS = { minor: 'Révision mineure', major: 'Révision majeure' }
+
+export const RECOMMENDATION_LABELS = {
+  accept: "Recommande d'accepter",
+  reject: 'Recommande de rejeter',
+  revise: 'Recommande une révision',
+}
+
+export const RECOMMENDATION_COLOR = {
+  accept: 'var(--color-st-ok)',
+  reject: 'var(--color-st-bad)',
+  revise: 'var(--color-st-warn)',
 }
 
 export const ROLE_LABELS = {
@@ -44,11 +73,39 @@ export const ROLE_LABELS = {
   admin: 'Administrateur',
 }
 
-export const LIFECYCLE = [
-  'draft',
-  'pending_approval',
-  'published',
-  'ongoing',
-  'closed',
-  'archived',
-]
+export const ROLE_COLOR = {
+  organizer: 'var(--color-st-gold)',
+  reviewer: 'var(--color-st-info)',
+  participant: 'var(--color-st-muted)',
+}
+
+export const REGISTRATION_LABELS = {
+  invited: 'Invité',
+  payment_submitted: 'Paiement déclaré',
+  validated: 'Inscription validée',
+}
+
+export const REGISTRATION_COLOR = {
+  invited: 'var(--color-st-muted)',
+  payment_submitted: 'var(--color-st-warn)',
+  validated: 'var(--color-st-ok)',
+}
+
+export const SESSION_TYPE_LABELS = {
+  talk: 'Présentation',
+  workshop: 'Atelier',
+  panel: 'Table ronde',
+}
+
+export const MAX_ACCEPTED_PER_AUTHOR = 2
+
+const parseDay = (d) => (d ? new Date(`${String(d).slice(0, 10)}T00:00:00`) : null)
+
+export const formatDate = (d, opts = { day: 'numeric', month: 'long', year: 'numeric' }) =>
+  parseDay(d)?.toLocaleDateString('fr-FR', opts) || ''
+
+export const formatDateRange = (start, end) => {
+  const a = formatDate(start)
+  if (!end || String(end).slice(0, 10) === String(start).slice(0, 10)) return a
+  return `${a} → ${formatDate(end)}`
+}

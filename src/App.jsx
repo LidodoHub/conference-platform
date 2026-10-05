@@ -5,8 +5,21 @@ import EventsPage from './features/events/EventsPage'
 import EventDetail from './features/events/EventDetail'
 import AdminPanel from './features/admin/AdminPanel'
 import { supabase } from './lib/supabaseClient'
+import { AuthContext } from './lib/auth'
 
 const VIEWS = { home: 'home', events: 'events', admin: 'admin' }
+
+async function loadProfile(userId, setUserProfile, setIsAdmin) {
+  const { data } = await supabase
+    .from('profiles')
+    .select('full_name, email, role')
+    .eq('id', userId)
+    .single()
+  if (data) {
+    setUserProfile(data)
+    setIsAdmin(data.role === 'admin')
+  }
+}
 
 function App() {
   const [session, setSession] = useState(null)
@@ -18,12 +31,12 @@ function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
-      if (session) loadProfile(session.user.id)
+      if (session) loadProfile(session.user.id, setUserProfile, setIsAdmin)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session)
-      if (session) loadProfile(session.user.id)
+      if (session) loadProfile(session.user.id, setUserProfile, setIsAdmin)
       else {
         setUserProfile(null)
         setIsAdmin(false)
@@ -32,18 +45,6 @@ function App() {
 
     return () => subscription.unsubscribe()
   }, [])
-
-  const loadProfile = async (userId) => {
-    const { data } = await supabase
-      .from('profiles')
-      .select('full_name, email, role')
-      .eq('id', userId)
-      .single()
-    if (data) {
-      setUserProfile(data)
-      setIsAdmin(data.role === 'admin')
-    }
-  }
 
   const goHome = () => {
     setView(VIEWS.home)
@@ -68,6 +69,8 @@ function App() {
     )
   }
 
+  const auth = { user: session.user, profile: userProfile, isAdmin }
+
   const isHome = view === VIEWS.home && !selectedEventId
   const isEvents = view === VIEWS.events || !!selectedEventId
   const isAdminView = view === VIEWS.admin
@@ -81,6 +84,7 @@ function App() {
     }`
 
   return (
+    <AuthContext.Provider value={auth}>
     <div className="min-h-dvh bg-paper flex flex-col pb-16 sm:pb-0">
       <header className="sticky top-0 z-50 bg-ink/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-10">
@@ -185,6 +189,7 @@ function App() {
         )}
       </nav>
     </div>
+    </AuthContext.Provider>
   )
 }
 

@@ -1,32 +1,9 @@
 import { useState, useEffect } from 'react'
+import { TYPE_LABELS, STATUS_LABELS, STATUS_BADGE } from '../../lib/constants'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../lib/auth'
 import GlareHover from '../../components/reactbits/GlareHover'
 import FadeContent from '../../components/reactbits/FadeContent'
-
-const TYPE_LABELS = {
-  conference: 'Conférence',
-  colloquium: 'Colloque',
-  seminar: 'Séminaire',
-  workshop: 'Workshop',
-}
-
-const STATUS_BADGE = {
-  draft: 'badge-draft',
-  pending_approval: 'badge-pending',
-  published: 'badge-published',
-  ongoing: 'badge-ongoing',
-  closed: 'badge-closed',
-  archived: 'badge-archived',
-}
-
-const STATUS_LABELS = {
-  draft: 'Brouillon',
-  pending_approval: 'En validation',
-  published: 'Publié',
-  ongoing: 'En cours',
-  closed: 'Clôturé',
-  archived: 'Archivé',
-}
 
 export default function EventsPage({ onSelectEvent }) {
   const [events, setEvents] = useState([])
@@ -41,6 +18,7 @@ export default function EventsPage({ onSelectEvent }) {
   const [location, setLocation] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const { user } = useAuth()
 
   const fetchEvents = async () => {
     setLoading(true)
@@ -65,8 +43,6 @@ export default function EventsPage({ onSelectEvent }) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-
-    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       setError('Tu dois être connecté pour créer un événement')

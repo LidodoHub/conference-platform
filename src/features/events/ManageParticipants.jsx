@@ -1,12 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
+import { ROLE_LABELS, ROLE_COLOR } from '../../lib/constants'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../lib/auth'
 import Avatar from '../../components/ui/Avatar'
-
-const ROLE_LABELS = {
-  participant: 'Participant',
-  reviewer: 'Reviewer',
-  organizer: 'Organisateur',
-}
 
 const ROLE_PLURALS = {
   organizer: 'organisateur',
@@ -14,21 +10,10 @@ const ROLE_PLURALS = {
   participant: 'participant',
 }
 
-// trait de couleur à gauche de chaque ligne, selon le rôle
-const ROLE_COLOR = {
-  organizer: '#E6BE5A',
-  reviewer: '#7FB3FF',
-  participant: '#9AA3B5',
-}
-
 export default function ManageParticipants({ participants, onUpdated }) {
   const [updatingId, setUpdatingId] = useState(null)
-  const [myId, setMyId] = useState(null)
+  const myId = useAuth().user?.id ?? null
   const [error, setError] = useState(null)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setMyId(data?.user?.id ?? null))
-  }, [])
 
   const handleRoleChange = async (participantId, newRole) => {
     setUpdatingId(participantId)
@@ -109,7 +94,7 @@ export default function ManageParticipants({ participants, onUpdated }) {
           <div
             key={p.id}
             className="list-item"
-            style={{ borderLeft: `4px solid ${ROLE_COLOR[p.role_in_event] || '#9AA3B5'}` }}
+            style={{ borderLeft: `4px solid ${ROLE_COLOR[p.role_in_event] || 'var(--color-st-muted)'}` }}
           >
             <div className="flex items-center gap-3 min-w-0">
               <Avatar name={p.profiles?.full_name} size={38} tone="light" />

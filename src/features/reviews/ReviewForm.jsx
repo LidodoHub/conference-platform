@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../lib/auth'
 
 export default function ReviewForm({ submissionId, eventId, onReviewed }) {
   const [score, setScore] = useState(3)
@@ -9,6 +10,7 @@ export default function ReviewForm({ submissionId, eventId, onReviewed }) {
   const [sessions, setSessions] = useState([])
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  const { user } = useAuth()
 
   useEffect(() => {
     if (!eventId) return
@@ -24,8 +26,6 @@ export default function ReviewForm({ submissionId, eventId, onReviewed }) {
     e.preventDefault()
     setSubmitting(true)
     setError(null)
-
-    const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) {
       setError('Tu dois être connecté')

@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../lib/auth'
 import SubmissionForm from '../submissions/SubmissionForm'
 import ReviewForm from '../reviews/ReviewForm'
 import Tabs from '../../components/ui/Tabs'
-import { SUBMISSION_LABELS } from '../../lib/constants'
+import { SUBMISSION_LABELS, REVISION_LABELS, RECOMMENDATION_LABELS, MAX_ACCEPTED_PER_AUTHOR } from '../../lib/constants'
+import Pill from '../../components/ui/Pill'
 import EmptyState from '../../components/ui/EmptyState'
 
-const REC_LABELS = {
-  accept: "Recommande d'accepter",
-  reject: 'Recommande de rejeter',
-  revise: 'Recommande une révision',
-}
 const REC_COLOR = { accept: '#34C38F', reject: '#E5534B', revise: '#F2A93B' }
 
 // couleur de la bande de gauche : vert accepté, orange révision, rouge rejeté, blanc soumis
@@ -22,7 +19,6 @@ const STATUS_ACCENT = {
 }
 
 const MIN_REVIEWS_TO_DECIDE = 1
-const MAX_ACCEPTED_PER_AUTHOR = 2
 const countReviews = (s) => (s.reviews || []).filter((r) => r.recommendation).length
 const isReady = (s) => countReviews(s) >= MIN_REVIEWS_TO_DECIDE
 
@@ -42,7 +38,6 @@ const LIMIT_STYLE = {
   cursor: 'not-allowed',
 }
 
-const REVISION_LABELS = { minor: 'Révision mineure', major: 'Révision majeure' }
 const REVISION_HINTS = {
   minor: 'Corrections légères attendues (formulation, précisions, coquilles).',
   major: 'Remaniement important attendu (méthode, résultats ou structure).',
@@ -92,18 +87,6 @@ function Kicker({ children }) {
   )
 }
 
-function Pill({ color, children }) {
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap"
-      style={{ background: `${color}26`, color, border: `1px solid ${color}66` }}
-    >
-      <span className="w-1.5 h-1.5 rounded-full" style={{ background: color }} />
-      {children}
-    </span>
-  )
-}
-
 function Stars({ value }) {
   const n = Math.max(0, Math.min(5, Math.round(Number(value) || 0)))
   return (
@@ -130,7 +113,7 @@ function ReviewItem({ name, review, sessionTitle }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mt-2">
-        {review.recommendation && <Pill color={color}>{REC_LABELS[review.recommendation]}</Pill>}
+        {review.recommendation && <Pill color={color}>{RECOMMENDATION_LABELS[review.recommendation]}</Pill>}
         {review.recommended_session_id && (
           <span className="font-mono text-[11px] text-white/70 border border-white/15 rounded-full px-2.5 py-0.5">
             Session : {sessionTitle(review.recommended_session_id) || '—'}
@@ -179,15 +162,11 @@ export default function ScientificPanel({
   const [resubmittingId, setResubmittingId] = useState(null)
   const [resubmitForm, setResubmitForm] = useState({ title: '', abstract: '' })
   const [saving, setSaving] = useState(false)
-  const [myId, setMyId] = useState(null)
+  const myId = useAuth().user?.id ?? null
   const [error, setError] = useState(null)
   const [filter, setFilter] = useState('all')
   const [sessions, setSessions] = useState([])
   const [expandedId, setExpandedId] = useState(null)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setMyId(data?.user?.id ?? null))
-  }, [])
 
   useEffect(() => {
     supabase

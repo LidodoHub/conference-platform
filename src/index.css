@@ -15,6 +15,15 @@
   --color-error: #9B3B3B;
   --color-error-light: #F5E8E8;
 
+  /* Couleurs de statut (lisibles sur fond sombre) */
+  --color-st-ok: #34C38F;
+  --color-st-warn: #F2A93B;
+  --color-st-bad: #E5534B;
+  --color-st-neutral: #F4F1E8;
+  --color-st-muted: #9AA3B5;
+  --color-st-info: #7FB3FF;
+  --color-st-gold: #E6BE5A;
+
   --font-display: "Fraunces", serif;
   --font-body: "Inter", sans-serif;
   --font-mono: "IBM Plex Mono", monospace;

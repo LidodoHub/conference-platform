@@ -1,31 +1,7 @@
 import { useState, useEffect } from 'react'
+import { TYPE_LABELS, STATUS_LABELS, STATUS_BADGE } from '../../lib/constants'
 import { supabase } from '../../lib/supabaseClient'
 import FadeContent from '../../components/reactbits/FadeContent'
-
-const TYPE_LABELS = {
-  conference: 'Conférence',
-  colloquium: 'Colloque',
-  seminar: 'Séminaire',
-  workshop: 'Workshop',
-}
-
-const STATUS_BADGE = {
-  draft: 'badge-draft',
-  pending_approval: 'badge-pending',
-  published: 'badge-published',
-  ongoing: 'badge-ongoing',
-  closed: 'badge-closed',
-  archived: 'badge-archived',
-}
-
-const STATUS_LABELS = {
-  draft: 'Brouillon',
-  pending_approval: 'En validation',
-  published: 'Publié',
-  ongoing: 'En cours',
-  closed: 'Clôturé',
-  archived: 'Archivé',
-}
 
 export default function AdminPanel() {
   const [pendingEvents, setPendingEvents] = useState([])

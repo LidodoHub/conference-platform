@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import Pill from '../../components/ui/Pill'
 import { supabase } from '../../lib/supabaseClient'
 import EmptyState from '../../components/ui/EmptyState'
 
@@ -21,20 +22,9 @@ const normalizeUrl = (value) => {
 const hostOf = (url) => {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
-  } catch (e) {
+  } catch {
     return url
   }
-}
-
-function Pill({ color, children }) {
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wider"
-      style={{ color, border: `1px solid ${color}66`, background: `${color}1A` }}
-    >
-      {children}
-    </span>
-  )
 }
 
 export default function SponsorsPanel({ eventId, isOrganizer }) {
@@ -232,9 +222,9 @@ export default function SponsorsPanel({ eventId, isOrganizer }) {
                       {s.name}
                     </h3>
                     <div className="flex flex-wrap items-center gap-2 mt-2">
-                      <Pill color={tier.color}>{tier.label}</Pill>
+                      <Pill mono dot={false} color={tier.color}>{tier.label}</Pill>
                       {isOrganizer && (
-                        <Pill color={s.published ? '#34C38F' : '#9AA3B5'}>
+                        <Pill mono dot={false} color={s.published ? '#34C38F' : '#9AA3B5'}>
                           {s.published ? 'Publié' : 'Brouillon'}
                         </Pill>
                       )}

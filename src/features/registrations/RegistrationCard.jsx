@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { jsPDF } from 'jspdf'
 import { supabase } from '../../lib/supabaseClient'
+import { useAuth } from '../../lib/auth'
 import CertificateButton from '../certificates/CertificateButton'
 import AttendanceBadge from '../attendance/AttendanceBadge'
 
@@ -11,16 +12,12 @@ const ROLE_LABELS = {
 }
 
 export default function RegistrationCard({ event, participants, onRefresh }) {
-  const [myId, setMyId] = useState(null)
+  const myId = useAuth().user?.id ?? null
   const [payment, setPayment] = useState(null)
   const [reference, setReference] = useState('')
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
-
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => setMyId(data?.user?.id ?? null))
-  }, [])
 
   const mine = participants.find((p) => p.user_id === myId)
   const status = mine?.registration_status
