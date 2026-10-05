@@ -11,7 +11,10 @@ const count = (table, filter) => {
   return q
 }
 
-const monthKey = (iso) => String(iso).slice(0, 7)
+const monthKey = (iso) => {
+  const d = new Date(iso)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
 
 // Vue plateforme pour l'administrateur. Les chiffres dépendent de ce que la RLS laisse lire à l'admin.
 export default function PlatformStats() {

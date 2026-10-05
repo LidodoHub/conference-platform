@@ -101,7 +101,7 @@ export function Columns({ points, color = 'var(--color-accent)', height = 140, l
               aria-label={`${p.label} : ${p.value}${unit}`}
             >
               <span
-                className="w-full rounded-t-[4px] transition-[height,opacity] duration-500 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-accent"
+                className="w-full max-w-14 mx-auto rounded-t-[4px] transition-[height,opacity] duration-500 group-focus-visible:outline group-focus-visible:outline-2 group-focus-visible:outline-accent"
                 style={{
                   height: `${p.value > 0 ? Math.max(3, (100 * p.value) / max) : 0}%`,
                   background: color,

@@ -27,7 +27,7 @@ export default function EventsPage({ onSelectEvent }) {
     const [eventsRes, rolesRes] = await Promise.all([
       supabase
         .from('events')
-        .select('id, title, description, type, format, status, start_date, end_date, location, organizer_id')
+        .select('id, title, description, type, format, status, phase, start_date, end_date, location, organizer_id')
         .order('start_date', { ascending: true }),
       supabase.from('event_participants').select('event_id, role_in_event').eq('user_id', user.id),
     ])

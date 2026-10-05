@@ -99,7 +99,12 @@ export const SESSION_TYPE_LABELS = {
 
 export const MAX_ACCEPTED_PER_AUTHOR = 2
 
-const parseDay = (d) => (d ? new Date(`${String(d).slice(0, 10)}T00:00:00`) : null)
+// une date seule ("2026-10-04") est lue en heure locale ; un horodatage complet est converti tel quel
+const parseDay = (d) => {
+  if (!d) return null
+  const str = String(d)
+  return str.length <= 10 ? new Date(`${str}T00:00:00`) : new Date(str)
+}
 
 export const formatDate = (d, opts = { day: 'numeric', month: 'long', year: 'numeric' }) =>
   parseDay(d)?.toLocaleDateString('fr-FR', opts) || ''

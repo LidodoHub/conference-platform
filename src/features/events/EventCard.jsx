@@ -30,8 +30,8 @@ function Meta({ event }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
       <span className={STATUS_BADGE[event.status] || 'badge-draft'}>{STATUS_LABELS[event.status] || event.status}</span>
-      {['published', 'ongoing'].includes(event.status) && (
-        <span className="badge-type">{PHASE_LABELS[event.phase]?.replace('Phase ', 'Phase ')}</span>
+      {['published', 'ongoing'].includes(event.status) && event.phase && (
+        <span className="badge-type">{PHASE_LABELS[event.phase]}</span>
       )}
     </div>
   )
@@ -89,7 +89,7 @@ export function FeaturedEventCard({ event, role, onOpen }) {
     <button
       type="button"
       onClick={() => onOpen(event.id)}
-      className="group card overflow-hidden text-left grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-shadow duration-300 hover:shadow-[var(--shadow-lift)]"
+      className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-shadow duration-300 hover:shadow-[var(--shadow-lift)]"
     >
       <EventCover seed={event.id} className="min-h-56 md:min-h-80 p-6 sm:p-8 flex flex-col justify-between">
         <span className="text-sm font-medium text-white/85">

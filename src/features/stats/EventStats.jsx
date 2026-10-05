@@ -5,7 +5,10 @@ import { SUBMISSION_LABELS, SUBMISSION_COLOR, RECOMMENDATION_LABELS, RECOMMENDAT
 import Stat from '../../components/ui/Stat'
 import { StackedBar, BarList, Columns, Ratio, DataTable } from '../../components/charts/Charts'
 
-const dayKey = (iso) => String(iso).slice(0, 10)
+// jour local (et non UTC) : sinon minuit à Alger tombe la veille
+const pad = (n) => String(n).padStart(2, '0')
+const localDay = (date) => `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+const dayKey = (iso) => localDay(new Date(iso))
 const money = (n) => `${Number(n).toLocaleString('fr-FR')} DA`
 
 // Statistiques d'un événement, pour son organisateur.
@@ -66,7 +69,7 @@ export default function EventStats({ eventId, submissions, participants }) {
     const start = new Date(`${days[0]}T00:00:00`)
     const end = new Date(`${days[days.length - 1]}T00:00:00`)
     for (let d = new Date(start); d <= end && perDay.length < 120; d.setDate(d.getDate() + 1)) {
-      const key = d.toISOString().slice(0, 10)
+      const key = localDay(d)
       perDay.push({
         key,
         label: d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }),
@@ -123,7 +126,7 @@ export default function EventStats({ eventId, submissions, participants }) {
           <h3 className="font-semibold text-fg">Avancement des reviews</h3>
           <p className="text-sm text-muted">
             {submissions.length
-              ? `${reviewed} articles sur ${submissions.length} ont au moins une review.`
+              ? `${reviewed} article${reviewed > 1 ? 's' : ''} sur ${submissions.length} ${reviewed > 1 ? 'ont' : 'a'} au moins une review.`
               : 'Aucun article pour le moment.'}
             {avg != null && ` Note moyenne : ${avg.toFixed(1)} / 5.`}
           </p>

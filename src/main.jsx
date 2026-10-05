@@ -6,6 +6,10 @@ import { applyTheme, readThemePref } from './lib/theme'
 
 // appliqué avant le premier rendu pour éviter un flash de mauvais thème
 applyTheme(readThemePref())
+// en mode "système", suit le changement clair / sombre du système sans recharger la page
+window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change', () => {
+  if (readThemePref() === 'system') applyTheme('system')
+})
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>

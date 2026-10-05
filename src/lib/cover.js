@@ -22,21 +22,21 @@ export function hashOf(text) {
 export function coverStyle(seed) {
   const h = hashOf(seed)
   const p = PALETTES[h % PALETTES.length]
-  const x1 = 10 + (h % 60)
-  const y1 = (h >> 3) % 70
-  const x2 = 50 + ((h >> 7) % 50)
-  const y2 = 40 + ((h >> 11) % 60)
-  const angle = 20 + ((h >> 13) % 140)
+  const x1 = 5 + (h % 50)
+  const y1 = (h >> 3) % 60
+  const cx = 55 + ((h >> 7) % 45)
+  const cy = 15 + ((h >> 11) % 70)
   return {
     backgroundColor: p.base,
     backgroundImage: [
       // trame de points fine
-      'radial-gradient(rgb(255 255 255 / 0.10) 1px, transparent 1.2px)',
-      // un filet doré en diagonale
-      `linear-gradient(${angle}deg, transparent 49.6%, ${p.b}55 49.8%, ${p.b}55 50.2%, transparent 50.4%)`,
-      `radial-gradient(60% 80% at ${x1}% ${y1}%, ${p.a}cc, transparent 70%)`,
-      `radial-gradient(45% 70% at ${x2}% ${y2}%, ${p.b}55, transparent 70%)`,
+      'radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1.3px)',
+      // cercles concentriques, comme un tampon de conférence
+      `repeating-radial-gradient(circle at ${cx}% ${cy}%, transparent 0 22px, ${p.b}2e 22px 23px)`,
+      `radial-gradient(70% 90% at ${x1}% ${y1}%, ${p.a}, transparent 70%)`,
+      `radial-gradient(40% 60% at ${cx}% ${cy}%, ${p.b}66, transparent 70%)`,
+      `linear-gradient(160deg, transparent 40%, rgb(0 0 0 / 0.35))`,
     ].join(', '),
-    backgroundSize: '14px 14px, 100% 100%, 100% 100%, 100% 100%',
+    backgroundSize: '14px 14px, 100% 100%, 100% 100%, 100% 100%, 100% 100%',
   }
 }
