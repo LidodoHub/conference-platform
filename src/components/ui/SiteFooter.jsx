@@ -1,0 +1,86 @@
+import { MapPinIcon, EnvelopeSimpleIcon, GraduationCapIcon } from '@phosphor-icons/react'
+import Logo from './Logo'
+import { SITE } from '../../lib/site'
+
+function FooterLink({ onClick, href, children }) {
+  const cls = 'text-sm text-white/75 hover:text-white underline-offset-4 hover:underline decoration-accent transition-colors'
+  if (href)
+    return (
+      <a href={href} className={cls} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
+        {children}
+      </a>
+    )
+  return (
+    <button type="button" onClick={onClick} className={`${cls} text-left`}>
+      {children}
+    </button>
+  )
+}
+
+function Column({ title, children }) {
+  return (
+    <div>
+      <h2 className="text-[13px] font-semibold tracking-wide text-accent mb-4">{title}</h2>
+      <ul className="space-y-2.5">{children}</ul>
+    </div>
+  )
+}
+
+// Pied de page : liens secondaires (à propos, aide, confidentialité, contact), à l'écart de la navigation principale.
+export default function SiteFooter({ onNavigate }) {
+  return (
+    <footer className="mt-auto bg-navy text-white border-t-2 border-accent/60 dark:bg-[#0A111F]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-12 pb-8">
+        <div className="grid grid-cols-2 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] gap-x-8 gap-y-10">
+          <div className="col-span-2 md:col-span-1 max-w-sm">
+            <Logo inverted />
+            <p className="mt-4 text-sm text-white/70 leading-relaxed">{SITE.tagline}</p>
+            <p className="mt-4 flex items-start gap-2 text-[13px] text-white/55">
+              <GraduationCapIcon size={16} className="shrink-0 mt-0.5 text-accent" aria-hidden="true" />
+              {SITE.project}
+            </p>
+          </div>
+
+          <Column title="Plateforme">
+            <li><FooterLink onClick={() => onNavigate('home')}>Tableau de bord</FooterLink></li>
+            <li><FooterLink onClick={() => onNavigate('events')}>Événements</FooterLink></li>
+            <li><FooterLink onClick={() => onNavigate('profile')}>Mon profil</FooterLink></li>
+          </Column>
+
+          <Column title="Aide">
+            <li><FooterLink onClick={() => onNavigate('about')}>À propos</FooterLink></li>
+            <li><FooterLink onClick={() => onNavigate('faq')}>Questions fréquentes</FooterLink></li>
+            <li><FooterLink onClick={() => onNavigate('privacy')}>Confidentialité</FooterLink></li>
+          </Column>
+
+          <Column title="Contact">
+            <li className="flex items-start gap-2 text-sm text-white/75">
+              <MapPinIcon size={16} className="shrink-0 mt-0.5 text-accent" aria-hidden="true" />
+              <span>
+                USTO-MB
+                <br />
+                {SITE.city}
+              </span>
+            </li>
+            {SITE.contactEmail && (
+              <li className="flex items-center gap-2">
+                <EnvelopeSimpleIcon size={16} className="shrink-0 text-accent" aria-hidden="true" />
+                <FooterLink href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</FooterLink>
+              </li>
+            )}
+            <li>
+              <FooterLink onClick={() => onNavigate('about', 'contact')}>Nous écrire</FooterLink>
+            </li>
+          </Column>
+        </div>
+
+        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-white/45">
+          <p>
+            © {SITE.year} {SITE.name}. Tous droits réservés.
+          </p>
+          <p>Photos : Wikimedia Commons, crédits sur chaque image.</p>
+        </div>
+      </div>
+    </footer>
+  )
+}

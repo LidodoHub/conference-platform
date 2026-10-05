@@ -8,13 +8,16 @@ import EventDetail from './features/events/EventDetail'
 import AdminPanel from './features/admin/AdminPanel'
 import ProfilePage from './features/profile/ProfilePage'
 import NotificationsMenu from './components/ui/NotificationsMenu'
+import SiteFooter from './components/ui/SiteFooter'
+import InfoPage from './features/info/InfoPages'
 import Logo from './components/ui/Logo'
 import Avatar from './components/ui/Avatar'
 import ThemeToggle from './components/ui/ThemeToggle'
 import { supabase } from './lib/supabaseClient'
 import { AuthContext } from './lib/auth'
 
-const VIEWS = { home: 'home', events: 'events', admin: 'admin', profile: 'profile' }
+const VIEWS = { home: 'home', events: 'events', admin: 'admin', profile: 'profile', about: 'about', faq: 'faq', privacy: 'privacy' }
+const INFO_VIEWS = ['about', 'faq', 'privacy']
 
 async function loadProfile(userId, setUserProfile, setIsAdmin) {
   const { data } = await supabase.from('profiles').select('full_name, email, role').eq('id', userId).single()
@@ -29,6 +32,7 @@ function App() {
   const [ready, setReady] = useState(false)
   const [selectedEventId, setSelectedEventId] = useState(null)
   const [eventTarget, setEventTarget] = useState(null)
+  const [infoAnchor, setInfoAnchor] = useState(null)
   const [view, setView] = useState(VIEWS.home)
   const [isAdmin, setIsAdmin] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
@@ -58,8 +62,9 @@ function App() {
 
   // remonte en haut à chaque changement d'écran
   useEffect(() => {
-    window.scrollTo({ top: 0 })
-  }, [view, selectedEventId])
+    // pas de retour en haut si on vise une section précise (ex. Contact)
+    if (!infoAnchor) window.scrollTo({ top: 0 })
+  }, [view, selectedEventId, infoAnchor])
 
   if (!ready) return <div className="min-h-dvh bg-bg" />
 
@@ -67,8 +72,10 @@ function App() {
 
   if (!session) return <AuthForm />
 
-  const go = (v) => {
+  // anchor (optionnel) : section à afficher dans une page d'information, ex. 'contact'
+  const go = (v, anchor = null) => {
     setView(v)
+    setInfoAnchor(anchor)
     setSelectedEventId(null)
   }
   // target (optionnel) : onglet à ouvrir directement, ex. { tab: 'scientific' }
@@ -162,7 +169,9 @@ function App() {
         </header>
 
         <main id="contenu" className="flex-1 min-w-0">
-          {view === VIEWS.profile ? (
+          {INFO_VIEWS.includes(view) ? (
+            <InfoPage key={`${view}-${infoAnchor}`} page={view} anchor={infoAnchor} onNavigate={go} />
+          ) : view === VIEWS.profile ? (
             <ProfilePage onSaved={() => loadProfile(session.user.id, setUserProfile, setIsAdmin)} />
           ) : view === VIEWS.admin ? (
             <AdminPanel onOpenEvent={openEvent} />
@@ -185,12 +194,7 @@ function App() {
           )}
         </main>
 
-        <footer className="hidden lg:block border-t border-line mt-auto">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 py-5 flex items-center justify-between gap-4 text-xs text-faint">
-            <p>CONFERA, plateforme de gestion de conférences scientifiques</p>
-            <p>Projet de fin d'études, Master 2 IA</p>
-          </div>
-        </footer>
+        <SiteFooter onNavigate={go} />
 
         {/* Navigation téléphone et tablette : barre fixe en bas, comme une application */}
         <nav
