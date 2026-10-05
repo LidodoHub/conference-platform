@@ -236,14 +236,20 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
   }
 
   return (
-    <div className="page-container">
-      <header className="mb-8 sm:mb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-6 sm:gap-8 items-end">
+    <>
+      {/* Bandeau d'accueil : halos qui dérivent lentement, cercles du "tampon", trame de points */}
+      <section className="hero relative overflow-hidden text-white">
+        <div className="hero-glow" aria-hidden="true" />
+        <div className="hero-rings" aria-hidden="true" />
+        <div className="hero-dots" aria-hidden="true" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-7 pb-9 sm:pt-14 sm:pb-16">
+      <header className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-6 sm:gap-8 items-end">
         <div>
-          <p className="text-sm text-muted first-letter:uppercase">{todayLabel}</p>
-          <h1 className="mt-1 text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05] text-fg">
+          <p className="text-sm text-white/65 first-letter:uppercase">{todayLabel}</p>
+          <h1 className="mt-1 text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05] text-white">
             Bonjour{firstName ? `, ${firstName}` : ''}
           </h1>
-          <p className="text-muted mt-2 sm:mt-3 sm:text-lg">
+          <p className="text-white/75 mt-2 sm:mt-3 sm:text-lg">
             {!data
               ? 'Chargement de ton espace…'
               : todos.length === 0
@@ -258,8 +264,8 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
                 ['Acceptés', data.subs.filter((x) => x.status === 'accepted').length],
               ].map(([label, value]) => (
                 <div key={label}>
-                  <dt className="text-[13px] text-muted">{label}</dt>
-                  <dd className="num text-xl sm:text-2xl font-semibold tracking-tight text-fg">{value}</dd>
+                  <dt className="text-[13px] text-white/60">{label}</dt>
+                  <dd className="num text-xl sm:text-2xl font-semibold tracking-tight text-white">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -270,7 +276,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
           <button
             type="button"
             onClick={() => onOpenEvent(nextEvent.event_id)}
-            className="group card overflow-hidden text-left w-full rise transition-shadow hover:shadow-[var(--shadow-lift)]"
+            className="group card overflow-hidden text-left w-full rise transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.55)] border-white/10"
           >
             <div className="h-20 sm:h-28 px-4 sm:px-5 py-3 sm:py-4 flex items-end justify-between gap-4" style={coverStyle(nextEvent.event_id)}>
               <span className="text-sm font-medium text-white/85">Prochain rendez-vous</span>
@@ -291,6 +297,10 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
           </button>
         )}
       </header>
+        </div>
+      </section>
+
+      <div className="page-container">
 
       {error && <div className="alert-error mb-6">{error}</div>}
 
@@ -445,6 +455,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
           )}
         </section>
       </div>
-    </div>
+      </div>
+    </>
   )
 }

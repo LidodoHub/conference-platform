@@ -88,15 +88,10 @@ export default function AuthForm() {
   return (
     <div className="min-h-dvh bg-bg grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       {/* Panneau de marque (ordinateur) */}
-      <aside className="hidden lg:flex relative overflow-hidden bg-navy text-white flex-col justify-between p-12 xl:p-16">
-        <div
-          aria-hidden="true"
-          className="absolute inset-0"
-          style={{
-            background:
-              'radial-gradient(60% 50% at 85% 10%, rgb(200 150 62 / 0.28), transparent 70%), radial-gradient(50% 45% at 0% 100%, rgb(47 111 98 / 0.35), transparent 70%)',
-          }}
-        />
+      <aside className="hero hidden lg:flex relative overflow-hidden text-white flex-col justify-between p-12 xl:p-16">
+        <div className="hero-glow" aria-hidden="true" />
+        <div className="hero-rings" aria-hidden="true" />
+        <div className="hero-dots" aria-hidden="true" />
         <div className="relative">
           <Logo inverted />
         </div>

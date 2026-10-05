@@ -404,6 +404,57 @@
   }
 }
 
+/* Bandeau d'accueil */
+.hero {
+  background: linear-gradient(180deg, #16233F 0%, #1B2A4A 100%);
+}
+
+[data-theme="dark"] .hero {
+  background: linear-gradient(180deg, #0F1A2E 0%, #13203A 100%);
+  border-bottom: 1px solid var(--c-line);
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgb(200 150 62 / 0.7), transparent);
+}
+
+.hero-glow {
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(40% 50% at 18% 30%, rgb(200 150 62 / 0.5), transparent 70%),
+    radial-gradient(36% 46% at 82% 72%, rgb(47 140 118 / 0.6), transparent 70%),
+    radial-gradient(30% 40% at 62% 8%, rgb(43 94 134 / 0.45), transparent 70%);
+  will-change: transform;
+  animation: hero-drift 26s ease-in-out infinite alternate;
+}
+
+.hero-rings {
+  position: absolute;
+  inset: 0;
+  background: repeating-radial-gradient(circle at 88% 38%, transparent 0 34px, rgb(200 150 62 / 0.16) 34px 35px);
+  mask-image: radial-gradient(circle at 88% 38%, black 0, transparent 62%);
+}
+
+.hero-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgb(255 255 255 / 0.09) 1px, transparent 1.3px);
+  background-size: 18px 18px;
+  mask-image: linear-gradient(to bottom, black 20%, transparent 95%);
+}
+
+@keyframes hero-drift {
+  from { transform: translate3d(-4%, -3%, 0) scale(1); }
+  to { transform: translate3d(4%, 3%, 0) scale(1.1); }
+}
+
 /* Apparition douce des contenus (CSS seulement, désactivée en mouvement réduit) */
 @media (prefers-reduced-motion: no-preference) {
   .rise {
