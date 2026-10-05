@@ -1,222 +1,245 @@
 import { useState } from 'react'
+import { EyeIcon, EyeSlashIcon, ArrowLeftIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
-import Aurora from '../../components/reactbits/Aurora'
-import FadeContent from '../../components/reactbits/FadeContent'
+import { frError } from '../../lib/errors'
+import Logo from '../../components/ui/Logo'
+
+const MODES = {
+  signin: { title: 'Se connecter', submit: 'Se connecter' },
+  signup: { title: 'Créer un compte', submit: 'Créer mon compte' },
+  reset: { title: 'Mot de passe oublié', submit: 'Envoyer le lien' },
+}
+
+function BadgePreview() {
+  // Aperçu du vrai badge de conférence que reçoit un inscrit validé (même composition que dans l'app).
+  return (
+    <div className="card-ticket-static w-full max-w-sm rotate-[-2deg] shadow-[0_30px_60px_-20px_rgb(0_0_0/0.5)]" aria-hidden="true">
+      <div className="ticket-stripe" />
+      <div className="ticket-perforation" />
+      <div className="flex-1 p-5">
+        <p className="text-xs text-muted">Badge d'accès</p>
+        <p className="mt-1 font-semibold text-fg text-lg leading-snug">Journées IA et Sciences des données</p>
+        <p className="mt-1 text-sm text-muted">12-14 novembre 2026, Université de Béjaïa</p>
+        <div className="mt-5 pt-4 border-t border-dashed border-line flex items-end justify-between gap-4">
+          <div>
+            <p className="font-medium text-fg">Lina Haddad</p>
+            <p className="text-xs text-muted">Inscription validée</p>
+          </div>
+          <div className="grid grid-cols-5 gap-[3px] p-1.5 rounded-md bg-fg/90">
+            {[1, 0, 1, 1, 0, 0, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 1, 0, 1].map((on, i) => (
+              <span key={i} className={`w-2 h-2 rounded-[1px] ${on ? 'bg-surface' : 'bg-transparent'}`} />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function AuthForm() {
-  const [isSignUp, setIsSignUp] = useState(true)
+  const [mode, setMode] = useState('signin')
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const switchMode = () => {
-    setIsSignUp(!isSignUp)
+  const switchMode = (next) => {
+    setMode(next)
     setError(null)
     setSuccess(null)
   }
 
-  const handleSignUp = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError(null)
     setSuccess(null)
 
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-
-    if (signUpError) {
-      setError(signUpError.message)
-      setLoading(false)
-      return
-    }
-
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          full_name: fullName,
-          email,
-          role: 'participant',
-        })
-
-      if (profileError) {
-        setError(profileError.message)
-        setLoading(false)
-        return
+    if (mode === 'signin') {
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+      if (signInError) setError(frError(signInError))
+      // en cas de succès, App bascule automatiquement sur l'application
+    } else if (mode === 'reset') {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: window.location.origin,
+      })
+      if (resetError) setError(frError(resetError))
+      else setSuccess("Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé.")
+    } else {
+      const { data, error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password })
+      if (signUpError) {
+        setError(frError(signUpError))
+      } else if (data.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({ id: data.user.id, full_name: fullName.trim(), email: email.trim(), role: 'participant' })
+        if (profileError) setError(frError(profileError))
+        else if (!data.session)
+          setSuccess('Compte créé. Ouvre le lien reçu par email pour confirmer ton adresse, puis connecte-toi.')
       }
     }
-
-    setSuccess('Compte créé avec succès.')
-    setFullName('')
-    setEmail('')
-    setPassword('')
-    setLoading(false)
-  }
-
-  const handleSignIn = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError(null)
-    setSuccess(null)
-
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-
-    if (signInError) {
-      setError(signInError.message)
-      setLoading(false)
-      return
-    }
-
-    setSuccess(`Connecté en tant que ${data.user.email}`)
     setLoading(false)
   }
 
   return (
-    <div className="min-h-dvh flex">
-      {/* Panneau branding + Aurora React Bits */}
-      <aside className="hidden lg:flex lg:w-[44%] xl:w-[48%] bg-ink relative overflow-hidden flex-col justify-between p-12 xl:p-16">
-        <Aurora
-          colorStops={['#1B2A4A', '#2F6F62', '#C8963E']}
-          amplitude={0.9}
-          blend={0.6}
-          speed={0.6}
+    <div className="min-h-dvh bg-bg grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+      {/* Panneau de marque (ordinateur) */}
+      <aside className="hidden lg:flex relative overflow-hidden bg-navy text-white flex-col justify-between p-12 xl:p-16">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(60% 50% at 85% 10%, rgb(200 150 62 / 0.28), transparent 70%), radial-gradient(50% 45% at 0% 100%, rgb(47 111 98 / 0.35), transparent 70%)',
+          }}
         />
+        <div className="relative">
+          <Logo inverted />
+        </div>
 
-        <div className="absolute inset-0 bg-ink/40 pointer-events-none" />
-
-          <FadeContent className="relative z-10">
-          <div className="flex items-center gap-3 mb-12">
-            <div className="w-10 h-10 rounded-lg bg-gold flex items-center justify-center shadow-lg shadow-gold/20">
-              <span className="font-display font-bold text-ink text-lg">C</span>
-            </div>
-            <span className="font-display font-semibold text-2xl text-white tracking-tight">
-              CONFERA
-            </span>
-          </div>
-
-          <h1 className="font-display font-semibold text-4xl xl:text-[2.75rem] text-white leading-[1.15] tracking-tight max-w-md">
-            Écosystème intelligent de gestion scientifique
+        <div className="relative max-w-md">
+          <h1 className="text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.08]">
+            Du dépôt des articles au badge d'entrée.
           </h1>
-          <p className="text-white/55 mt-5 text-base leading-relaxed max-w-sm">
-            Conférences, colloques, séminaires — soumissions, reviews, inscriptions et certificats en un seul écosystème.
+          <p className="mt-5 text-white/70 text-lg leading-relaxed max-w-[38ch]">
+            Soumissions, reviews, programme, inscriptions et présences de vos conférences scientifiques, au même endroit.
           </p>
-          </FadeContent>
+        </div>
 
-        <div className="relative z-10 mt-12">
-          <div className="card-ticket-static max-w-xs pointer-events-none select-none">
-            <div className="ticket-stripe" />
-            <div className="ticket-perforation" />
-            <div className="p-5 flex-1 bg-cream/95 backdrop-blur-sm">
-              <p className="section-label">Badge d'accès</p>
-              <p className="font-display font-semibold text-ink mt-2 text-lg">Colloque IA &amp; Sciences</p>
-              <p className="font-mono text-xs text-taupe mt-3">12–14 Nov 2026 · Alger</p>
-              <div className="mt-4 pt-3 border-t border-dashed border-taupe/30">
-                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-gold">Admis · Session A</p>
-              </div>
-            </div>
-          </div>
+        <div className="relative">
+          <BadgePreview />
         </div>
       </aside>
 
       {/* Formulaire */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-10 lg:p-16 relative">
-        <div className="w-full max-w-md relative z-10">
-          <div className="flex items-center gap-2.5 mb-8 lg:hidden">
-            <div className="w-8 h-8 rounded-md bg-gold flex items-center justify-center">
-              <span className="font-display font-bold text-ink text-sm">C</span>
+      <main className="flex items-center justify-center px-4 py-10 sm:px-10">
+        <div className="w-full max-w-[400px]">
+          <div className="lg:hidden mb-10">
+            <Logo inverted={false} />
+          </div>
+
+          {mode === 'reset' && (
+            <button type="button" onClick={() => switchMode('signin')} className="btn-ghost -ml-3 mb-4">
+              <ArrowLeftIcon size={16} aria-hidden="true" />
+              Retour à la connexion
+            </button>
+          )}
+
+          <h2 className="text-3xl font-semibold tracking-tight text-fg">{MODES[mode].title}</h2>
+          <p className="text-muted mt-2">
+            {mode === 'signin' && 'Accède à tes événements, articles et inscriptions.'}
+            {mode === 'signup' && 'Un seul compte suffit pour soumettre, relire ou organiser.'}
+            {mode === 'reset' && 'Indique ton adresse : tu recevras un lien pour choisir un nouveau mot de passe.'}
+          </p>
+
+          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate={false}>
+            {mode === 'signup' && (
+              <div>
+                <label htmlFor="fullName" className="form-label">
+                  Nom complet
+                </label>
+                <input
+                  id="fullName"
+                  type="text"
+                  autoComplete="name"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="input-field"
+                  required
+                />
+                <p className="form-hint">Il apparaîtra sur ton badge et ton certificat.</p>
+              </div>
+            )}
+
+            <div>
+              <label htmlFor="email" className="form-label">
+                Adresse email
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                inputMode="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-field"
+                required
+              />
             </div>
-            <span className="font-display font-semibold text-xl text-ink">CONFERA</span>
-          </div>
 
-          <div className="mb-8">
-            <p className="section-label mb-2">
-              {isSignUp ? 'Inscription' : 'Connexion'}
-            </p>
-            <h2 className="section-heading text-3xl sm:text-4xl">
-              {isSignUp ? 'Créer un compte' : 'Se connecter'}
-            </h2>
-            <p className="text-taupe text-sm mt-2 leading-relaxed">
-              {isSignUp
-                ? 'Rejoignez l\'écosystème CONFERA pour participer aux événements scientifiques.'
-                : 'Accédez à vos événements, soumissions et certificats.'}
-            </p>
-          </div>
-
-          <div className="card-panel">
-            <form onSubmit={isSignUp ? handleSignUp : handleSignIn} className="space-y-5">
-              {isSignUp && (
-                <div>
-                  <label htmlFor="fullName" className="form-label">Nom complet</label>
+            {mode !== 'reset' && (
+              <div>
+                <div className="flex items-baseline justify-between">
+                  <label htmlFor="password" className="form-label">
+                    Mot de passe
+                  </label>
+                  {mode === 'signin' && (
+                    <button
+                      type="button"
+                      onClick={() => switchMode('reset')}
+                      className="text-[13px] text-accent-ink hover:underline underline-offset-4"
+                    >
+                      Mot de passe oublié ?
+                    </button>
+                  )}
+                </div>
+                <div className="relative">
                   <input
-                    id="fullName"
-                    type="text"
-                    placeholder="Pr. Amine Benali"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    className="input-field"
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+                    minLength={mode === 'signup' ? 6 : undefined}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field pr-12"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 icon-btn w-9 h-9"
+                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                  >
+                    {showPassword ? <EyeSlashIcon size={18} /> : <EyeIcon size={18} />}
+                  </button>
                 </div>
-              )}
-
-              <div>
-                <label htmlFor="email" className="form-label">Adresse email</label>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="amine@univ.dz"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field"
-                  required
-                />
+                {mode === 'signup' && <p className="form-hint">Au moins 6 caractères.</p>}
               </div>
+            )}
 
-              <div>
-                <label htmlFor="password" className="form-label">Mot de passe</label>
-                <input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field"
-                  required
-                />
+            {error && (
+              <div role="alert" className="alert-error">
+                {error}
               </div>
+            )}
+            {success && (
+              <div role="status" className="alert-success">
+                {success}
+              </div>
+            )}
 
-              {error && <div className="alert-error">{error}</div>}
-              {success && <div className="alert-success">{success}</div>}
+            <button type="submit" disabled={loading} className="btn-primary w-full min-h-11">
+              {loading ? 'Un instant…' : MODES[mode].submit}
+            </button>
+          </form>
 
-              <button type="submit" disabled={loading} className="btn-primary w-full">
-                {loading ? 'Traitement en cours…' : isSignUp ? "S'inscrire" : 'Se connecter'}
-              </button>
-            </form>
-
-            <div className="divider-dotted mt-6 pt-6 text-center">
+          {mode !== 'reset' && (
+            <p className="mt-8 text-sm text-muted text-center">
+              {mode === 'signin' ? "Pas encore de compte ? " : 'Déjà un compte ? '}
               <button
-                onClick={switchMode}
-                className="text-sm text-taupe hover:text-ink transition-colors duration-200"
+                type="button"
+                onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
+                className="font-medium text-fg underline underline-offset-4 decoration-accent decoration-2 hover:text-accent-ink"
               >
-                {isSignUp ? (
-                  <>Déjà un compte ? <span className="text-gold font-medium">Se connecter</span></>
-                ) : (
-                  <>Pas de compte ? <span className="text-gold font-medium">S'inscrire</span></>
-                )}
+                {mode === 'signin' ? 'Créer un compte' : 'Se connecter'}
               </button>
-            </div>
-          </div>
+            </p>
+          )}
         </div>
-      </div>
+      </main>
     </div>
   )
 }

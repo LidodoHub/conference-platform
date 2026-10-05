@@ -1,17 +1,19 @@
-export default function Avatar({ name, size = 36, tone = 'gold' }) {
-  const initial = (name || '?').trim().charAt(0).toUpperCase() || '?'
-  const tones = {
-    gold: { background: '#C8963E', color: '#1B2A4A' },
-    light: { background: 'rgba(255,255,255,0.14)', color: '#FFFFFF' },
-  }
+const initialsOf = (name) => {
+  const parts = (name || '?').trim().split(/\s+/).filter(Boolean)
+  const letters = parts.length > 1 ? parts[0][0] + parts[parts.length - 1][0] : (parts[0] || '?').slice(0, 2)
+  return letters.toUpperCase()
+}
 
+// Carré arrondi avec initiales. tone="brand" pour l'or, sinon neutre.
+export default function Avatar({ name, size = 36, tone = 'neutral' }) {
+  const styles = tone === 'brand' ? 'bg-accent text-on-accent' : 'bg-surface-2 text-fg border border-line'
   return (
     <span
-      className="rounded-full flex items-center justify-center font-display font-semibold shrink-0"
-      style={{ width: size, height: size, fontSize: size * 0.42, ...tones[tone] }}
+      className={`inline-flex items-center justify-center shrink-0 font-semibold tracking-tight ${styles}`}
+      style={{ width: size, height: size, fontSize: Math.round(size * 0.36), borderRadius: Math.round(size * 0.32) }}
       aria-hidden="true"
     >
-      {initial}
+      {initialsOf(name)}
     </span>
   )
 }
