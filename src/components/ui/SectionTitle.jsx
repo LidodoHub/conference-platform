@@ -1,9 +1,9 @@
 // Titre de section dans une page, avec compteur et actions optionnels.
 export default function SectionTitle({ title, count, description, actions, as: Tag = 'h2' }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between mb-4">
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-3 mb-4">
       <div className="min-w-0">
-        <Tag className="text-lg font-semibold tracking-tight text-fg flex items-baseline gap-2">
+        <Tag className="text-base sm:text-lg font-semibold tracking-tight text-fg flex items-baseline gap-2">
           {title}
           {count != null && <span className="num font-mono text-sm font-normal text-faint">{count}</span>}
         </Tag>

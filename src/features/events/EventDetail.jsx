@@ -150,13 +150,13 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
 
       {/* En-tête de l'événement */}
       <header className="card overflow-hidden">
-        <EventCover seed={event.id} className="h-40 sm:h-56 px-5 sm:px-8 py-5 sm:py-6 flex items-end justify-between gap-6">
+        <EventCover seed={event.id} className="h-28 sm:h-56 px-4 sm:px-8 py-4 sm:py-6 flex items-end justify-between gap-6">
           <span className="text-sm font-medium text-white/85 self-start">
             {TYPE_LABELS[event.type] || event.type}, {(FORMAT_LABELS[event.format] || event.format || '').toLowerCase()}
           </span>
           {t && (
             <span className="text-right text-white" aria-hidden="true">
-              <span className="num block text-6xl sm:text-8xl font-semibold tracking-tighter leading-[0.85]">{t.day}</span>
+              <span className="num block text-4xl sm:text-8xl font-semibold tracking-tighter leading-[0.85]">{t.day}</span>
               <span className="block mt-1.5 text-sm sm:text-base text-white/80 first-letter:uppercase">
                 {t.month} {t.year}
               </span>
@@ -164,17 +164,17 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
           )}
         </EventCover>
 
-        <div className="p-5 sm:p-8">
+        <div className="p-4 sm:p-8">
           <div className="flex flex-wrap gap-1.5">
             <span className={STATUS_BADGE[event.status] || 'badge-draft'}>{STATUS_LABELS[event.status] || event.status}</span>
           </div>
           <h1
-            className="mt-3 text-3xl sm:text-[2.6rem] font-semibold tracking-tight leading-[1.08] text-fg max-w-[28ch]"
+            className="mt-2.5 text-2xl sm:text-[2.6rem] font-semibold tracking-tight leading-[1.08] text-fg max-w-[28ch]"
             style={{ overflowWrap: 'anywhere' }}
           >
             {event.title}
           </h1>
-          <ul className="mt-5 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+          <ul className="mt-4 sm:mt-5 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
             <li className="flex items-center gap-2">
               <CalendarBlankIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
               <span className="num">{formatDateRange(event.start_date, event.end_date)}</span>
@@ -190,7 +190,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
               Organisé par {organizerName}
             </li>
           </ul>
-          <div className="mt-7">
+          <div className="mt-5 sm:mt-7">
             <PhaseStepper phase={event.phase} />
           </div>
         </div>
@@ -199,11 +199,11 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
       {error && <div className="alert-error mt-4">{error}</div>}
 
       {/* Navigation, collée sous la barre du haut */}
-      <div className="sticky top-16 z-30 bg-bg/90 backdrop-blur-md mt-6 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
+      <div className="sticky top-14 sm:top-16 z-30 bg-bg/90 backdrop-blur-md mt-6 -mx-4 px-4 sm:-mx-8 sm:px-8 lg:-mx-10 lg:px-10">
         <Tabs label="Sections de l'événement" tabs={tabs} active={activeTab} onChange={setTab} />
       </div>
 
-      <div className="mt-8">
+      <div className="mt-6 sm:mt-8">
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_360px] gap-8 items-start">
             <div className="space-y-8 min-w-0">

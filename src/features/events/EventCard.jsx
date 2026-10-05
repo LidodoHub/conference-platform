@@ -16,7 +16,7 @@ function CoverDate({ date, large = false }) {
   if (!date) return null
   return (
     <div className="text-white">
-      <span className={`num block font-semibold tracking-tighter leading-[0.85] ${large ? 'text-7xl sm:text-8xl' : 'text-5xl'}`}>
+      <span className={`num block font-semibold tracking-tighter leading-[0.85] ${large ? 'text-5xl sm:text-8xl' : 'text-4xl sm:text-5xl'}`}>
         {date.day}
       </span>
       <span className={`block mt-1.5 text-white/80 first-letter:uppercase ${large ? 'text-base' : 'text-[13px]'}`}>
@@ -47,7 +47,7 @@ export default function EventCard({ event, role, onOpen, style }) {
       className="group card overflow-hidden text-left flex flex-col rise transition-[transform,box-shadow] duration-300 ease-(--ease-out-soft) hover:-translate-y-1 hover:shadow-[var(--shadow-lift)]"
       style={style}
     >
-      <EventCover seed={event.id} className="h-40 p-5 flex flex-col justify-between">
+      <EventCover seed={event.id} className="h-32 sm:h-40 p-4 sm:p-5 flex flex-col justify-between">
         <span className="text-[13px] font-medium text-white/85">
           {TYPE_LABELS[event.type] || event.type}
           {event.format && event.format !== 'onsite' && <span className="text-white/60">, {FORMAT_LABELS[event.format].toLowerCase()}</span>}
@@ -61,7 +61,7 @@ export default function EventCard({ event, role, onOpen, style }) {
         </span>
       </EventCover>
 
-      <div className="flex-1 flex flex-col p-5">
+      <div className="flex-1 flex flex-col p-4 sm:p-5">
         <Meta event={event} />
         <h3 className="mt-3 font-semibold text-[17px] leading-snug tracking-tight text-fg" style={{ overflowWrap: 'anywhere' }}>
           {event.title}
@@ -91,16 +91,16 @@ export function FeaturedEventCard({ event, role, onOpen }) {
       onClick={() => onOpen(event.id)}
       className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-shadow duration-300 hover:shadow-[var(--shadow-lift)]"
     >
-      <EventCover seed={event.id} className="min-h-56 md:min-h-80 p-6 sm:p-8 flex flex-col justify-between">
+      <EventCover seed={event.id} className="min-h-40 md:min-h-80 p-5 sm:p-8 flex flex-col justify-between">
         <span className="text-sm font-medium text-white/85">
           {TYPE_LABELS[event.type] || event.type}, {(FORMAT_LABELS[event.format] || '').toLowerCase()}
         </span>
         <CoverDate date={when} large />
       </EventCover>
 
-      <div className="p-6 sm:p-8 flex flex-col">
+      <div className="p-5 sm:p-8 flex flex-col">
         <p className="text-[13px] font-medium text-accent-ink">Prochain événement</p>
-        <h2 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tight leading-[1.15] text-fg" style={{ overflowWrap: 'anywhere' }}>
+        <h2 className="mt-2 text-xl sm:text-3xl font-semibold tracking-tight leading-[1.15] text-fg" style={{ overflowWrap: 'anywhere' }}>
           {event.title}
         </h2>
         {event.description && <p className="mt-3 text-muted leading-relaxed line-clamp-3 max-w-[60ch]">{event.description}</p>}

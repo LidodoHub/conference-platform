@@ -237,13 +237,13 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
 
   return (
     <div className="page-container">
-      <header className="mb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-8 items-end">
+      <header className="mb-8 sm:mb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-6 sm:gap-8 items-end">
         <div>
           <p className="text-sm text-muted first-letter:uppercase">{todayLabel}</p>
-          <h1 className="mt-1 text-4xl sm:text-5xl font-semibold tracking-tight leading-[1.05] text-fg">
+          <h1 className="mt-1 text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05] text-fg">
             Bonjour{firstName ? `, ${firstName}` : ''}
           </h1>
-          <p className="text-muted mt-3 text-lg">
+          <p className="text-muted mt-2 sm:mt-3 sm:text-lg">
             {!data
               ? 'Chargement de ton espace…'
               : todos.length === 0
@@ -251,7 +251,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
                 : `${plural(todos.length, 'chose demande', 'choses demandent')} ton attention.`}
           </p>
           {data && (
-            <dl className="mt-6 flex flex-wrap gap-x-8 gap-y-3">
+            <dl className="mt-4 sm:mt-6 flex flex-wrap gap-x-8 gap-y-3">
               {[
                 ['Événements', data.parts.length],
                 ['Articles', data.subs.length],
@@ -259,7 +259,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-[13px] text-muted">{label}</dt>
-                  <dd className="num text-2xl font-semibold tracking-tight text-fg">{value}</dd>
+                  <dd className="num text-xl sm:text-2xl font-semibold tracking-tight text-fg">{value}</dd>
                 </div>
               ))}
             </dl>
@@ -272,13 +272,13 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
             onClick={() => onOpenEvent(nextEvent.event_id)}
             className="group card overflow-hidden text-left w-full rise transition-shadow hover:shadow-[var(--shadow-lift)]"
           >
-            <div className="h-28 px-5 py-4 flex items-end justify-between gap-4" style={coverStyle(nextEvent.event_id)}>
+            <div className="h-20 sm:h-28 px-4 sm:px-5 py-3 sm:py-4 flex items-end justify-between gap-4" style={coverStyle(nextEvent.event_id)}>
               <span className="text-sm font-medium text-white/85">Prochain rendez-vous</span>
               <span className="text-right text-white">
-                <span className="num block text-4xl font-semibold tracking-tighter leading-none">{countdown(nextEvent.events)}</span>
+                <span className="num block text-2xl sm:text-4xl font-semibold tracking-tighter leading-none">{countdown(nextEvent.events)}</span>
               </span>
             </div>
-            <div className="px-5 py-4 flex items-center justify-between gap-3">
+            <div className="px-4 sm:px-5 py-3 sm:py-4 flex items-center justify-between gap-3">
               <span className="min-w-0">
                 <span className="block font-semibold text-fg truncate group-hover:text-accent-ink transition-colors">{nextEvent.events.title}</span>
                 <span className="block text-[13px] text-muted num truncate">

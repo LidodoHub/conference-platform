@@ -142,7 +142,7 @@ export default function SubmissionDetail({
     <article className="card overflow-hidden" aria-labelledby={`sub-title-${s.id}`}>
       <div className="h-1.5" style={{ background: color }} aria-hidden="true" />
 
-      <div className="p-5 sm:p-8">
+      <div className="p-4 sm:p-8">
         <button type="button" onClick={onBack} className="btn-ghost btn-sm -ml-2 mb-4 lg:hidden">
           <ArrowLeftIcon size={15} aria-hidden="true" />
           Tous les articles
@@ -161,7 +161,7 @@ export default function SubmissionDetail({
           )}
         </div>
 
-        <h3 id={`sub-title-${s.id}`} className="mt-4 text-2xl sm:text-[1.75rem] font-semibold leading-[1.2] tracking-tight text-fg">
+        <h3 id={`sub-title-${s.id}`} className="mt-3 sm:mt-4 text-xl sm:text-[1.75rem] font-semibold leading-[1.2] tracking-tight text-fg">
           {s.title}
         </h3>
 

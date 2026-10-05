@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError } from '../../lib/errors'
 import Logo from '../../components/ui/Logo'
+import ThemeToggle from '../../components/ui/ThemeToggle'
 
 // Affiché quand l'utilisateur arrive depuis le lien "mot de passe oublié".
 export default function NewPasswordForm({ onDone }) {
@@ -20,7 +21,8 @@ export default function NewPasswordForm({ onDone }) {
   }
 
   return (
-    <div className="min-h-dvh bg-bg flex items-center justify-center px-4">
+    <div className="relative min-h-dvh bg-bg flex items-center justify-center px-4">
+      <ThemeToggle className="icon-btn absolute top-3 right-3 sm:top-5 sm:right-5" />
       <form onSubmit={submit} className="w-full max-w-[400px] space-y-5">
         <Logo inverted={false} />
         <h1 className="text-3xl font-semibold tracking-tight text-fg pt-6">Nouveau mot de passe</h1>

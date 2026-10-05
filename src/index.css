@@ -107,6 +107,13 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* Téléphone : toute l'échelle (rem) réduite d'environ 6 %, les valeurs en px restent lisibles */
+  @media (max-width: 639px) {
+    html {
+      font-size: 15px;
+    }
+  }
+
   body {
     background-color: var(--c-bg);
     font-family: var(--font-sans);
@@ -155,7 +162,7 @@
 
 @layer components {
   .page-container {
-    @apply w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-6 pb-12 sm:pt-10 lg:pb-16;
+    @apply w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-5 pb-10 sm:pt-10 lg:pb-16;
   }
 
   .section-heading {

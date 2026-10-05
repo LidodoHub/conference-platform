@@ -3,6 +3,7 @@ import { EyeIcon, EyeSlashIcon, ArrowLeftIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError } from '../../lib/errors'
 import Logo from '../../components/ui/Logo'
+import ThemeToggle from '../../components/ui/ThemeToggle'
 
 const MODES = {
   signin: { title: 'Se connecter', submit: 'Se connecter' },
@@ -115,7 +116,8 @@ export default function AuthForm() {
       </aside>
 
       {/* Formulaire */}
-      <main className="flex items-center justify-center px-4 py-10 sm:px-10">
+      <main className="relative flex items-center justify-center px-4 py-10 sm:px-10">
+        <ThemeToggle className="icon-btn absolute top-3 right-3 sm:top-5 sm:right-5" />
         <div className="w-full max-w-[400px]">
           <div className="lg:hidden mb-10">
             <Logo inverted={false} />

@@ -114,7 +114,7 @@ export default function ScientificPanel({ eventId, submissions, participants, is
     <section>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-fg flex items-baseline gap-2">
+          <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-fg flex items-baseline gap-2">
             Articles
             <span className="num font-mono text-sm font-normal text-faint">{submissions.length}</span>
           </h2>

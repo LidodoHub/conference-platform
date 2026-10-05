@@ -94,7 +94,7 @@ function App() {
 
   return (
     <AuthContext.Provider value={auth}>
-      <div className="min-h-dvh bg-bg flex flex-col pb-[calc(64px+env(safe-area-inset-bottom))] sm:pb-0">
+      <div className="min-h-dvh bg-bg flex flex-col pb-[calc(56px+env(safe-area-inset-bottom))] sm:pb-0">
         <a
           href="#contenu"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] btn-accent"
@@ -103,7 +103,7 @@ function App() {
         </a>
 
         <header className="sticky top-0 z-40 bg-navy/95 dark:bg-surface/90 backdrop-blur-md border-b border-white/8 dark:border-line">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 h-16 flex items-center justify-between gap-4">
+          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 h-14 sm:h-16 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => go(VIEWS.home)}
@@ -203,11 +203,11 @@ function App() {
               type="button"
               onClick={() => go(id)}
               aria-current={active ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 h-16 text-[11px] font-medium transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-14 text-[11px] font-medium transition-colors ${
                 active ? 'text-accent' : 'text-white/60 dark:text-muted'
               }`}
             >
-              <Icon size={22} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
+              <Icon size={20} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
               {label}
             </button>
           ))}
