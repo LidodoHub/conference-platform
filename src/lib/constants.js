@@ -99,6 +99,10 @@ export const SESSION_TYPE_LABELS = {
 
 export const MAX_ACCEPTED_PER_AUTHOR = 2
 
+// Photo du bandeau d'accueil : public d'une conférence (Unsplash, licence libre, photo-1540575467063).
+// Chargée depuis le CDN d'Unsplash, en bichromie marine via CSS.
+export const HERO_PHOTO = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1920&q=70'
+
 // une date seule ("2026-10-04") est lue en heure locale ; un horodatage complet est converti tel quel
 const parseDay = (d) => {
   if (!d) return null

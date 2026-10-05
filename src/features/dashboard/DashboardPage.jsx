@@ -24,6 +24,7 @@ import {
   STATUS_BADGE,
   PHASE_LABELS,
   formatDate,
+  HERO_PHOTO,
 } from '../../lib/constants'
 import SectionTitle from '../../components/ui/SectionTitle'
 import { coverStyle } from '../../lib/cover'
@@ -239,14 +240,15 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
     <>
       {/* Bandeau d'accueil : halos qui dérivent lentement, cercles du "tampon", trame de points */}
       <section className="hero relative overflow-hidden text-white">
+        <img className="hero-photo" src={HERO_PHOTO} alt="" aria-hidden="true" decoding="async" />
+        <div className="hero-shade" aria-hidden="true" />
         <div className="hero-glow" aria-hidden="true" />
-        <div className="hero-rings" aria-hidden="true" />
         <div className="hero-dots" aria-hidden="true" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-7 pb-9 sm:pt-14 sm:pb-16">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 sm:pt-16 sm:pb-20">
       <header className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,420px)] gap-6 sm:gap-8 items-end">
         <div>
           <p className="text-sm text-white/65 first-letter:uppercase">{todayLabel}</p>
-          <h1 className="mt-1 text-3xl sm:text-5xl font-semibold tracking-tight leading-[1.05] text-white">
+          <h1 className="mt-1 text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05] text-white">
             Bonjour{firstName ? `, ${firstName}` : ''}
           </h1>
           <p className="text-white/75 mt-2 sm:mt-3 sm:text-lg">
