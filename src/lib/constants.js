@@ -101,7 +101,6 @@ export const MAX_ACCEPTED_PER_AUTHOR = 2
 
 // Photos des bandeaux (Wikimedia Commons, chargées depuis leur CDN, mises en bichromie marine par CSS).
 const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/thumb'
-const CCO_FILE = encodeURIComponent('مركز_المؤتمرات_وهران.jpg')
 
 // Accueil : la tour de l'USTO-MB. CC BY-SA 4.0 : l'auteur doit être cité (mention affichée sur le bandeau).
 export const HERO_PHOTO = {
@@ -110,11 +109,11 @@ export const HERO_PHOTO = {
   page: 'https://commons.wikimedia.org/wiki/File:Usto_Univercity.jpg',
 }
 
-// Connexion : le lion du Centre des conventions Mohammed Ben Ahmed d'Oran. Domaine public (CC0).
+// Connexion : Santa Cruz (clocher de la chapelle) dominant le port et la baie d'Oran. CC BY 3.0 : auteur cité.
 export const AUTH_PHOTO = {
-  src: `${COMMONS}/a/a1/${CCO_FILE}/1280px-${CCO_FILE}`,
-  credit: "Centre des conventions Mohammed Ben Ahmed, Oran. Photo : Ramdaaniimowrad, domaine public",
-  page: `https://commons.wikimedia.org/wiki/File:${CCO_FILE}`,
+  src: `${COMMONS}/7/78/Oran_-_Santa_cruz_-_panoramio.jpg/1280px-Oran_-_Santa_cruz_-_panoramio.jpg`,
+  credit: "Santa Cruz et la baie d'Oran. Photo : habib kaki, CC BY 3.0",
+  page: 'https://commons.wikimedia.org/wiki/File:Oran_-_Santa_cruz_-_panoramio.jpg',
 }
 
 // une date seule ("2026-10-04") est lue en heure locale ; un horodatage complet est converti tel quel

@@ -94,7 +94,7 @@ function App() {
 
   return (
     <AuthContext.Provider value={auth}>
-      <div className="min-h-dvh bg-bg flex flex-col pb-[calc(60px+env(safe-area-inset-bottom))] lg:pb-0">
+      <div className="min-h-dvh bg-bg flex flex-col pb-[calc(62px+env(safe-area-inset-bottom))] lg:pb-0">
         <a
           href="#contenu"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] btn-accent"
@@ -194,36 +194,44 @@ function App() {
 
         {/* Navigation téléphone et tablette : barre fixe en bas, comme une application */}
         <nav
-          className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-navy dark:bg-surface border-t border-white/10 dark:border-line flex pb-[env(safe-area-inset-bottom)]"
+          className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-navy/97 dark:bg-surface/95 backdrop-blur-md border-t border-white/10 dark:border-line pb-[env(safe-area-inset-bottom)]"
           aria-label="Navigation principale"
         >
-          {nav.map(({ id, label, icon: Icon, active }) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => go(id)}
-              aria-current={active ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-[60px] text-[11px] font-medium transition-colors ${
-                active ? 'text-accent' : 'text-white/60 dark:text-muted'
-              }`}
-            >
-              <Icon size={21} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
-              {label}
-            </button>
-          ))}
-          <button
-            type="button"
-            onClick={() => go(VIEWS.profile)}
-            aria-current={view === VIEWS.profile ? 'page' : undefined}
-            className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-[60px] text-[11px] font-medium transition-colors ${
-              view === VIEWS.profile ? 'text-accent' : 'text-white/60 dark:text-muted'
-            }`}
-          >
-            <span className={`rounded-[9px] ${view === VIEWS.profile ? 'ring-2 ring-accent ring-offset-2 ring-offset-navy dark:ring-offset-surface' : ''}`}>
-              <Avatar name={name} size={22} tone="brand" />
-            </span>
-            Profil
-          </button>
+          <div className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${nav.length + 1}, minmax(0, 1fr))` }}>
+            {[
+              ...nav.map(({ id, label, icon: Icon, active }) => ({
+                id,
+                label,
+                active,
+                glyph: <Icon size={22} weight={active ? 'fill' : 'regular'} aria-hidden="true" />,
+              })),
+              {
+                id: VIEWS.profile,
+                label: 'Profil',
+                active: view === VIEWS.profile,
+                glyph: <Avatar name={name} size={22} tone="brand" />,
+              },
+            ].map(({ id, label, active, glyph }) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => go(id)}
+                aria-current={active ? 'page' : undefined}
+                className={`flex flex-col items-center justify-center gap-1 h-[62px] transition-colors ${
+                  active ? 'text-accent' : 'text-white/60 dark:text-muted'
+                }`}
+              >
+                <span
+                  className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
+                    active ? 'bg-accent/18' : ''
+                  }`}
+                >
+                  {glyph}
+                </span>
+                <span className="text-[11px] font-medium leading-none">{label}</span>
+              </button>
+            ))}
+          </div>
         </nav>
       </div>
     </AuthContext.Provider>

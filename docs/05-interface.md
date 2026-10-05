@@ -59,7 +59,7 @@ Deux photos d'Oran, chargées depuis Wikimedia Commons et passées en bichromie 
 | Écran | Photo | Licence |
 |---|---|---|
 | Accueil (bandeau) | Tour de l'USTO-MB, par Araibia Amine (Artistou) | CC BY-SA 4.0 : auteur cité sur le bandeau, avec lien |
-| Connexion / inscription | Lion du Centre des conventions Mohammed Ben Ahmed, par Ramdaaniimowrad | CC0 (domaine public), crédit affiché par courtoisie |
+| Connexion / inscription | Santa Cruz (clocher de la chapelle) dominant le port et la baie d'Oran, par habib kaki | CC BY 3.0 : auteur cité sous le panneau, avec lien |
 
 Les adresses et crédits sont centralisés dans `HERO_PHOTO` et `AUTH_PHOTO` (`src/lib/constants.js`). Sans connexion internet, le bandeau garde son fond marine animé.
 
