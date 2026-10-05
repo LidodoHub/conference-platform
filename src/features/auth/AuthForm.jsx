@@ -122,7 +122,9 @@ export default function AuthForm() {
 
       {/* Formulaire */}
       <main className="relative flex items-center justify-center px-4 py-10 sm:px-10">
-        <ThemeToggle className="icon-btn absolute top-3 right-3 sm:top-5 sm:right-5" />
+        <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10">
+          <ThemeToggle className="icon-btn" />
+        </div>
         <div className="w-full max-w-[400px]">
           <div className="lg:hidden mb-10">
             <Logo inverted={false} />

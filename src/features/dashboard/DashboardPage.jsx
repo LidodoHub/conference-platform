@@ -245,7 +245,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-dots" aria-hidden="true" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 sm:pt-16 sm:pb-20 lg:min-h-[480px] lg:flex lg:flex-col lg:justify-end lg:pt-24 lg:pb-14">
-      <header className="hero-text grid grid-cols-1 gap-6 sm:gap-8 lg:max-w-xl">
+      <header className="hero-text grid grid-cols-1 gap-6 sm:gap-8">
         <div>
           <p className="text-sm text-white/65 first-letter:uppercase">{todayLabel}</p>
           <h1 className="mt-1 text-3xl sm:text-5xl lg:text-6xl font-semibold tracking-tight leading-[1.05] text-white">
@@ -278,7 +278,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
           <button
             type="button"
             onClick={() => onOpenEvent(nextEvent.event_id)}
-            className="group card overflow-hidden text-left w-full rise transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.55)] border-white/10"
+            className="group card overflow-hidden text-left w-full lg:max-w-2xl lg:mx-auto rise transition-[transform,box-shadow] duration-300 hover:-translate-y-0.5 shadow-[0_24px_60px_-20px_rgb(0_0_0/0.55)] border-white/10"
           >
             <div className="h-20 sm:h-28 px-4 sm:px-5 py-3 sm:py-4 flex items-end justify-between gap-4" style={coverStyle(nextEvent.event_id)}>
               <span className="text-sm font-medium text-white/85">Prochain rendez-vous</span>
