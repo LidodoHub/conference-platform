@@ -7,7 +7,7 @@ import PageHeader from '../../components/ui/PageHeader'
 import Tabs from '../../components/ui/Tabs'
 import EmptyState from '../../components/ui/EmptyState'
 import SectionTitle from '../../components/ui/SectionTitle'
-import EventCard from './EventCard'
+import EventCard, { FeaturedEventCard } from './EventCard'
 import EventForm from './EventForm'
 
 const today = () => new Date().toISOString().slice(0, 10)
@@ -68,12 +68,16 @@ export default function EventsPage({ onSelectEvent }) {
   })
 
   const now = today()
-  const upcoming = filtered.filter((e) => (e.end_date || e.start_date || '') >= now)
+  const showFeatured = filter === 'all' && !q
+  const featured = showFeatured
+    ? filtered.find((e) => (e.end_date || e.start_date || '') >= now && ['published', 'ongoing'].includes(e.status))
+    : null
+  const upcoming = filtered.filter((e) => (e.end_date || e.start_date || '') >= now && e.id !== featured?.id)
   const past = filtered.filter((e) => (e.end_date || e.start_date || '') < now).reverse()
   const mineCount = events.filter(isMine).length
 
   const renderGrid = (list) => (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
       {list.map((event, i) => (
         <EventCard
           key={event.id}
@@ -158,9 +162,9 @@ export default function EventsPage({ onSelectEvent }) {
       {loadError && <div className="alert-error mb-6">{loadError}</div>}
 
       {loading ? (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-40" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="skeleton h-72" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -183,9 +187,16 @@ export default function EventsPage({ onSelectEvent }) {
         />
       ) : (
         <div className="space-y-12">
+          {featured && (
+            <FeaturedEventCard
+              event={featured}
+              role={roles[featured.id] || (featured.organizer_id === user.id ? 'organizer' : null)}
+              onOpen={onSelectEvent}
+            />
+          )}
           {upcoming.length > 0 && (
             <section>
-              <SectionTitle title="À venir" count={upcoming.length} />
+              <SectionTitle title={featured ? "Aussi à venir" : "À venir"} count={upcoming.length} />
               {renderGrid(upcoming)}
             </section>
           )}

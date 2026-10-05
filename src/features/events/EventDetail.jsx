@@ -24,6 +24,7 @@ import {
 import Tabs from '../../components/ui/Tabs'
 import Avatar from '../../components/ui/Avatar'
 import Stat from '../../components/ui/Stat'
+import EventCover from '../../components/ui/EventCover'
 import PhaseStepper from './PhaseStepper'
 import EventSettings from './EventSettings'
 import ManageParticipants from './ManageParticipants'
@@ -147,51 +148,49 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
 
       {/* En-tête de l'événement */}
       <header className="card overflow-hidden">
-        <div className="h-1.5 bg-accent" aria-hidden="true" />
-        <div className="p-5 sm:p-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-8">
-          <div className="min-w-0">
-            <div className="flex flex-wrap gap-1.5">
-              <span className={STATUS_BADGE[event.status] || 'badge-draft'}>{STATUS_LABELS[event.status] || event.status}</span>
-              <span className="badge-type">{TYPE_LABELS[event.type] || event.type}</span>
-              <span className="badge-type">{FORMAT_LABELS[event.format] || event.format}</span>
-            </div>
-            <h1
-              className="mt-4 text-3xl sm:text-[2.5rem] font-semibold tracking-tight leading-[1.1] text-fg max-w-[24ch]"
-              style={{ overflowWrap: 'anywhere' }}
-            >
-              {event.title}
-            </h1>
-            <ul className="mt-5 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
-              <li className="flex items-center gap-2">
-                <CalendarBlankIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
-                <span className="num">{formatDateRange(event.start_date, event.end_date)}</span>
-              </li>
-              {event.location && (
-                <li className="flex items-center gap-2 min-w-0">
-                  <MapPinIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
-                  <span style={{ overflowWrap: 'anywhere' }}>{event.location}</span>
-                </li>
-              )}
-              <li className="flex items-center gap-2">
-                <UserIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
-                Organisé par {organizerName}
-              </li>
-            </ul>
-          </div>
-
+        <EventCover seed={event.id} className="h-40 sm:h-56 px-5 sm:px-8 py-5 sm:py-6 flex items-end justify-between gap-6">
+          <span className="text-sm font-medium text-white/85 self-start">
+            {TYPE_LABELS[event.type] || event.type}, {(FORMAT_LABELS[event.format] || event.format || '').toLowerCase()}
+          </span>
           {t && (
-            <div
-              className="hidden lg:flex flex-col items-center justify-center w-36 rounded-2xl border border-line bg-surface-2/70 py-4 self-start"
-              aria-hidden="true"
-            >
-              <span className="text-xs uppercase tracking-wider text-accent-ink font-medium">{t.month}</span>
-              <span className="num text-6xl font-semibold tracking-tighter text-fg leading-none mt-1">{t.day}</span>
-              <span className="num text-xs text-faint mt-1.5">{t.year}</span>
-            </div>
+            <span className="text-right text-white" aria-hidden="true">
+              <span className="num block text-6xl sm:text-8xl font-semibold tracking-tighter leading-[0.85]">{t.day}</span>
+              <span className="block mt-1.5 text-sm sm:text-base text-white/80 first-letter:uppercase">
+                {t.month} {t.year}
+              </span>
+            </span>
           )}
-        </div>
-        <div className="px-5 sm:px-8 pb-5 sm:pb-8">
-          <PhaseStepper phase={event.phase} />
+        </EventCover>
+
+        <div className="p-5 sm:p-8">
+          <div className="flex flex-wrap gap-1.5">
+            <span className={STATUS_BADGE[event.status] || 'badge-draft'}>{STATUS_LABELS[event.status] || event.status}</span>
+          </div>
+          <h1
+            className="mt-3 text-3xl sm:text-[2.6rem] font-semibold tracking-tight leading-[1.08] text-fg max-w-[28ch]"
+            style={{ overflowWrap: 'anywhere' }}
+          >
+            {event.title}
+          </h1>
+          <ul className="mt-5 flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2 text-sm text-muted">
+            <li className="flex items-center gap-2">
+              <CalendarBlankIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
+              <span className="num">{formatDateRange(event.start_date, event.end_date)}</span>
+            </li>
+            {event.location && (
+              <li className="flex items-center gap-2 min-w-0">
+                <MapPinIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
+                <span style={{ overflowWrap: 'anywhere' }}>{event.location}</span>
+              </li>
+            )}
+            <li className="flex items-center gap-2">
+              <UserIcon size={17} className="text-accent-ink shrink-0" aria-hidden="true" />
+              Organisé par {organizerName}
+            </li>
+          </ul>
+          <div className="mt-7">
+            <PhaseStepper phase={event.phase} />
+          </div>
         </div>
       </header>
 
@@ -258,7 +257,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
         )}
 
         {activeTab === 'scientific' && (
-          <div className="max-w-4xl">
+          <div>
             <ScientificPanel
               eventId={eventId}
               submissions={submissions}

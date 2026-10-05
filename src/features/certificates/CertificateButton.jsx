@@ -3,8 +3,7 @@ import { CertificateIcon, HourglassIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { frError } from '../../lib/errors'
-import { formatDate } from '../../lib/constants'
-import { certificatePDF, slug } from './pdf'
+import { formatDate, slug } from '../../lib/constants'
 
 // Le certificat n'est disponible qu'une fois l'événement commencé : on n'atteste pas une participation à venir.
 export default function CertificateButton({ event }) {
@@ -27,6 +26,8 @@ export default function CertificateButton({ event }) {
   const handleGenerate = async () => {
     setGenerating(true)
     setError(null)
+    // jsPDF n'est chargé qu'au premier téléchargement (allège le chargement du site)
+    const { certificatePDF } = await import('./pdf')
     const doc = certificatePDF({
       participantName: profile?.full_name || user.email,
       eventTitle: event.title,

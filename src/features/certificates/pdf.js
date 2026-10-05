@@ -19,15 +19,6 @@ export const dateRangeText = (start, end) => {
   return `du ${longDate(start)} au ${longDate(end)}`
 }
 
-export const slug = (text) =>
-  String(text || 'document')
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
-    .replace(/[^a-zA-Z0-9]+/g, '-')
-    .replace(/^-|-$/g, '')
-    .toLowerCase()
-    .slice(0, 60)
-
 export function certificatePDF({ participantName, eventTitle, start, end, location, organizer }) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
   const W = doc.internal.pageSize.getWidth()

@@ -109,3 +109,13 @@ export const formatDateRange = (start, end) => {
   if (!end || String(end).slice(0, 10) === String(start).slice(0, 10)) return a
   return `${a} → ${formatDate(end)}`
 }
+
+// nom de fichier lisible et sans accents
+export const slug = (text) =>
+  String(text || 'document')
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase()
+    .slice(0, 60)

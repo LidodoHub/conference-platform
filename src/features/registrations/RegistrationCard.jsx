@@ -3,10 +3,9 @@ import { CheckCircleIcon, HourglassIcon, ReceiptIcon, TicketIcon } from '@phosph
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { frError } from '../../lib/errors'
-import { ROLE_LABELS } from '../../lib/constants'
+import { ROLE_LABELS, slug } from '../../lib/constants'
 import CertificateButton from '../certificates/CertificateButton'
 import AttendanceBadge from '../attendance/AttendanceBadge'
-import { receiptPDF, slug } from '../certificates/pdf'
 
 export default function RegistrationCard({ event, participants, onRefresh }) {
   const myId = useAuth().user?.id ?? null
@@ -53,7 +52,8 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
     onRefresh()
   }
 
-  const downloadReceipt = () =>
+  const downloadReceipt = async () => {
+    const { receiptPDF } = await import('../certificates/pdf')
     receiptPDF({
       eventTitle: event.title,
       participantName: mine?.profiles?.full_name || '',
@@ -62,6 +62,7 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
       declaredAt: payment?.declared_at,
       validatedAt: payment?.validated_at,
     }).save(`accuse-paiement-${slug(event.title)}.pdf`)
+  }
 
   if (!myId) return null
 

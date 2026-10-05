@@ -26,6 +26,7 @@ import {
   formatDate,
 } from '../../lib/constants'
 import SectionTitle from '../../components/ui/SectionTitle'
+import { coverStyle } from '../../lib/cover'
 import EmptyState from '../../components/ui/EmptyState'
 
 const plural = (n, one, many) => `${n} ${n > 1 ? many : one}`
@@ -326,6 +327,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
                       onClick={() => onOpenEvent(p.event_id)}
                       className="w-full text-left px-4 py-3.5 flex items-center gap-3 hover:bg-fg/4 transition-colors"
                     >
+                      <span className="w-11 h-11 rounded-xl shrink-0" style={coverStyle(p.event_id)} aria-hidden="true" />
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium text-fg truncate">{p.events.title}</span>
                         <span className="block text-[13px] text-muted num">

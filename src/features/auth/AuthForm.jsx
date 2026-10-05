@@ -75,7 +75,7 @@ export default function AuthForm() {
       } else if (data.user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({ id: data.user.id, full_name: fullName.trim(), email: email.trim(), role: 'participant' })
+          .insert({ id: data.user.id, full_name: fullName.trim(), email: email.trim() })
         if (profileError) setError(frError(profileError))
         else if (!data.session)
           setSuccess('Compte créé. Ouvre le lien reçu par email pour confirmer ton adresse, puis connecte-toi.')

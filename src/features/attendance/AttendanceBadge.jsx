@@ -3,7 +3,7 @@ import QRCode from 'qrcode'
 import { DownloadSimpleIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError } from '../../lib/errors'
-import { slug } from '../certificates/pdf'
+import { slug } from '../../lib/constants'
 
 // Badge QR personnel : un seul jeton, valable pour toutes les sessions.
 export default function AttendanceBadge({ event, name }) {
