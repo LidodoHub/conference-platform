@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { Html5Qrcode } from 'html5-qrcode'
 import { supabase } from '../../lib/supabaseClient'
+import Avatar from '../../components/ui/Avatar'
+import Pill from '../../components/ui/Pill'
 
 const RESULT_CLASS = {
   ok: 'alert-success',
@@ -184,6 +186,8 @@ export default function AttendancePanel({ eventId, participants }) {
     (a, b) => (countByUser.get(b.user_id) || 0) - (countByUser.get(a.user_id) || 0),
   )
 
+  const percent = members.length ? Math.round((100 * sessionRecords.length) / members.length) : 0
+
   return (
     <section>
       <div className="mb-5">
@@ -196,7 +200,7 @@ export default function AttendancePanel({ eventId, participants }) {
       {sessions.length === 0 ? (
         <p className="text-sm text-taupe">Crée d'abord des sessions pour pouvoir pointer les présences.</p>
       ) : (
-        <div className="card p-5 space-y-4">
+        <div className="card p-5 sm:p-6 space-y-5">
           <div>
             <label htmlFor="attendance-session" className="form-label">Session</label>
             <select
@@ -216,10 +220,18 @@ export default function AttendancePanel({ eventId, participants }) {
           </div>
 
           {sessionId && (
-            <p className="font-mono text-sm text-ink">
-              {sessionRecords.length} présent{sessionRecords.length > 1 ? 's' : ''} sur {members.length} inscrit
-              {members.length > 1 ? 's' : ''} validé{members.length > 1 ? 's' : ''}
-            </p>
+            <div>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="font-display text-4xl font-semibold text-ink leading-none">
+                  {sessionRecords.length}
+                  <span className="text-xl text-taupe"> / {members.length}</span>
+                </p>
+                <p className="section-label">présents</p>
+              </div>
+              <div className="mt-3 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(27,42,74,0.12)' }}>
+                <div className="h-full rounded-full" style={{ width: `${percent}%`, background: '#C8963E' }} />
+              </div>
+            </div>
           )}
 
           <div className="flex flex-wrap gap-2">
@@ -256,13 +268,18 @@ export default function AttendancePanel({ eventId, participants }) {
                   {filtered.map((p) => {
                     const rec = recordByUser.get(p.user_id)
                     return (
-                      <li key={p.id} className="list-item">
-                        <span className="text-sm font-medium text-ink truncate">{p.profiles?.full_name}</span>
+                      <li
+                        key={p.id}
+                        className="list-item"
+                        style={{ borderLeft: `4px solid ${rec ? '#34C38F' : '#9AA3B5'}` }}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar name={p.profiles?.full_name} size={34} tone="light" />
+                          <span className="text-sm font-medium text-ink truncate">{p.profiles?.full_name}</span>
+                        </div>
                         {rec ? (
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            <span className="badge-accepted">
-                              Présent{rec.method === 'manual' ? ' (manuel)' : ''}
-                            </span>
+                            <Pill color="#34C38F">Présent{rec.method === 'manual' ? ' (manuel)' : ''}</Pill>
                             <button
                               type="button"
                               className="btn-outline btn-sm"
@@ -293,17 +310,29 @@ export default function AttendancePanel({ eventId, participants }) {
       )}
 
       {records.length > 0 && (
-        <div className="card p-5 mt-6">
+        <div className="card p-5 sm:p-6 mt-6">
           <p className="section-label mb-3">Présence par participant</p>
           <ul className="space-y-2">
-            {summary.map((p) => (
-              <li key={p.id} className="list-item">
-                <span className="text-sm text-ink truncate">{p.profiles?.full_name}</span>
-                <span className="font-mono text-xs text-taupe">
-                  {countByUser.get(p.user_id) || 0} / {sessions.length} session{sessions.length > 1 ? 's' : ''}
-                </span>
-              </li>
-            ))}
+            {summary.map((p) => {
+              const n = countByUser.get(p.user_id) || 0
+              const pct = sessions.length ? Math.round((100 * n) / sessions.length) : 0
+              return (
+                <li key={p.id} className="list-item">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar name={p.profiles?.full_name} size={34} tone="light" />
+                    <div className="min-w-0">
+                      <span className="text-sm text-ink block truncate">{p.profiles?.full_name}</span>
+                      <div className="mt-1.5 h-1.5 w-28 rounded-full bg-white/15 overflow-hidden">
+                        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: '#C8963E' }} />
+                      </div>
+                    </div>
+                  </div>
+                  <span className="font-mono text-xs text-taupe">
+                    {n} / {sessions.length} session{sessions.length > 1 ? 's' : ''}
+                  </span>
+                </li>
+              )
+            })}
           </ul>
         </div>
       )}

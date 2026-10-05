@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
+import Avatar from '../../components/ui/Avatar'
+import Pill from '../../components/ui/Pill'
 
 const STATUS_LABELS = {
   invited: 'Invité',
@@ -7,11 +9,14 @@ const STATUS_LABELS = {
   validated: 'Inscription validée',
 }
 
-const STATUS_BADGES = {
-  invited: 'badge-pending',
-  payment_submitted: 'badge-submitted',
-  validated: 'badge-accepted',
+const STATUS_COLOR = {
+  invited: '#9AA3B5',
+  payment_submitted: '#F2A93B',
+  validated: '#34C38F',
 }
+
+// les paiements à valider d'abord
+const STATUS_ORDER = { payment_submitted: 0, invited: 1, validated: 2 }
 
 const dateOf = (p) => (p.validated_at || p.invited_at || p.registered_at || '').split('T')[0]
 
@@ -58,7 +63,13 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
 
   const registrants = participants
     .filter((p) => p.role_in_event === 'participant')
-    .sort((a, b) => dateOf(a).localeCompare(dateOf(b)))
+    .sort(
+      (a, b) =>
+        (STATUS_ORDER[a.registration_status] ?? 9) - (STATUS_ORDER[b.registration_status] ?? 9) ||
+        dateOf(a).localeCompare(dateOf(b)),
+    )
+
+  const countStatus = (status) => registrants.filter((p) => p.registration_status === status).length
 
   const callRpc = async (fn, params, okMessage) => {
     setError(null)
@@ -126,8 +137,23 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
       {error && <div className="alert-error mb-4">{error}</div>}
       {info && <div className="alert-success mb-4">{info}</div>}
 
+      {/* Entonnoir d'inscription */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        {[
+          ['Invités', countStatus('invited')],
+          ['À valider', countStatus('payment_submitted')],
+          ['Validés', countStatus('validated')],
+        ].map(([label, value]) => (
+          <div key={label} className="card p-4">
+            <p className="font-display text-3xl font-semibold leading-none">{value}</p>
+            <p className="section-label mt-2">{label}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Frais */}
       {editingSettings ? (
-        <form onSubmit={saveSettings} className="card p-5 space-y-4 mb-6">
+        <form onSubmit={saveSettings} className="card p-5 sm:p-6 space-y-4 mb-6">
           <p className="section-label">Frais d'inscription</p>
           {Object.keys(payments).length > 0 && (
             <p className="text-xs text-taupe">
@@ -173,16 +199,16 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
           </div>
         </form>
       ) : (
-        <div className="card p-5 mb-6">
+        <div className="card p-5 sm:p-6 mb-6" style={{ borderLeft: '6px solid #C8963E' }}>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
               <p className="section-label">Frais d'inscription</p>
-              <p className="font-mono text-sm text-ink mt-2">
+              <p className="font-display text-3xl font-semibold text-ink mt-2">
                 {Number(event?.registration_fee) > 0 ? `${event.registration_fee} DA` : 'Gratuit'}
               </p>
               {event?.payment_instructions && (
                 <p
-                  className="text-sm text-taupe mt-2 whitespace-pre-line"
+                  className="text-sm text-taupe mt-3 leading-6 whitespace-pre-line"
                   style={{ overflowWrap: 'anywhere' }}
                 >
                   {event.payment_instructions}
@@ -196,7 +222,8 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
         </div>
       )}
 
-      <form onSubmit={handleAddByEmail} className="card p-5 space-y-4 mb-6">
+      {/* Ajout par email */}
+      <form onSubmit={handleAddByEmail} className="card p-5 sm:p-6 space-y-4 mb-6">
         <p className="section-label">Ajouter une personne par email</p>
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
           <input
@@ -222,8 +249,12 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
         </p>
       </form>
 
-      <div className="mb-6">
-        <p className="section-label mb-3">Auteurs acceptés</p>
+      {/* Auteurs acceptés */}
+      <div className="mb-8">
+        <div className="flex items-baseline gap-3 mb-3">
+          <p className="section-label">Auteurs acceptés</p>
+          <span className="font-mono text-xs text-taupe">{acceptedAuthors.length}</span>
+        </div>
         {!organizational ? (
           <p className="text-sm text-taupe">
             Les invitations des auteurs s'ouvrent à la clôture de la phase scientifique.
@@ -235,19 +266,24 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
             {acceptedAuthors.map((a) => {
               const existing = participantByUser.get(a.userId)
               return (
-                <li key={a.userId} className="list-item">
-                  <div>
-                    <span className="text-sm font-medium text-ink">{a.name}</span>
-                    <span className="font-mono text-xs text-taupe ml-2">
-                      {a.count} article{a.count > 1 ? 's' : ''} accepté{a.count > 1 ? 's' : ''}
-                    </span>
+                <li key={a.userId} className="list-item" style={{ borderLeft: '4px solid #34C38F' }}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar name={a.name} size={38} tone="light" />
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium text-ink block truncate">{a.name}</span>
+                      <span className="font-mono text-xs text-taupe">
+                        {a.count} article{a.count > 1 ? 's' : ''} accepté{a.count > 1 ? 's' : ''}
+                      </span>
+                    </div>
                   </div>
                   {existing ? (
-                    <span className={STATUS_BADGES[existing.registration_status] || 'badge-type'}>
-                      {existing.role_in_event === 'participant'
-                        ? STATUS_LABELS[existing.registration_status] || existing.registration_status
-                        : 'Déjà membre'}
-                    </span>
+                    existing.role_in_event === 'participant' ? (
+                      <Pill color={STATUS_COLOR[existing.registration_status] || '#9AA3B5'}>
+                        {STATUS_LABELS[existing.registration_status] || existing.registration_status}
+                      </Pill>
+                    ) : (
+                      <Pill color="#7FB3FF">Déjà membre</Pill>
+                    )
                   ) : (
                     <button
                       type="button"
@@ -265,6 +301,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
         )}
       </div>
 
+      {/* Inscrits */}
       <div>
         <div className="flex items-baseline gap-3 mb-3">
           <p className="section-label">Inscrits</p>
@@ -276,16 +313,20 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
           <ul className="space-y-2">
             {registrants.map((p) => {
               const pay = payments[p.user_id]
+              const color = STATUS_COLOR[p.registration_status] || '#9AA3B5'
               return (
-                <li key={p.id} className="list-item">
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium text-ink block truncate">{p.profiles?.full_name}</span>
-                    <span className="font-mono text-xs text-taupe block">
-                      {dateOf(p)}
-                      {pay && <> · bordereau {pay.reference}</>}
-                    </span>
+                <li key={p.id} className="list-item" style={{ borderLeft: `4px solid ${color}` }}>
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Avatar name={p.profiles?.full_name} size={38} tone="light" />
+                    <div className="min-w-0">
+                      <span className="text-sm font-medium text-ink block truncate">{p.profiles?.full_name}</span>
+                      <span className="font-mono text-xs text-taupe block truncate">
+                        {dateOf(p)}
+                        {pay && <> · bordereau {pay.reference}</>}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex flex-wrap items-center gap-2 flex-shrink-0">
                     {p.registration_status === 'payment_submitted' && (
                       <>
                         <button
@@ -310,9 +351,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                         </button>
                       </>
                     )}
-                    <span className={STATUS_BADGES[p.registration_status] || 'badge-type'}>
-                      {STATUS_LABELS[p.registration_status] || p.registration_status}
-                    </span>
+                    <Pill color={color}>{STATUS_LABELS[p.registration_status] || p.registration_status}</Pill>
                   </div>
                 </li>
               )

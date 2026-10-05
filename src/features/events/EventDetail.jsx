@@ -420,9 +420,15 @@ export default function EventDetail({ eventId, onBack }) {
 
             <div className="max-w-4xl">
               {orgTab === 'settings' && (
-                <div className="card p-5 sm:p-6 space-y-6 max-w-2xl">
-                  <div>
-                    <p className="section-label mb-3">Format</p>
+                <div className="space-y-4 max-w-2xl">
+                  <div className="card p-5 sm:p-6" style={{ borderLeft: '6px solid #C8963E' }}>
+                    <p className="section-label">Format</p>
+                    <h3 className="font-display text-xl font-semibold text-ink mt-1">
+                      {FORMAT_LABELS[event.format] || event.format}
+                    </h3>
+                    <p className="text-sm text-taupe mt-2 mb-4">
+                      En ligne : les inscrits n'ont pas de badge QR, la présence se pointe à la main.
+                    </p>
                     <select
                       className="select-field w-full sm:w-auto"
                       value={event.format}
@@ -432,17 +438,19 @@ export default function EventDetail({ eventId, onBack }) {
                       <option value="online">En ligne</option>
                       <option value="hybrid">Hybride</option>
                     </select>
-                    <p className="text-xs text-taupe mt-2">
-                      En ligne : les inscrits n'ont pas de badge QR, la présence se pointe à la main.
-                    </p>
                   </div>
 
-                  <div className="pt-5 border-t border-dashed border-taupe/30">
-                    <p className="section-label mb-3">Phase</p>
-                    <p className="text-sm text-ink mb-2">{PHASE_LABELS[event.phase]}</p>
+                  <div
+                    className="card p-5 sm:p-6"
+                    style={{ borderLeft: `6px solid ${event.phase === 'scientific' ? '#F2A93B' : '#34C38F'}` }}
+                  >
+                    <p className="section-label">Phase</p>
+                    <h3 className="font-display text-xl font-semibold text-ink mt-1">
+                      {PHASE_LABELS[event.phase]}
+                    </h3>
                     {event.phase === 'scientific' ? (
                       <>
-                        <p className="text-xs text-taupe mb-3">
+                        <p className="text-sm text-taupe mt-2 mb-4">
                           Clore la phase gèle les soumissions, les reviews et les décisions, et ouvre les invitations et le programme définitif.
                           {pendingCount > 0 && ` ${pendingCount} article(s) sont encore en attente.`}
                         </p>
@@ -452,7 +460,7 @@ export default function EventDetail({ eventId, onBack }) {
                       </>
                     ) : (
                       <>
-                        <p className="text-xs text-taupe mb-3">
+                        <p className="text-sm text-taupe mt-2 mb-4">
                           La phase scientifique est close. Tu peux la rouvrir si une décision doit être corrigée.
                         </p>
                         <button type="button" className="btn-outline btn-sm" onClick={() => changePhase('scientific')}>
@@ -463,8 +471,11 @@ export default function EventDetail({ eventId, onBack }) {
                   </div>
 
                   {event.status === 'draft' && (
-                    <div className="pt-5 border-t border-dashed border-taupe/30">
-                      <p className="section-label mb-3">Zone sensible</p>
+                    <div className="card p-5 sm:p-6" style={{ borderLeft: '6px solid #E5534B' }}>
+                      <p className="section-label">Zone sensible</p>
+                      <p className="text-sm text-taupe mt-2 mb-4">
+                        Supprimer un brouillon efface tout son contenu.
+                      </p>
                       <button type="button" className="btn-danger btn-sm" onClick={deleteDraft}>
                         Supprimer le brouillon
                       </button>
