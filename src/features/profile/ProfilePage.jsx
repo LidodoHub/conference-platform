@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { CheckIcon, SparkleIcon } from '@phosphor-icons/react'
+import { CheckIcon, SparkleIcon, SignOutIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { writeError, frError } from '../../lib/errors'
@@ -135,6 +135,17 @@ export default function ProfilePage({ onSaved }) {
           </div>
         </form>
       )}
+
+      <div className="mt-6 card p-5 sm:p-7 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="font-medium text-fg">Session</p>
+          <p className="text-sm text-muted">Connecté avec {form?.email || user.email}.</p>
+        </div>
+        <button type="button" className="btn-danger" onClick={() => supabase.auth.signOut()}>
+          <SignOutIcon size={16} aria-hidden="true" />
+          Se déconnecter
+        </button>
+      </div>
     </div>
   )
 }

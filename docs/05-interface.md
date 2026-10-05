@@ -52,6 +52,17 @@ Sémantique des statuts d'article (conservée) : **neutre = soumis, vert = accep
 
 Chaque événement a une couverture graphique **générée** à partir de son identifiant (`src/lib/cover.js`) : palette tirée parmi six ambiances de la charte, dégradés, trame de points, cercles concentriques en rappel d'un tampon de conférence. Même événement, même couverture, partout (liste, fiche, tableau de bord). Aucune image externe, aucun poids ajouté.
 
+## Photographies
+
+Deux photos d'Oran, chargées depuis Wikimedia Commons et passées en bichromie marine par CSS (noir et blanc, fusion `luminosity`, halo doré en lumière, dégradé qui protège la lisibilité du texte) :
+
+| Écran | Photo | Licence |
+|---|---|---|
+| Accueil (bandeau) | Tour de l'USTO-MB, par Araibia Amine (Artistou) | CC BY-SA 4.0 : auteur cité sur le bandeau, avec lien |
+| Connexion / inscription | Lion du Centre des conventions Mohammed Ben Ahmed, par Ramdaaniimowrad | CC0 (domaine public), crédit affiché par courtoisie |
+
+Les adresses et crédits sont centralisés dans `HERO_PHOTO` et `AUTH_PHOTO` (`src/lib/constants.js`). Sans connexion internet, le bandeau garde son fond marine animé.
+
 ## Composants partagés
 
 | Composant | Rôle |
@@ -87,7 +98,7 @@ Dessinés à la main en CSS et SVG, sans librairie. Règles appliquées (skill *
 
 ## Responsive
 
-Testé à 375 px, 768 px et 1280 px. Sur téléphone : barre de navigation en bas avec icônes, listes en une colonne, articles en "liste puis détail" avec bouton retour, notifications en panneau pleine largeur.
+Testé à 375 px, 768 px et 1280 px. Sur téléphone et tablette (moins de 1024 px) : barre de navigation en bas, comme une application mobile (Accueil, Événements, Admin, Profil avec l'avatar), en-tête réduit au logo, à la cloche et au thème, déconnexion dans la page Profil ; puis, listes en une colonne, articles en "liste puis détail" avec bouton retour, notifications en panneau pleine largeur.
 
 ## Mode sombre
 

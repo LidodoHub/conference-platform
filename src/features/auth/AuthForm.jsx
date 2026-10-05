@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { EyeIcon, EyeSlashIcon, ArrowLeftIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError } from '../../lib/errors'
-import { HERO_PHOTO } from '../../lib/constants'
+import { AUTH_PHOTO } from '../../lib/constants'
 import Logo from '../../components/ui/Logo'
 import ThemeToggle from '../../components/ui/ThemeToggle'
 
@@ -90,7 +90,7 @@ export default function AuthForm() {
     <div className="min-h-dvh bg-bg grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       {/* Panneau de marque (ordinateur) */}
       <aside className="hero hidden lg:flex relative overflow-hidden text-white flex-col justify-between p-12 xl:p-16">
-        <img className="hero-photo hero-photo--tall" src={HERO_PHOTO} alt="" aria-hidden="true" decoding="async" />
+        <img className="hero-photo hero-photo--tall" src={AUTH_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
         <div className="hero-shade hero-shade--panel" aria-hidden="true" />
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-dots" aria-hidden="true" />
@@ -109,6 +109,14 @@ export default function AuthForm() {
 
         <div className="relative">
           <BadgePreview />
+          <a
+            href={AUTH_PHOTO.page}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block mt-6 text-[10px] text-white/45 hover:text-white/80 transition-colors"
+          >
+            {AUTH_PHOTO.credit}
+          </a>
         </div>
       </aside>
 

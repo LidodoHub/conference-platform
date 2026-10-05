@@ -94,7 +94,7 @@ function App() {
 
   return (
     <AuthContext.Provider value={auth}>
-      <div className="min-h-dvh bg-bg flex flex-col pb-[calc(56px+env(safe-area-inset-bottom))] sm:pb-0">
+      <div className="min-h-dvh bg-bg flex flex-col pb-[calc(60px+env(safe-area-inset-bottom))] lg:pb-0">
         <a
           href="#contenu"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] btn-accent"
@@ -113,7 +113,7 @@ function App() {
               <Logo inverted />
             </button>
 
-            <nav className="hidden sm:flex items-center gap-1" aria-label="Navigation principale">
+            <nav className="hidden lg:flex items-center gap-1" aria-label="Navigation principale">
               {nav.map(({ id, label, icon: Icon, active }) => (
                 <button
                   key={id}
@@ -143,15 +143,15 @@ function App() {
                 onClick={() => go(VIEWS.profile)}
                 aria-current={view === VIEWS.profile ? 'page' : undefined}
                 aria-label="Mon profil"
-                className="flex items-center gap-2.5 ml-1 pl-1 md:pl-3 md:pr-2 h-10 rounded-[10px] md:border-l md:rounded-l-none border-white/12 dark:border-line hover:bg-white/6 dark:hover:bg-fg/5 transition-colors"
+                className="hidden lg:flex items-center gap-2.5 ml-1 pl-3 pr-2 h-10 rounded-r-[10px] border-l border-white/12 dark:border-line hover:bg-white/6 dark:hover:bg-fg/5 transition-colors"
               >
                 <Avatar name={name} size={30} tone="brand" />
-                <span className="hidden md:block text-sm text-white/85 dark:text-fg max-w-[160px] truncate">{name}</span>
+                <span className="text-sm text-white/85 dark:text-fg max-w-[160px] truncate">{name}</span>
               </button>
               <button
                 type="button"
                 onClick={() => supabase.auth.signOut()}
-                className="icon-btn text-white/70 hover:text-white hover:bg-white/8 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/6"
+                className="icon-btn hidden lg:inline-flex text-white/70 hover:text-white hover:bg-white/8 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/6"
                 aria-label="Se déconnecter"
                 title="Se déconnecter"
               >
@@ -185,16 +185,16 @@ function App() {
           )}
         </main>
 
-        <footer className="hidden sm:block border-t border-line mt-auto">
+        <footer className="hidden lg:block border-t border-line mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 py-5 flex items-center justify-between gap-4 text-xs text-faint">
             <p>CONFERA, plateforme de gestion de conférences scientifiques</p>
             <p>Projet de fin d'études, Master 2 IA</p>
           </div>
         </footer>
 
-        {/* Navigation mobile : barre fixe en bas */}
+        {/* Navigation téléphone et tablette : barre fixe en bas, comme une application */}
         <nav
-          className="sm:hidden fixed bottom-0 inset-x-0 z-40 bg-navy dark:bg-surface border-t border-white/10 dark:border-line flex pb-[env(safe-area-inset-bottom)]"
+          className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-navy dark:bg-surface border-t border-white/10 dark:border-line flex pb-[env(safe-area-inset-bottom)]"
           aria-label="Navigation principale"
         >
           {nav.map(({ id, label, icon: Icon, active }) => (
@@ -203,14 +203,27 @@ function App() {
               type="button"
               onClick={() => go(id)}
               aria-current={active ? 'page' : undefined}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-14 text-[11px] font-medium transition-colors ${
+              className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-[60px] text-[11px] font-medium transition-colors ${
                 active ? 'text-accent' : 'text-white/60 dark:text-muted'
               }`}
             >
-              <Icon size={20} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
+              <Icon size={21} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
               {label}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={() => go(VIEWS.profile)}
+            aria-current={view === VIEWS.profile ? 'page' : undefined}
+            className={`flex-1 flex flex-col items-center justify-center gap-0.5 h-[60px] text-[11px] font-medium transition-colors ${
+              view === VIEWS.profile ? 'text-accent' : 'text-white/60 dark:text-muted'
+            }`}
+          >
+            <span className={`rounded-[9px] ${view === VIEWS.profile ? 'ring-2 ring-accent ring-offset-2 ring-offset-navy dark:ring-offset-surface' : ''}`}>
+              <Avatar name={name} size={22} tone="brand" />
+            </span>
+            Profil
+          </button>
         </nav>
       </div>
     </AuthContext.Provider>

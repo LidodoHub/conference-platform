@@ -240,7 +240,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
     <>
       {/* Bandeau d'accueil : halos qui dérivent lentement, cercles du "tampon", trame de points */}
       <section className="hero relative overflow-hidden text-white">
-        <img className="hero-photo" src={HERO_PHOTO} alt="" aria-hidden="true" decoding="async" />
+        <img className="hero-photo hero-photo--usto" src={HERO_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
         <div className="hero-shade" aria-hidden="true" />
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-dots" aria-hidden="true" />
@@ -300,6 +300,14 @@ export default function DashboardPage({ onOpenEvent, onNavigateEvents, onNavigat
         )}
       </header>
         </div>
+        <a
+          href={HERO_PHOTO.page}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hidden sm:block absolute right-3 bottom-2 text-[10px] text-white/45 hover:text-white/80 transition-colors"
+        >
+          {HERO_PHOTO.credit}
+        </a>
       </section>
 
       <div className="page-container">

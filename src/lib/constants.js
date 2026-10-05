@@ -99,9 +99,23 @@ export const SESSION_TYPE_LABELS = {
 
 export const MAX_ACCEPTED_PER_AUTHOR = 2
 
-// Photo du bandeau d'accueil : public d'une conférence (Unsplash, licence libre, photo-1540575467063).
-// Chargée depuis le CDN d'Unsplash, en bichromie marine via CSS.
-export const HERO_PHOTO = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=1920&q=70'
+// Photos des bandeaux (Wikimedia Commons, chargées depuis leur CDN, mises en bichromie marine par CSS).
+const COMMONS = 'https://upload.wikimedia.org/wikipedia/commons/thumb'
+const CCO_FILE = encodeURIComponent('مركز_المؤتمرات_وهران.jpg')
+
+// Accueil : la tour de l'USTO-MB. CC BY-SA 4.0 : l'auteur doit être cité (mention affichée sur le bandeau).
+export const HERO_PHOTO = {
+  src: `${COMMONS}/5/58/Usto_Univercity.jpg/1920px-Usto_Univercity.jpg`,
+  credit: 'USTO-MB, Oran. Photo : Araibia Amine (Artistou), CC BY-SA 4.0',
+  page: 'https://commons.wikimedia.org/wiki/File:Usto_Univercity.jpg',
+}
+
+// Connexion : le lion du Centre des conventions Mohammed Ben Ahmed d'Oran. Domaine public (CC0).
+export const AUTH_PHOTO = {
+  src: `${COMMONS}/a/a1/${CCO_FILE}/1280px-${CCO_FILE}`,
+  credit: "Centre des conventions Mohammed Ben Ahmed, Oran. Photo : Ramdaaniimowrad, domaine public",
+  page: `https://commons.wikimedia.org/wiki/File:${CCO_FILE}`,
+}
 
 // une date seule ("2026-10-04") est lue en heure locale ; un horodatage complet est converti tel quel
 const parseDay = (d) => {
