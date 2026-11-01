@@ -48,7 +48,7 @@ export default function Tabs({ tabs, active, onChange, variant = 'main', label, 
             aria-selected={isActive}
             tabIndex={isActive ? 0 : -1}
             onClick={() => onChange(t.id)}
-            className={`${base} ${state}`}
+            className={`${base} ${state} active:scale-95 transition-all duration-150`}
           >
             {Icon && <Icon size={16} weight={isActive ? 'fill' : 'regular'} aria-hidden="true" />}
             {t.label}
@@ -62,7 +62,7 @@ export default function Tabs({ tabs, active, onChange, variant = 'main', label, 
               </span>
             ) : null}
             {main && isActive && (
-              <span className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full bg-accent" aria-hidden="true" />
+              <span className="absolute left-2 right-2 -bottom-px h-0.5 rounded-full bg-accent animate-in fade-in-0 duration-200" aria-hidden="true" />
             )}
           </button>
         )

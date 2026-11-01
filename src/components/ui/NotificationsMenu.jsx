@@ -34,13 +34,14 @@ const ago = (iso) => {
   return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
 }
 
-// Cloche de notifications : les notifications sont créées par la base (triggers de 002_fonctionnalites.sql).
+// Cloche de notifications : ouverture au survol ou au clic
 export default function NotificationsMenu({ onOpenEvent, className = '' }) {
   const { user } = useAuth()
   const [items, setItems] = useState([])
   const [open, setOpen] = useState(false)
   const [available, setAvailable] = useState(true)
   const panelRef = useRef(null)
+  const timeoutRef = useRef(null)
 
   const load = useCallback(async () => {
     const { data, error } = await supabase
@@ -59,7 +60,6 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
     return () => clearInterval(timer)
   }, [load])
 
-  // fermeture au clic extérieur et à Échap
   useEffect(() => {
     if (!open) return undefined
     const onDown = (e) => {
@@ -73,6 +73,19 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
+
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    if (!open) load()
+    setOpen(true)
+  }
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      setOpen(false)
+    }, 280)
+  }
 
   const unread = items.filter((n) => !n.read_at).length
 
@@ -97,20 +110,26 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
   if (!available) return null
 
   return (
-    <div className="relative" ref={panelRef}>
+    <div
+      className="relative"
+      ref={panelRef}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <button
         type="button"
         onClick={() => {
           setOpen((v) => !v)
           if (!open) load()
         }}
-        className={`${className} relative`}
+        className={`${className} relative transition-transform duration-150 active:scale-95`}
         aria-label={unread ? `Notifications, ${unread} non lues` : 'Notifications'}
         aria-expanded={open}
+        title="Notifications (survolez pour afficher)"
       >
-        <BellIcon size={19} weight={unread ? 'fill' : 'regular'} aria-hidden="true" />
+        <BellIcon size={19} weight={unread ? 'fill' : 'regular'} aria-hidden="true" className="transition-transform duration-200 hover:rotate-6" />
         {unread > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-accent text-on-accent text-[10px] font-semibold leading-4 text-center num">
+          <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-accent text-on-accent text-[10px] font-semibold leading-4 text-center num animate-pulse shadow-xs">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -118,14 +137,14 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
 
       {open && (
         <div
-          className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-[72px] sm:top-12 sm:right-0 sm:w-[380px] z-50 card overflow-hidden shadow-[var(--shadow-lift)] rise"
+          className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-[72px] sm:top-12 sm:right-0 sm:w-[380px] z-50 card overflow-hidden shadow-[var(--shadow-lift)] border border-line bg-surface/98 backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 origin-top-right"
           role="dialog"
           aria-label="Notifications"
         >
-          <div className="flex items-center justify-between px-4 py-3 border-b border-line">
-            <p className="font-semibold text-fg">Notifications</p>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-line bg-surface-2/40">
+            <p className="font-semibold text-fg text-sm">Notifications</p>
             {unread > 0 && (
-              <button type="button" onClick={markAllRead} className="btn-ghost btn-sm -mr-2">
+              <button type="button" onClick={markAllRead} className="btn-ghost btn-sm -mr-2 text-xs">
                 <ChecksIcon size={15} aria-hidden="true" />
                 Tout marquer lu
               </button>
@@ -137,7 +156,7 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
               <p className="mt-3 text-sm text-muted">Rien de nouveau. Décisions, invitations et paiements apparaîtront ici.</p>
             </div>
           ) : (
-            <ul className="max-h-[min(70dvh,460px)] overflow-y-auto divide-y divide-line">
+            <ul className="max-h-[min(70dvh,460px)] overflow-y-auto divide-y divide-line/60">
               {items.map((n) => {
                 const Icon = ICONS[n.type] || BellIcon
                 return (
@@ -145,10 +164,10 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
                     <button
                       type="button"
                       onClick={() => openItem(n)}
-                      className={`w-full text-left px-4 py-3.5 flex gap-3 hover:bg-fg/4 transition-colors ${n.read_at ? '' : 'bg-accent/6'}`}
+                      className={`w-full text-left px-4 py-3.5 flex gap-3 hover:bg-fg/5 transition-all duration-150 ${n.read_at ? '' : 'bg-accent/6 font-medium'}`}
                     >
                       <span
-                        className={`inline-flex w-9 h-9 shrink-0 items-center justify-center rounded-xl ${
+                        className={`inline-flex w-9 h-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-150 group-hover:scale-105 ${
                           n.read_at ? 'bg-surface-2 text-muted' : 'bg-accent/15 text-accent-ink'
                         }`}
                       >

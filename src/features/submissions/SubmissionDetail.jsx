@@ -178,10 +178,46 @@ export default function SubmissionDetail({
           </div>
         )}
 
+        {/* Cartouche Consensuel de Relecture */}
+        <div className="mt-5 p-3.5 sm:p-4 rounded-xl border border-line bg-surface-2/40 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <span className="num text-xl font-bold text-fg">
+                {avg != null ? `${avg.toFixed(1)}` : '—'}
+              </span>
+              <span className="text-xs text-muted">/ 5</span>
+              <Stars value={avg || 0} size={15} />
+            </div>
+            <span className="text-xs text-faint">
+              • {reviews.length} {reviews.length > 1 ? 'avis déposés' : 'avis déposé'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono text-muted">
+              Consensus pairs :
+            </span>
+            <Pill color={color}>
+              {statusLabel(s)}
+            </Pill>
+          </div>
+        </div>
+
         {s.abstract && (
           <section className="mt-7">
-            <h4 className="text-[13px] font-medium text-muted mb-2">Résumé</h4>
-            <p className="text-[15.5px] leading-[1.75] text-fg/90 whitespace-pre-line max-w-[72ch]">{s.abstract}</p>
+            <div className="p-5 sm:p-6 rounded-2xl border border-line/80 bg-surface-2/30 space-y-2 border-l-4 border-l-accent">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-semibold uppercase tracking-wider text-accent-ink">
+                  Résumé scientifique (Preprint View)
+                </h4>
+                <span className="text-[11px] font-mono text-faint">
+                  {s.abstract.length} caractères
+                </span>
+              </div>
+              <p className="text-sm sm:text-base leading-relaxed text-fg/90 whitespace-pre-line max-w-prose">
+                {s.abstract}
+              </p>
+            </div>
           </section>
         )}
 
@@ -216,7 +252,7 @@ export default function SubmissionDetail({
                       <XIcon size={14} weight="bold" aria-hidden="true" />
                       Rejeter
                     </button>
-                    <button type="button" className="btn-outline btn-sm" onClick={() => setRevisionPicker(true)}>
+                    <button type="button" className="btn-warning btn-sm" onClick={() => setRevisionPicker(true)}>
                       <ArrowCounterClockwiseIcon size={14} aria-hidden="true" />
                       Révision
                     </button>
@@ -366,7 +402,7 @@ export default function SubmissionDetail({
                 />
               </>
             ) : (
-              <button type="button" className="btn-accent" onClick={() => setReviewing(true)}>
+              <button type="button" className="btn-info" onClick={() => setReviewing(true)}>
                 <NotePencilIcon size={16} aria-hidden="true" />
                 Faire une review
               </button>

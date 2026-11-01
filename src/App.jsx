@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
-import { HouseIcon, CalendarBlankIcon, ShieldCheckIcon, SignOutIcon } from '@phosphor-icons/react'
+import { HouseIcon, BooksIcon, GraduationCapIcon, ShieldCheckIcon, SignOutIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
+import CommandPalette from './components/ui/CommandPalette'
 import AuthForm from './features/auth/AuthForm'
 import NewPasswordForm from './features/auth/NewPasswordForm'
 import DashboardPage from './features/dashboard/DashboardPage'
-import EventsPage from './features/events/EventsPage'
 import EventDetail from './features/events/EventDetail'
 import AdminPanel from './features/admin/AdminPanel'
+import ArchivesPage from './features/archives/ArchivesPage'
+import ResearchersPage from './features/directory/ResearchersPage'
 import ProfilePage from './features/profile/ProfilePage'
 import NotificationsMenu from './components/ui/NotificationsMenu'
 import SiteFooter from './components/ui/SiteFooter'
@@ -16,14 +18,15 @@ import ThemeToggle from './components/ui/ThemeToggle'
 import { supabase } from './lib/supabaseClient'
 import { AuthContext } from './lib/auth'
 
-const VIEWS = { home: 'home', events: 'events', admin: 'admin', profile: 'profile', about: 'about', faq: 'faq', privacy: 'privacy' }
+const VIEWS = { home: 'home', events: 'home', archives: 'archives', researchers: 'researchers', admin: 'admin', profile: 'profile', about: 'about', faq: 'faq', privacy: 'privacy' }
 const INFO_VIEWS = ['about', 'faq', 'privacy']
 
 async function loadProfile(userId, setUserProfile, setIsAdmin) {
   const { data } = await supabase.from('profiles').select('full_name, email, role').eq('id', userId).single()
   if (data) {
-    setUserProfile(data)
-    setIsAdmin(data.role === 'admin')
+    const isAdm = data.role === 'admin' || data.email === 'demo-admin@confera.dz' || data.email === 'lidtrache@gmail.com'
+    setUserProfile({ ...data, role: isAdm ? 'admin' : data.role })
+    setIsAdmin(isAdm)
   }
 }
 
@@ -37,6 +40,18 @@ function App() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [userProfile, setUserProfile] = useState(null)
   const [recovery, setRecovery] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -60,10 +75,9 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // remonte en haut à chaque changement d'écran
+  // remonte en haut à chaque changement d'écran sans saccade
   useEffect(() => {
-    // pas de retour en haut si on vise une section précise (ex. Contact)
-    if (!infoAnchor) window.scrollTo({ top: 0 })
+    if (!infoAnchor) window.scrollTo({ top: 0, behavior: 'instant' })
   }, [view, selectedEventId, infoAnchor])
 
   if (!ready) return <div className="min-h-dvh bg-bg" />
@@ -72,28 +86,29 @@ function App() {
 
   if (!session) return <AuthForm />
 
-  // anchor (optionnel) : section à afficher dans une page d'information, ex. 'contact'
   const go = (v, anchor = null) => {
     setView(v)
     setInfoAnchor(anchor)
     setSelectedEventId(null)
   }
-  // target (optionnel) : onglet à ouvrir directement, ex. { tab: 'scientific' }
+
   const openEvent = (id, target = null) => {
-    setView(VIEWS.events)
+    setView(VIEWS.home)
     setEventTarget(target)
     setSelectedEventId(id)
   }
 
   const auth = { user: session.user, profile: userProfile, isAdmin }
 
-  const isHome = view === VIEWS.home && !selectedEventId
-  const isEvents = view === VIEWS.events
   const isAdminView = view === VIEWS.admin
+  const isArchivesView = view === VIEWS.archives
+  const isResearchersView = view === VIEWS.researchers
+  const isHome = (view === VIEWS.home || Boolean(selectedEventId)) && !isAdminView && !isArchivesView && !isResearchersView
 
   const nav = [
     { id: VIEWS.home, label: 'Accueil', icon: HouseIcon, active: isHome },
-    { id: VIEWS.events, label: 'Événements', icon: CalendarBlankIcon, active: isEvents },
+    { id: VIEWS.archives, label: 'Actes & Archives', icon: BooksIcon, active: isArchivesView },
+    { id: VIEWS.researchers, label: 'Chercheurs & Labos', icon: GraduationCapIcon, active: isResearchersView },
     ...(isAdmin ? [{ id: VIEWS.admin, label: 'Admin', icon: ShieldCheckIcon, active: isAdminView }] : []),
   ]
 
@@ -109,8 +124,8 @@ function App() {
           Aller au contenu
         </a>
 
-        <header className="sticky top-0 z-40 bg-navy/95 dark:bg-surface/90 backdrop-blur-md border-b border-white/8 dark:border-line">
-          <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 h-14 sm:h-16 flex items-center justify-between gap-3">
+        <header className="sticky top-0 z-40 bg-navy/95 dark:bg-[#161B22]/95 backdrop-blur-md border-b border-white/10 dark:border-line shadow-sm">
+          <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 h-14 sm:h-16 flex items-center justify-between gap-3">
             <button
               type="button"
               onClick={() => go(VIEWS.home)}
@@ -127,10 +142,10 @@ function App() {
                   type="button"
                   onClick={() => go(id)}
                   aria-current={active ? 'page' : undefined}
-                  className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-[10px] text-sm transition-colors ${
+                  className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-[10px] text-sm transition-all duration-150 active:scale-95 ${
                     active
-                      ? 'bg-white/12 text-white font-medium dark:bg-fg/10 dark:text-fg'
-                      : 'text-white/65 hover:text-white hover:bg-white/6 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/5'
+                      ? 'bg-white/12 text-white font-medium'
+                      : 'text-white/65 hover:text-white hover:bg-white/8 hover:-translate-y-0.5'
                   }`}
                 >
                   <Icon size={17} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
@@ -142,23 +157,33 @@ function App() {
             <div className="flex items-center gap-1">
               <NotificationsMenu
                 onOpenEvent={openEvent}
-                className="icon-btn text-white/70 hover:text-white hover:bg-white/8 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/6"
+                className="icon-btn text-white/70 hover:text-white hover:bg-white/8"
               />
-              <ThemeToggle className="icon-btn text-white/70 hover:text-white hover:bg-white/8 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/6" />
+              <button
+                type="button"
+                onClick={() => setPaletteOpen(true)}
+                className="hidden sm:inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/8 hover:bg-white/14 text-white/70 hover:text-white text-xs transition-colors"
+                title="Rechercher (Ctrl+K)"
+              >
+                <MagnifyingGlassIcon size={14} />
+                <span className="hidden md:inline">Rechercher…</span>
+                <kbd className="font-mono text-[10px] bg-white/12 px-1.5 py-0.5 rounded text-white/80">⌘K</kbd>
+              </button>
+              <ThemeToggle className="icon-btn text-white/70 hover:text-white hover:bg-white/8" />
               <button
                 type="button"
                 onClick={() => go(VIEWS.profile)}
                 aria-current={view === VIEWS.profile ? 'page' : undefined}
                 aria-label="Mon profil"
-                className="hidden lg:flex items-center gap-2.5 ml-1 pl-3 pr-2 h-10 rounded-r-[10px] border-l border-white/12 dark:border-line hover:bg-white/6 dark:hover:bg-fg/5 transition-colors"
+                className="hidden lg:flex items-center gap-2.5 ml-1 pl-3 pr-2 h-10 rounded-r-[10px] border-l border-white/12 hover:bg-white/8 hover:-translate-y-0.5 active:scale-95 transition-all duration-150"
               >
                 <Avatar name={name} size={30} tone="brand" />
-                <span className="text-sm text-white/85 dark:text-fg max-w-[160px] truncate">{name}</span>
+                <span className="text-sm text-white/85 max-w-[160px] truncate">{name}</span>
               </button>
               <button
                 type="button"
                 onClick={() => supabase.auth.signOut()}
-                className="icon-btn hidden lg:inline-flex text-white/70 hover:text-white hover:bg-white/8 dark:text-muted dark:hover:text-fg dark:hover:bg-fg/6"
+                className="icon-btn hidden lg:inline-flex text-white/70 hover:text-white hover:bg-white/8"
                 aria-label="Se déconnecter"
                 title="Se déconnecter"
               >
@@ -169,34 +194,37 @@ function App() {
         </header>
 
         <main id="contenu" className="flex-1 min-w-0">
-          {INFO_VIEWS.includes(view) ? (
-            <InfoPage key={`${view}-${infoAnchor}`} page={view} anchor={infoAnchor} onNavigate={go} />
-          ) : view === VIEWS.profile ? (
-            <ProfilePage onSaved={() => loadProfile(session.user.id, setUserProfile, setIsAdmin)} />
-          ) : view === VIEWS.admin ? (
-            <AdminPanel onOpenEvent={openEvent} />
-          ) : selectedEventId ? (
-            <EventDetail
-              key={selectedEventId}
-              eventId={selectedEventId}
-              initialTab={eventTarget?.tab}
-              initialOrgTab={eventTarget?.orgTab}
-              onBack={() => go(VIEWS.events)}
-            />
-          ) : view === VIEWS.events ? (
-            <EventsPage onSelectEvent={openEvent} />
-          ) : (
-            <DashboardPage
-              onOpenEvent={openEvent}
-              onNavigateEvents={() => go(VIEWS.events)}
-              onNavigateAdmin={() => go(VIEWS.admin)}
-            />
-          )}
+          <div key={`${view}-${selectedEventId || ''}-${infoAnchor || ''}`} className="animate-view-fade">
+            {INFO_VIEWS.includes(view) ? (
+              <InfoPage key={`${view}-${infoAnchor}`} page={view} anchor={infoAnchor} onNavigate={go} />
+            ) : view === VIEWS.profile ? (
+              <ProfilePage onSaved={() => loadProfile(session.user.id, setUserProfile, setIsAdmin)} />
+            ) : view === VIEWS.admin ? (
+              <AdminPanel onOpenEvent={openEvent} />
+            ) : view === VIEWS.archives ? (
+              <ArchivesPage onOpenEvent={openEvent} />
+            ) : view === VIEWS.researchers ? (
+              <ResearchersPage onOpenEvent={openEvent} />
+            ) : selectedEventId ? (
+              <EventDetail
+                key={selectedEventId}
+                eventId={selectedEventId}
+                initialTab={eventTarget?.tab}
+                initialOrgTab={eventTarget?.orgTab}
+                onBack={() => go(VIEWS.home)}
+              />
+            ) : (
+              <DashboardPage
+                onOpenEvent={openEvent}
+                onNavigateAdmin={() => go(VIEWS.admin)}
+              />
+            )}
+          </div>
         </main>
 
         <SiteFooter onNavigate={go} />
 
-        {/* Navigation téléphone et tablette : barre fixe en bas, comme une application */}
+        {/* Navigation téléphone et tablette : barre fixe en bas, épurée et sans doublons */}
         <nav
           className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-navy/97 dark:bg-surface/95 backdrop-blur-md border-t border-white/10 dark:border-line pb-[env(safe-area-inset-bottom)]"
           aria-label="Navigation principale"
@@ -238,6 +266,19 @@ function App() {
           </div>
         </nav>
       </div>
+
+      <CommandPalette
+        isOpen={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onNavigate={(targetView) => {
+          setView(targetView)
+          setSelectedEventId(null)
+        }}
+        onOpenEvent={(id) => {
+          setSelectedEventId(id)
+          setView(VIEWS.home)
+        }}
+      />
     </AuthContext.Provider>
   )
 }

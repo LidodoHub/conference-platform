@@ -29,8 +29,8 @@ function Column({ title, children }) {
 // Pied de page : liens secondaires (à propos, aide, confidentialité, contact), à l'écart de la navigation principale.
 export default function SiteFooter({ onNavigate }) {
   return (
-    <footer className="mt-auto bg-navy text-white border-t-2 border-accent/60 dark:bg-[#0A111F]">
-      <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-12 pb-8">
+    <footer className="mt-auto bg-navy text-white border-t-2 border-accent/60 dark:bg-[#161B22] dark:border-line">
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-12 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] gap-x-8 gap-y-10">
           <div className="col-span-2 md:col-span-1 max-w-sm">
             <Logo inverted />
@@ -43,7 +43,8 @@ export default function SiteFooter({ onNavigate }) {
 
           <Column title="Plateforme">
             <li><FooterLink onClick={() => onNavigate('home')}>Tableau de bord</FooterLink></li>
-            <li><FooterLink onClick={() => onNavigate('events')}>Événements</FooterLink></li>
+            <li><FooterLink onClick={() => onNavigate('archives')}>Actes & Archives</FooterLink></li>
+            <li><FooterLink onClick={() => onNavigate('researchers')}>Chercheurs & Labos</FooterLink></li>
             <li><FooterLink onClick={() => onNavigate('profile')}>Mon profil</FooterLink></li>
           </Column>
 

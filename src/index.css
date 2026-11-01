@@ -85,20 +85,20 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --c-bg: #0C1322;
-  --c-surface: #131D31;
-  --c-surface-2: #1A2740;
-  --c-line: rgb(255 255 255 / 0.09);
-  --c-fg: #E7EBF2;
-  --c-muted: #A2ACC0;
-  --c-faint: #7C879D;
+  --c-bg: #0D1117;
+  --c-surface: #161B22;
+  --c-surface-2: #21262D;
+  --c-line: #30363D;
+  --c-fg: #E6EDF3;
+  --c-muted: #8B949E;
+  --c-faint: #6E7681;
   --c-accent: #D2A24E;
-  --c-accent-ink: #E3BC72;
-  --c-ok: #4FC79A;
-  --c-warn: #F0AE4B;
-  --c-bad: #EF6E64;
-  --c-info: #8DB3F5;
-  --c-neutral: #DCE1EA;
+  --c-accent-ink: #D4A759;
+  --c-ok: #2A8E66;
+  --c-warn: #BD7C24;
+  --c-bad: #BD4239;
+  --c-info: #3D6FB0;
+  --c-neutral: #8B949E;
 }
 
 @layer base {
@@ -162,7 +162,7 @@
 
 @layer components {
   .page-container {
-    @apply w-full max-w-7xl mx-auto px-4 sm:px-8 lg:px-10 pt-5 pb-10 sm:pt-10 lg:pb-16;
+    @apply w-full max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-5 pb-10 sm:pt-10 lg:pb-16;
   }
 
   .section-heading {
@@ -183,9 +183,9 @@
            bg-navy text-white px-4 py-2.5 rounded-[10px] min-h-10
            shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]
            transition-[background-color,transform] duration-200 ease-(--ease-out-soft)
-           hover:bg-navy-2 active:translate-y-px
+           hover:bg-navy-2 hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
-           dark:bg-fg dark:text-navy dark:hover:bg-white;
+           dark:bg-surface-2 dark:text-fg dark:hover:bg-[#30363D] dark:border dark:border-line;
   }
 
   .btn-accent {
@@ -193,7 +193,7 @@
            bg-accent text-on-accent px-4 py-2.5 rounded-[10px] min-h-10
            shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]
            transition-[filter,transform] duration-200 ease-(--ease-out-soft)
-           hover:brightness-105 active:translate-y-px
+           hover:brightness-105 hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
   }
 
@@ -201,7 +201,7 @@
     @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
            border border-line text-fg bg-surface px-4 py-2.5 rounded-[10px] min-h-10
            transition-[background-color,border-color,transform] duration-200 ease-(--ease-out-soft)
-           hover:border-fg/30 hover:bg-surface-2 active:translate-y-px
+           hover:border-fg/30 hover:bg-surface-2 hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
   }
 
@@ -209,7 +209,7 @@
     @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
            text-muted px-3 py-2 rounded-[10px] min-h-10
            transition-colors duration-200
-           hover:text-fg hover:bg-fg/5 active:translate-y-px
+           hover:text-fg hover:bg-fg/5 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
   }
 
@@ -217,24 +217,40 @@
     @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
            text-accent-ink px-3 py-2 rounded-[10px] min-h-10
            transition-colors duration-200
-           hover:bg-accent/12 active:translate-y-px
+           hover:bg-accent/12 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
   }
 
   .btn-success {
     @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
            bg-ok text-white px-4 py-2.5 rounded-[10px] min-h-10
-           transition-[filter,transform] duration-200
-           hover:brightness-110 active:translate-y-px
-           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
-           dark:text-navy;
+           shadow-[inset_0_1px_0_rgb(255_255_255/0.15)]
+           transition-[filter,transform,background-color] duration-200
+           hover:brightness-105 hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+
+  .btn-warning {
+    @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
+           bg-warn/15 text-warn border border-warn/30 px-4 py-2.5 rounded-[10px] min-h-10
+           transition-[background-color,border-color,transform] duration-200
+           hover:bg-warn/25 hover:border-warn/45 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+  }
+
+  .btn-info {
+    @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
+           bg-info/12 text-info border border-info/30 px-4 py-2.5 rounded-[10px] min-h-10
+           transition-[background-color,border-color,transform] duration-200
+           hover:bg-info/20 hover:border-info/45 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
   }
 
   .btn-danger {
     @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
            text-bad bg-bad/10 border border-bad/25 px-4 py-2.5 rounded-[10px] min-h-10
            transition-[background-color,transform] duration-200
-           hover:bg-bad/18 active:translate-y-px
+           hover:bg-bad/18 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
   }
 
@@ -244,7 +260,7 @@
 
   .icon-btn {
     @apply inline-flex items-center justify-center w-10 h-10 rounded-[10px] text-muted
-           transition-colors duration-200 hover:text-fg hover:bg-fg/6;
+           transition-all duration-150 hover:text-fg hover:bg-fg/6 active:scale-95;
   }
 
   /* ---------- Champs ---------- */
@@ -285,7 +301,7 @@
 
   /* ---------- Surfaces ---------- */
   .card {
-    @apply bg-surface rounded-2xl border border-line;
+    @apply bg-surface rounded-2xl border border-line transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft);
     box-shadow: var(--shadow-card);
     overflow-wrap: anywhere;
   }
@@ -299,7 +315,7 @@
   /* Entité (article, session, sponsor) : surface + bande de statut à gauche.
      La couleur de la bande se règle avec la variable --stripe. */
   .entity {
-    @apply relative bg-surface rounded-2xl border border-line pl-5 pr-4 py-4 sm:pl-6 sm:pr-5 sm:py-5;
+    @apply relative bg-surface rounded-2xl border border-line pl-5 pr-4 py-4 sm:pl-6 sm:pr-5 sm:py-5 transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft);
     box-shadow: var(--shadow-card);
     overflow-wrap: anywhere;
   }
@@ -410,7 +426,7 @@
 }
 
 [data-theme="dark"] .hero {
-  background: linear-gradient(180deg, #0F1A2E 0%, #13203A 100%);
+  background: linear-gradient(180deg, #0D1117 0%, #161B22 100%);
   border-bottom: 1px solid var(--c-line);
 }
 
@@ -508,12 +524,40 @@
 /* Apparition douce des contenus (CSS seulement, désactivée en mouvement réduit) */
 @media (prefers-reduced-motion: no-preference) {
   .rise {
-    animation: rise 0.5s var(--ease-out-soft) both;
-    animation-delay: calc(var(--i, 0) * 45ms);
+    animation: rise 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: calc(var(--i, 0) * 35ms);
   }
 
   @keyframes rise {
-    from { opacity: 0; transform: translateY(6px); }
+    from { opacity: 0; transform: translateY(4px); }
     to { opacity: 1; transform: none; }
+  }
+
+  .animate-view-fade {
+    animation: view-fade 180ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes view-fade {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  .shimmer-active {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .shimmer-active::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.12), transparent);
+    animation: shimmer-sweep 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer-sweep {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
   }
 }

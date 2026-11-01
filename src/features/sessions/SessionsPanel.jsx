@@ -9,13 +9,17 @@ import {
   PencilSimpleIcon,
   DoorOpenIcon,
   VideoCameraIcon,
+  SquaresFourIcon,
+  MagnifyingGlassIcon,
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
 import { SESSION_TYPE_LABELS } from '../../lib/constants'
 import EmptyState from '../../components/ui/EmptyState'
 import SectionTitle from '../../components/ui/SectionTitle'
+import Tabs from '../../components/ui/Tabs'
 import SessionForm from './SessionForm'
+import AddToCalendarButton from '../../components/ui/AddToCalendarButton'
 
 const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '')
 const dayKey = (iso) => {
@@ -44,7 +48,9 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [choices, setChoices] = useState({})
-  // heure de référence pour signaler la session en cours (figée au chargement du panneau)
+  const [viewMode, setViewMode] = useState('grid') // 'grid' | 'timeline'
+  const [selectedDay, setSelectedDay] = useState('all')
+  const [query, setQuery] = useState('')
   const [now] = useState(() => Date.now())
 
   const organizational = phase === 'organizational'
@@ -70,7 +76,6 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
       ids.length
         ? supabase.from('session_submissions').select('id, session_id, submission_id, presentation_order').in('session_id', ids).order('presentation_order')
         : Promise.resolve({ data: [] }),
-      // la RLS ne renvoie les liens qu'aux membres de l'événement
       ids.length ? supabase.from('session_links').select('session_id, url').in('session_id', ids) : Promise.resolve({ data: [] }),
     ])
     setRooms(roomsRes.data || [])
@@ -83,7 +88,6 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
     load()
   }, [load])
 
-  // enregistre la session puis son lien de visio (table séparée)
   const saveSession = async (values) => {
     const { meeting_url: url, ...fields } = values
     let sessionId = editing
@@ -137,8 +141,23 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   const papersOf = (sessionId) => assignments.filter((a) => a.session_id === sessionId)
   const sessionTitle = (id) => sessions.find((x) => x.id === id)?.title
 
+  // Filtrage par texte
+  const q = query.trim().toLowerCase()
+  const filteredSessions = sessions.filter((s) => {
+    if (!q) return true
+    const room = roomById.get(s.room_id)
+    const papers = papersOf(s.id).map((p) => submissionById.get(p.submission_id)?.title || '')
+    return (
+      s.title.toLowerCase().includes(q) ||
+      (s.description || '').toLowerCase().includes(q) ||
+      (room?.name || '').toLowerCase().includes(q) ||
+      papers.some((title) => title.toLowerCase().includes(q))
+    )
+  })
+
+  // Groupement par jour
   const days = []
-  for (const s of sessions) {
+  for (const s of filteredSessions) {
     const key = dayKey(s.start_time)
     let day = days.find((d) => d.key === key)
     if (!day) {
@@ -147,6 +166,17 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
     }
     day.items.push(s)
   }
+
+  const displayedDays = selectedDay === 'all' ? days : days.filter((d) => d.key === selectedDay)
+
+  const dayFilterTabs = [
+    { id: 'all', label: 'Tous les jours', badge: filteredSessions.length },
+    ...days.map((d, i) => ({
+      id: d.key,
+      label: `Jour ${i + 1} (${d.items[0]?.start_time ? new Date(d.items[0].start_time).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'À planifier'})`,
+      badge: d.items.length,
+    })),
+  ]
 
   const formFor = (initial) => (
     <SessionForm
@@ -161,9 +191,9 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   )
 
   return (
-    <section>
+    <section className="space-y-6">
       <SectionTitle
-        title="Programme"
+        title="Programme & Sessions"
         count={sessions.length}
         description="Sessions, horaires, salles et articles présentés. Le programme est visible par tous une fois l'événement publié."
         actions={
@@ -178,66 +208,72 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
       />
 
       {error && (
-        <div role="alert" className="alert-error mb-5">
+        <div role="alert" className="alert-error">
           {error}
         </div>
       )}
 
       {isOrganizer && !organizational && (
-        <div className="alert-info mb-5">
+        <div className="alert-info">
           Le placement définitif des articles se fait en phase organisationnelle. D'ici là, les reviewers peuvent suggérer une session.
         </div>
       )}
 
       {editing === 'new' && <div className="mb-8">{formFor(null)}</div>}
 
-      {canAssign && (
-        <section className="card-panel mb-8">
-          <h3 className="font-semibold text-fg flex items-baseline gap-2">
-            Articles acceptés à placer
-            <span className="num font-mono text-sm font-normal text-faint">{unplaced.length}</span>
-          </h3>
-          <div className="mt-4">
+      {/* Articles acceptés non placés */}
+      {canAssign && unplaced.length > 0 && (
+        <section className="card p-5 border-accent/40 bg-surface/80 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-semibold text-fg flex items-baseline gap-2 text-sm sm:text-base">
+              Articles acceptés à placer dans le programme
+              <span className="num font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent-ink">
+                {unplaced.length}
+              </span>
+            </h3>
+          </div>
+          <div className="mt-2">
             {sessions.length === 0 ? (
-              <p className="text-sm text-muted">Crée d'abord des sessions pour y placer des articles.</p>
-            ) : unplaced.length === 0 ? (
-              <p className="text-sm text-ok">Tous les articles acceptés sont placés.</p>
+              <p className="text-xs text-muted">Créez d'abord des sessions ci-dessous pour y placer des articles.</p>
             ) : (
-              <ul className="divide-y divide-line">
+              <ul className="divide-y divide-line max-h-64 overflow-y-auto pr-1">
                 {unplaced.map((s) => {
                   const suggestion = suggestedSessionId(s)
                   const value = choices[s.id] ?? suggestion
                   return (
-                    <li key={s.id} className="py-3.5 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center gap-3">
+                    <li key={s.id} className="py-2.5 first:pt-0 last:pb-0 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs sm:text-sm">
                       <div className="min-w-0 flex-1">
-                        <p className="font-medium text-fg leading-snug" style={{ overflowWrap: 'anywhere' }}>
+                        <p className="font-medium text-fg leading-snug truncate" title={s.title}>
                           {s.title}
                         </p>
-                        <p className="text-[13px] text-muted mt-0.5">
+                        <p className="text-xs text-muted mt-0.5">
                           {s.profiles?.full_name}
-                          {suggestion && <span className="text-accent-ink"> · suggérée : {sessionTitle(suggestion) || 'session'}</span>}
+                          {suggestion && <span className="text-accent-ink"> &bull; Recommandé : {sessionTitle(suggestion) || 'session'}</span>}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
-                        <label className="sr-only" htmlFor={`place-${s.id}`}>
-                          Session pour {s.title}
-                        </label>
                         <select
                           id={`place-${s.id}`}
-                          className="select-field md:w-56"
+                          aria-label={`Session pour ${s.title}`}
+                          className="select-field md:w-52 py-1 text-xs"
                           value={value}
                           onChange={(e) => setChoices((c) => ({ ...c, [s.id]: e.target.value }))}
                         >
-                          <option value="">Choisir une session…</option>
+                          <option value="">Sélectionner une session…</option>
                           {sessions.map((x) => (
                             <option key={x.id} value={x.id}>
                               {x.title}
                             </option>
                           ))}
                         </select>
-                        <button type="button" className="btn-primary" disabled={busy || !value} onClick={() => assign(s.id, value)}>
+                        <button
+                          type="button"
+                          className="btn-accent btn-sm text-xs py-1"
+                          disabled={busy || !value}
+                          onClick={() => assign(s.id, value)}
+                        >
                           Placer
-                          <ArrowRightIcon size={15} aria-hidden="true" />
+                          <ArrowRightIcon size={13} weight="bold" aria-hidden="true" />
                         </button>
                       </div>
                     </li>
@@ -249,47 +285,158 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
         </section>
       )}
 
+      {/* Barre d'outils : Filtres par jour + Recherche + Commutateur Grille / Frise */}
+      {sessions.length > 0 && (
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          {days.length > 1 ? (
+            <Tabs
+              variant="pill"
+              wrap
+              label="Filtrer par jour"
+              active={selectedDay}
+              onChange={setSelectedDay}
+              tabs={dayFilterTabs}
+            />
+          ) : (
+            <div />
+          )}
+
+          <div className="flex items-center gap-2.5">
+            <label className="relative flex-1 sm:w-64">
+              <span className="sr-only">Rechercher une session</span>
+              <MagnifyingGlassIcon
+                size={15}
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                className="input-field pl-9.5 text-xs sm:text-sm py-1.5"
+                placeholder="Session, salle, article…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            </label>
+
+            {/* Commutateur de vue : Grille vs Frise */}
+            <div className="flex items-center rounded-xl border border-line bg-surface/80 p-0.5 shrink-0" aria-label="Format d'affichage">
+              <button
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'grid' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                }`}
+                title="Affichage en cartes horizontales"
+                aria-label="Affichage en cartes"
+              >
+                <SquaresFourIcon size={17} weight={viewMode === 'grid' ? 'fill' : 'regular'} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('timeline')}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  viewMode === 'timeline' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                }`}
+                title="Affichage chronologique (Frise)"
+                aria-label="Affichage en frise chronologique"
+              >
+                <ClockIcon size={17} weight={viewMode === 'timeline' ? 'fill' : 'regular'} aria-hidden="true" />
+              </button>
+            </div>
+
+            <AddToCalendarButton
+              event={event}
+              label="Agenda"
+              btnClass="btn-outline btn-sm text-xs py-1.5"
+            />
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="space-y-3">
           <div className="skeleton h-28" />
           <div className="skeleton h-28" />
         </div>
       ) : sessions.length === 0 ? (
-        editing !== 'new' && <EmptyState icon={PresentationChartIcon} title="Programme à venir" body="Les sessions de l'événement apparaîtront ici." />
+        editing !== 'new' && (
+          <EmptyState
+            icon={PresentationChartIcon}
+            title="Programme à venir"
+            body="Les sessions de l'événement apparaîtront ici dès leur création."
+          />
+        )
+      ) : displayedDays.length === 0 ? (
+        <EmptyState
+          compact
+          title="Aucune session trouvée"
+          body="Modifiez vos critères de recherche ou de filtre par jour."
+        />
       ) : (
         <div className="space-y-10">
-          {days.map((day) => (
-            <section key={day.key}>
-              <h3 className="flex items-center gap-3 text-sm font-medium text-muted mb-4">
+          {displayedDays.map((day) => (
+            <section key={day.key} className="space-y-4">
+              <h3 className="flex items-center gap-3 text-sm font-semibold text-fg">
                 <span className="first-letter:uppercase">{day.label}</span>
                 <span className="h-px flex-1 bg-line" aria-hidden="true" />
+                <span className="num font-mono text-xs text-faint">({day.items.length})</span>
               </h3>
-              {/* frise : l'heure à gauche, un fil vertical, la session à droite */}
-              <ol className="relative space-y-3 sm:pl-[104px]">
-                <span className="hidden sm:block absolute left-[88px] top-2 bottom-2 w-px bg-line" aria-hidden="true" />
-                {day.items.map((s, idx) =>
-                  editing === s.id ? (
-                    <li key={s.id}>{formFor(s)}</li>
-                  ) : (
-                    <SessionItem
-                      key={s.id}
-                      s={s}
-                      idx={idx}
-                      now={now}
-                      room={roomById.get(s.room_id)}
-                      link={showMeeting ? links[s.id] : null}
-                      papers={papersOf(s.id)}
-                      submissionById={submissionById}
-                      isOrganizer={isOrganizer}
-                      canAssign={canAssign}
-                      busy={busy}
-                      onEdit={() => setEditing(s.id)}
-                      onDelete={() => handleDelete(s)}
-                      onUnassign={(id) => assign(id, null)}
-                    />
-                  ),
-                )}
-              </ol>
+
+              {viewMode === 'grid' ? (
+                /* --- VUE GRILLE HORIZONTALE DE SESSIONS --- */
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rise">
+                  {day.items.map((s) =>
+                    editing === s.id ? (
+                      <div key={s.id} className="md:col-span-2">
+                        {formFor(s)}
+                      </div>
+                    ) : (
+                      <SessionCard
+                        key={s.id}
+                        s={s}
+                        now={now}
+                        room={roomById.get(s.room_id)}
+                        link={showMeeting ? links[s.id] : null}
+                        papers={papersOf(s.id)}
+                        submissionById={submissionById}
+                        isOrganizer={isOrganizer}
+                        canAssign={canAssign}
+                        busy={busy}
+                        onEdit={() => setEditing(s.id)}
+                        onDelete={() => handleDelete(s)}
+                        onUnassign={(id) => assign(id, null)}
+                      />
+                    ),
+                  )}
+                </div>
+              ) : (
+                /* --- VUE CHRONOLOGIQUE CLASSIQUE --- */
+                <ol className="relative space-y-3 sm:pl-[104px] rise">
+                  <span className="hidden sm:block absolute left-[88px] top-2 bottom-2 w-px bg-line" aria-hidden="true" />
+                  {day.items.map((s, idx) =>
+                    editing === s.id ? (
+                      <li key={s.id}>{formFor(s)}</li>
+                    ) : (
+                      <SessionTimelineItem
+                        key={s.id}
+                        s={s}
+                        idx={idx}
+                        now={now}
+                        room={roomById.get(s.room_id)}
+                        link={showMeeting ? links[s.id] : null}
+                        papers={papersOf(s.id)}
+                        submissionById={submissionById}
+                        isOrganizer={isOrganizer}
+                        canAssign={canAssign}
+                        busy={busy}
+                        onEdit={() => setEditing(s.id)}
+                        onDelete={() => handleDelete(s)}
+                        onUnassign={(id) => assign(id, null)}
+                      />
+                    ),
+                  )}
+                </ol>
+              )}
             </section>
           ))}
         </div>
@@ -298,7 +445,123 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   )
 }
 
-function SessionItem({ s, idx, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign }) {
+// Carte horizontale de session (Vue Grille)
+function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign }) {
+  const live = s.start_time && s.end_time && new Date(s.start_time).getTime() <= now && now <= new Date(s.end_time).getTime()
+
+  return (
+    <article className="card p-5 border-line bg-surface/70 hover:bg-surface hover:border-accent/40 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.99] transition-all duration-200 flex flex-col justify-between relative overflow-hidden group shadow-xs">
+      <span
+        className="absolute left-0 top-0 bottom-0 w-1.5"
+        style={{ background: live ? 'var(--color-ok)' : 'var(--color-accent)' }}
+        aria-hidden="true"
+      />
+
+      <div className="space-y-3.5">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="badge-type text-[11px] font-semibold">{SESSION_TYPE_LABELS[s.session_type] || s.session_type}</span>
+            {live && <span className="badge-published text-[11px] animate-pulse">En cours</span>}
+          </div>
+          <span className="num text-xs font-semibold text-fg flex items-center gap-1.5 bg-bg/80 px-2 py-0.5 rounded-md border border-line">
+            <ClockIcon size={13} className="text-accent-ink" aria-hidden="true" />
+            {s.start_time ? `${timeOf(s.start_time)}${s.end_time ? ` - ${timeOf(s.end_time)}` : ''}` : 'Horaire à fixer'}
+          </span>
+        </div>
+
+        <div>
+          <h4 className="text-base font-semibold leading-snug tracking-tight text-fg group-hover:text-accent-ink transition-colors">
+            {s.title}
+          </h4>
+          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
+            {room && (
+              <span className="inline-flex items-center gap-1.5">
+                <DoorOpenIcon size={14} className="text-accent-ink" aria-hidden="true" />
+                <span className="font-medium text-fg">{room.name}</span>
+                {room.location && <span className="text-faint">({room.location})</span>}
+              </span>
+            )}
+            {s.max_capacity && (
+              <span className="inline-flex items-center gap-1.5">
+                <UsersThreeIcon size={14} aria-hidden="true" />
+                <span>{s.max_capacity} places</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {s.description && (
+          <p className="text-xs text-muted line-clamp-2 leading-relaxed whitespace-pre-line">
+            {s.description}
+          </p>
+        )}
+
+        {/* Liste des articles assignés */}
+        <div className="pt-3 border-t border-line">
+          <span className="text-[11px] font-semibold text-faint uppercase tracking-wider block mb-1.5">
+            Articles programmés ({papers.length})
+          </span>
+          {papers.length > 0 ? (
+            <ol className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+              {papers.map((a, i) => {
+                const sub = submissionById.get(a.submission_id)
+                return (
+                  <li key={a.id} className="flex items-start justify-between gap-2 rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs">
+                    <div className="min-w-0 flex items-start gap-1.5">
+                      <span className="num font-semibold text-accent-ink shrink-0">{i + 1}.</span>
+                      <span className="font-medium text-fg truncate leading-snug">{sub?.title || 'Article'}</span>
+                    </div>
+                    {canAssign && (
+                      <button
+                        type="button"
+                        className="text-[11px] text-faint hover:text-bad font-medium shrink-0 ml-1"
+                        disabled={busy}
+                        onClick={() => onUnassign(a.submission_id)}
+                      >
+                        Retirer
+                      </button>
+                    )}
+                  </li>
+                )
+              })}
+            </ol>
+          ) : (
+            <p className="text-xs text-faint italic">Aucun article assigné pour l'instant.</p>
+          )}
+        </div>
+      </div>
+
+      <div className="mt-4 pt-3 border-t border-line flex items-center justify-between gap-2">
+        <div>
+          {link && (
+            <a
+              href={link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={live ? 'btn-success btn-sm text-xs' : 'btn-outline btn-sm text-xs'}
+            >
+              <VideoCameraIcon size={14} aria-hidden="true" />
+              Rejoindre en visio
+            </a>
+          )}
+        </div>
+        {isOrganizer && (
+          <div className="flex items-center gap-1">
+            <button type="button" className="icon-btn w-8 h-8 text-xs" onClick={onEdit} title="Modifier">
+              <PencilSimpleIcon size={14} />
+            </button>
+            <button type="button" className="icon-btn w-8 h-8 hover:text-bad text-xs" onClick={onDelete} title="Supprimer">
+              <TrashIcon size={14} />
+            </button>
+          </div>
+        )}
+      </div>
+    </article>
+  )
+}
+
+// Élément de frise chronologique (Vue Frise)
+function SessionTimelineItem({ s, idx, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign }) {
   const live = s.start_time && s.end_time && new Date(s.start_time).getTime() <= now && now <= new Date(s.end_time).getTime()
 
   return (

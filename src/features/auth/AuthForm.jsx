@@ -1,5 +1,15 @@
 import { useState } from 'react'
-import { EyeIcon, EyeSlashIcon, ArrowLeftIcon } from '@phosphor-icons/react'
+import {
+  EyeIcon,
+  EyeSlashIcon,
+  ArrowLeftIcon,
+  SparkleIcon,
+  ArticleIcon,
+  UserIcon,
+  ShieldCheckIcon,
+  ArrowRightIcon,
+  InfoIcon,
+} from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError } from '../../lib/errors'
 import { AUTH_PHOTO } from '../../lib/constants'
@@ -11,6 +21,49 @@ const MODES = {
   signup: { title: 'Créer un compte', submit: 'Créer mon compte' },
   reset: { title: 'Mot de passe oublié', submit: 'Envoyer le lien' },
 }
+
+const DEMO_ACCOUNTS = [
+  {
+    roleKey: 'organizer',
+    roleLabel: 'Organisateur',
+    name: 'Pr. Amine Khelil',
+    email: 'demo-organisateur@usto-mb.dz',
+    password: 'ConferaDemo2026!',
+    icon: SparkleIcon,
+    badgeClass: 'bg-accent/15 text-accent-ink',
+    desc: 'Pilotage colloques, comités scientifiques, programmation & validation des inscriptions.',
+  },
+  {
+    roleKey: 'reviewer',
+    roleLabel: 'Relecteur / Expert',
+    name: 'Dr. Samia Benali',
+    email: 'demo-reviewer@usto-mb.dz',
+    password: 'ConferaDemo2026!',
+    icon: ArticleIcon,
+    badgeClass: 'bg-info/15 text-info-ink',
+    desc: 'Évaluation scientifique des articles assignés, notation multicritères et recommandations.',
+  },
+  {
+    roleKey: 'participant',
+    roleLabel: 'Chercheur / Auteur',
+    name: 'Yacine Meziane',
+    email: 'demo-chercheur@usto-mb.dz',
+    password: 'ConferaDemo2026!',
+    icon: UserIcon,
+    badgeClass: 'bg-ok/15 text-ok',
+    desc: 'Dépôt d’articles, suivi de décision, badge d’accès QR code officiel et attestations.',
+  },
+  {
+    roleKey: 'admin',
+    roleLabel: 'Admin Campus',
+    name: 'Dr. Karim Benmansour',
+    email: 'demo-admin@confera.dz',
+    password: 'ConferaDemo2026!',
+    icon: ShieldCheckIcon,
+    badgeClass: 'bg-warn/15 text-warn',
+    desc: 'Supervision globale de l’établissement, statistiques campus et modération des événements.',
+  },
+]
 
 function BadgePreview() {
   // Aperçu du vrai badge de conférence que reçoit un inscrit validé (même composition que dans l'app).
@@ -47,6 +100,7 @@ export default function AuthForm() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [quickLoadingKey, setQuickLoadingKey] = useState(null)
 
   const switchMode = (next) => {
     setMode(next)
@@ -86,8 +140,24 @@ export default function AuthForm() {
     setLoading(false)
   }
 
+  const handleQuickLogin = async (acc) => {
+    setQuickLoadingKey(acc.roleKey)
+    setEmail(acc.email)
+    setPassword(acc.password)
+    setError(null)
+    setSuccess(null)
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: acc.email,
+      password: acc.password,
+    })
+    if (signInError) {
+      setError(frError(signInError))
+      setQuickLoadingKey(null)
+    }
+  }
+
   return (
-    <div className="min-h-dvh bg-bg grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+    <div className="min-h-dvh bg-bg grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
       {/* Panneau de marque (ordinateur) */}
       <aside className="hero hidden lg:flex relative overflow-hidden text-white flex-col justify-between p-12 xl:p-16">
         <img className="hero-photo hero-photo--tall" src={AUTH_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
@@ -121,12 +191,12 @@ export default function AuthForm() {
       </aside>
 
       {/* Formulaire */}
-      <main className="relative flex items-center justify-center px-4 py-10 sm:px-10">
+      <main className="relative flex items-center justify-center px-4 py-8 sm:px-10">
         <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10">
           <ThemeToggle className="icon-btn" />
         </div>
-        <div className="w-full max-w-[400px]">
-          <div className="lg:hidden mb-10">
+        <div className="w-full max-w-[440px]">
+          <div className="lg:hidden mb-8">
             <Logo inverted={false} />
           </div>
 
@@ -137,14 +207,14 @@ export default function AuthForm() {
             </button>
           )}
 
-          <h2 className="text-3xl font-semibold tracking-tight text-fg">{MODES[mode].title}</h2>
-          <p className="text-muted mt-2">
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-fg">{MODES[mode].title}</h2>
+          <p className="text-muted text-sm mt-1.5">
             {mode === 'signin' && 'Accède à tes événements, articles et inscriptions.'}
             {mode === 'signup' && 'Un seul compte suffit pour soumettre, relire ou organiser.'}
             {mode === 'reset' && 'Indique ton adresse : tu recevras un lien pour choisir un nouveau mot de passe.'}
           </p>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate={false}>
+          <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate={false}>
             {mode === 'signup' && (
               <div>
                 <label htmlFor="fullName" className="form-label">
@@ -220,23 +290,23 @@ export default function AuthForm() {
             )}
 
             {error && (
-              <div role="alert" className="alert-error">
+              <div role="alert" className="alert-error text-xs">
                 {error}
               </div>
             )}
             {success && (
-              <div role="status" className="alert-success">
+              <div role="status" className="alert-success text-xs">
                 {success}
               </div>
             )}
 
-            <button type="submit" disabled={loading} className="btn-primary w-full min-h-11">
+            <button type="submit" disabled={loading || Boolean(quickLoadingKey)} className="btn-primary w-full min-h-10">
               {loading ? 'Un instant…' : MODES[mode].submit}
             </button>
           </form>
 
           {mode !== 'reset' && (
-            <p className="mt-8 text-sm text-muted text-center">
+            <p className="mt-5 text-xs text-muted text-center">
               {mode === 'signin' ? "Pas encore de compte ? " : 'Déjà un compte ? '}
               <button
                 type="button"
@@ -246,6 +316,78 @@ export default function AuthForm() {
                 {mode === 'signin' ? 'Créer un compte' : 'Se connecter'}
               </button>
             </p>
+          )}
+
+          {/* Section Comptes de Démonstration (1 clic) */}
+          {mode === 'signin' && (
+            <div className="mt-7 pt-5 border-t border-line/70">
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                    Comptes de test pour évaluation
+                  </p>
+                  <p className="text-xs text-muted/80 mt-0.5">
+                    Accès direct en 1 clic par profil de rôle
+                  </p>
+                </div>
+                <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent-ink border border-accent/20">
+                  Prototype
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 gap-2">
+                {DEMO_ACCOUNTS.map((acc) => {
+                  const Icon = acc.icon
+                  const isCurrentLoading = quickLoadingKey === acc.roleKey
+                  return (
+                    <div
+                      key={acc.roleKey}
+                      className="card p-2.5 sm:p-3 border-line/70 bg-surface/50 hover:bg-surface hover:border-line hover:shadow-xs transition-all flex items-center justify-between gap-3 text-left"
+                    >
+                      <div className="min-w-0 flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-fg/5 text-fg flex items-center justify-center shrink-0">
+                          <Icon size={16} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-xs font-semibold text-fg truncate">{acc.name}</span>
+                            <span className={`text-[10px] font-medium px-1.5 py-0.2 rounded ${acc.badgeClass}`}>
+                              {acc.roleLabel}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted truncate mt-0.5">{acc.desc}</p>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={loading || Boolean(quickLoadingKey)}
+                        onClick={() => handleQuickLogin(acc)}
+                        className="btn-outline btn-sm shrink-0 text-xs inline-flex items-center gap-1 active:scale-95 py-1 px-2.5"
+                        title={`Connexion 1 clic en tant que ${acc.roleLabel}`}
+                      >
+                        {isCurrentLoading ? (
+                          <span className="text-xs text-accent-ink font-semibold">Connexion…</span>
+                        ) : (
+                          <>
+                            <span>Tester</span>
+                            <ArrowRightIcon size={12} />
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+
+              <div className="mt-3 p-2.5 rounded-lg bg-fg/[0.03] border border-line/50 text-[11px] text-muted flex items-start gap-2">
+                <InfoIcon size={14} className="shrink-0 mt-0.5 text-accent-ink" />
+                <span className="leading-relaxed">
+                  Mot de passe commun : <code className="font-mono text-fg font-semibold select-all">ConferaDemo2026!</code>.
+                  Pour simuler des interactions simultanées, ouvrez une fenêtre de navigation privée.
+                </span>
+              </div>
+            </div>
           )}
         </div>
       </main>

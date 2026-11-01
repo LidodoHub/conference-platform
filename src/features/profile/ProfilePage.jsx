@@ -1,18 +1,29 @@
 import { useState, useEffect } from 'react'
-import { CheckIcon, SparkleIcon, SignOutIcon } from '@phosphor-icons/react'
+import { CheckIcon, SparkleIcon, SignOutIcon, QrCodeIcon, IdentificationBadgeIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { writeError, frError } from '../../lib/errors'
 import { ROLE_LABELS } from '../../lib/constants'
 import PageHeader from '../../components/ui/PageHeader'
 import Avatar from '../../components/ui/Avatar'
+import Logo from '../../components/ui/Logo'
 
-// Profil de l'utilisateur. L'expertise sert au matching reviewer-article (module IA).
+const SUGGESTED_TOPICS = [
+  'Intelligence Artificielle',
+  'Vision par Ordinateur',
+  'NLP & Traitement du Langage',
+  'Informatique Quantique',
+  'Cybersécurité & Réseaux',
+  'Systèmes Distribués',
+  'Data Science & Bio-informatique',
+]
+
+// Profil de l'utilisateur avec aperçu en temps réel du badge de conférence.
 export default function ProfilePage({ onSaved }) {
   const { user, isAdmin } = useAuth()
   const [form, setForm] = useState(null)
   const [error, setError] = useState(null)
-  const [notice, setNotice] = useState(null)
+  const [savedSuccess, setSavedSuccess] = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -39,11 +50,20 @@ export default function ProfilePage({ onSaved }) {
     onChange: (e) => setForm((f) => ({ ...f, [name]: e.target.value })),
   })
 
+  const addTopic = (topic) => {
+    setForm((f) => {
+      const current = f.expertise ? f.expertise.trim() : ''
+      if (current.includes(topic)) return f
+      const updated = current ? `${current}, ${topic}` : topic
+      return { ...f, expertise: updated }
+    })
+  }
+
   const save = async (e) => {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    setNotice(null)
+    setSavedSuccess(false)
     const res = await supabase
       .from('profiles')
       .update({
@@ -56,92 +76,203 @@ export default function ProfilePage({ onSaved }) {
       .eq('id', user.id)
       .select('id')
     setBusy(false)
-    const msg = writeError(res, 'Enregistrement refusé : la migration 002 a-t-elle été appliquée ?')
+    const msg = writeError(res, 'Enregistrement refusé.')
     if (msg) setError(msg)
     else {
-      setNotice('Profil enregistré.')
+      setSavedSuccess(true)
+      setTimeout(() => setSavedSuccess(false), 3000)
       onSaved?.()
     }
   }
 
   return (
-    <div className="page-container max-w-3xl">
-      <PageHeader title="Mon profil" description="Ces informations apparaissent sur ton badge, ton certificat et auprès des organisateurs." />
+    <div className="page-container max-w-6xl space-y-8">
+      <PageHeader
+        title="Mon profil chercheur"
+        description="Configurez votre identité académique, vos expertises de relecture et visualisez votre badge officiel en temps réel."
+      />
 
       {!form ? (
         error ? <div className="alert-error">{error}</div> : <div className="skeleton h-96" />
       ) : (
-        <form onSubmit={save} className="card overflow-hidden">
-          <div className="flex items-center gap-4 p-5 sm:p-7 border-b border-line bg-surface-2/50">
-            <Avatar name={form.full_name} size={56} tone="brand" />
-            <div className="min-w-0">
-              <p className="text-lg font-semibold text-fg truncate">{form.full_name || 'Sans nom'}</p>
-              <p className="text-sm text-muted truncate">
-                {form.email}
-                {isAdmin && <span className="text-accent-ink font-medium"> · {ROLE_LABELS.admin}</span>}
-              </p>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_360px] gap-8 items-start">
+          {/* Formulaire de gauche */}
+          <form onSubmit={save} className="card overflow-hidden shadow-card">
+            <div className="flex items-center gap-4 p-5 sm:p-7 border-b border-line bg-surface-2/40">
+              <Avatar name={form.full_name} size={52} tone="brand" />
+              <div className="min-w-0">
+                <p className="text-lg font-semibold text-fg truncate">{form.full_name || 'Sans nom'}</p>
+                <p className="text-xs text-muted truncate">
+                  {form.email}
+                  {isAdmin && <span className="text-accent-ink font-semibold"> · {ROLE_LABELS.admin}</span>}
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="p-5 sm:p-7 space-y-5">
-            <div>
-              <label htmlFor="pf-name" className="form-label">
-                Nom complet
-              </label>
-              <input id="pf-name" className="input-field" autoComplete="name" required {...field('full_name')} />
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
+            <div className="p-5 sm:p-7 space-y-5">
               <div>
-                <label htmlFor="pf-aff" className="form-label">
-                  Affiliation
+                <label htmlFor="pf-name" className="form-label">
+                  Nom complet
                 </label>
-                <input id="pf-aff" className="input-field" autoComplete="organization" {...field('affiliation')} />
-                <p className="form-hint">Université, laboratoire ou entreprise.</p>
+                <input id="pf-name" className="input-field" autoComplete="name" required {...field('full_name')} />
               </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
+                <div>
+                  <label htmlFor="pf-aff" className="form-label">
+                    Affiliation académique
+                  </label>
+                  <input
+                    id="pf-aff"
+                    className="input-field"
+                    placeholder="ex. USTO-MB, Laboratoire LIO"
+                    autoComplete="organization"
+                    {...field('affiliation')}
+                  />
+                  <p className="form-hint">Université, laboratoire de recherche ou institut.</p>
+                </div>
+                <div>
+                  <label htmlFor="pf-country" className="form-label">
+                    Pays
+                  </label>
+                  <input
+                    id="pf-country"
+                    className="input-field"
+                    placeholder="Algérie"
+                    autoComplete="country-name"
+                    {...field('country')}
+                  />
+                </div>
+              </div>
+
               <div>
-                <label htmlFor="pf-country" className="form-label">
-                  Pays
-                </label>
-                <input id="pf-country" className="input-field" autoComplete="country-name" {...field('country')} />
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <label htmlFor="pf-exp" className="form-label flex items-center gap-1.5 mb-0">
+                    <span>Domaines d'expertise & Mots-clés</span>
+                    <SparkleIcon size={14} className="text-accent-ink" aria-hidden="true" />
+                  </label>
+                  <span className="text-xs text-muted">Aide à l'affectation IA</span>
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {SUGGESTED_TOPICS.map((topic) => (
+                    <button
+                      key={topic}
+                      type="button"
+                      onClick={() => addTopic(topic)}
+                      className="text-xs px-2.5 py-1 rounded-lg border border-line bg-surface hover:border-accent/50 hover:bg-accent/10 hover:text-accent-ink transition-colors text-muted"
+                    >
+                      + {topic}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  id="pf-exp"
+                  className="textarea-field"
+                  rows={3}
+                  placeholder="Intelligence artificielle, vision par ordinateur, optimisation QUBO..."
+                  {...field('expertise')}
+                />
+                <p className="form-hint">
+                  Ces mots-clés permettent à l'algorithme d'appariement d'attribuer automatiquement les articles les plus pertinents à votre comité.
+                </p>
+              </div>
+
+              {error && (
+                <div role="alert" className="alert-error">
+                  {error}
+                </div>
+              )}
+
+              <div className="pt-2 flex items-center gap-3">
+                <button
+                  type="submit"
+                  disabled={busy}
+                  className={`btn-primary ${savedSuccess ? 'bg-ok text-white' : ''}`}
+                >
+                  <CheckIcon size={16} weight="bold" aria-hidden="true" />
+                  {busy ? 'Enregistrement…' : savedSuccess ? 'Modifications enregistrées ✓' : 'Enregistrer mon profil'}
+                </button>
               </div>
             </div>
-            <div>
-              <label htmlFor="pf-exp" className="form-label flex items-center gap-1.5">
-                Domaines d'expertise
-                <SparkleIcon size={14} className="text-accent-ink" aria-hidden="true" />
-              </label>
-              <textarea id="pf-exp" className="textarea-field" rows={4} {...field('expertise')} />
-              <p className="form-hint">
-                Quelques lignes ou mots-clés (ex. vision par ordinateur, segmentation d'images, réseaux convolutifs). Elles serviront à
-                proposer à chaque reviewer les articles les plus proches de ses compétences.
-              </p>
+          </form>
+
+          {/* Colonne de droite : Aperçu en direct du Badge de Conférence */}
+          <aside className="space-y-4 lg:sticky lg:top-24">
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-semibold text-accent-ink inline-flex items-center gap-1.5">
+                <IdentificationBadgeIcon size={16} weight="duotone" />
+                Badge officiel en direct
+              </span>
+              <span className="text-[11px] font-mono text-muted">Aperçu badge physique</span>
             </div>
 
-            {error && (
-              <div role="alert" className="alert-error">
-                {error}
-              </div>
-            )}
-            {notice && (
-              <div role="status" className="alert-success">
-                {notice}
-              </div>
-            )}
+            {/* Carte Badge Conférence physique */}
+            <div className="relative rounded-2xl border-2 border-line/80 bg-surface shadow-lift overflow-hidden text-center flex flex-col items-center">
+              {/* Encoche pour le cordon de cou */}
+              <div className="w-14 h-3 rounded-full bg-navy/80 dark:bg-black/60 mt-3 mx-auto shadow-inner" />
 
-            <button type="submit" disabled={busy} className="btn-primary">
-              <CheckIcon size={16} weight="bold" aria-hidden="true" />
-              {busy ? 'Enregistrement…' : 'Enregistrer'}
-            </button>
-          </div>
-        </form>
+              {/* En-tête Badge */}
+              <div className="w-full bg-navy text-white px-5 py-4 mt-3 border-y border-accent/40 flex items-center justify-between">
+                <Logo compact inverted />
+                <div className="text-right">
+                  <span className="block text-[10px] font-mono text-accent uppercase tracking-wider font-semibold">
+                    Conférence 2026
+                  </span>
+                  <span className="block text-[9px] text-white/60">USTO-MB Oran</span>
+                </div>
+              </div>
+
+              {/* Corps du badge */}
+              <div className="p-6 w-full space-y-4">
+                <div className="flex justify-center">
+                  <div className="p-1 rounded-full border-2 border-accent/60 shadow-sm flex items-center justify-center">
+                    <Avatar name={form.full_name || 'Chercheur'} size={72} tone="brand" round />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <h3 className="font-bold text-fg text-lg leading-snug truncate" title={form.full_name}>
+                    {form.full_name || 'Votre Nom Complet'}
+                  </h3>
+                  <p className="text-xs font-medium text-accent-ink truncate" title={form.affiliation}>
+                    {form.affiliation || 'Laboratoire / Université'}
+                  </p>
+                  <p className="text-[11px] text-muted">
+                    {form.country || 'Algérie'}
+                  </p>
+                </div>
+
+                <div className="pt-2">
+                  <span className="inline-block px-3 py-1 rounded-full bg-accent text-on-accent text-xs font-bold uppercase tracking-wider shadow-xs">
+                    {isAdmin ? 'Comité Scientifique' : 'Auteur & Participant'}
+                  </span>
+                </div>
+
+                {/* Simulation QR Code d'accès */}
+                <div className="pt-3 border-t border-line/60 flex items-center justify-center gap-3">
+                  <div className="p-2 rounded-xl bg-white text-navy shadow-xs border border-line/40">
+                    <QrCodeIcon size={44} weight="bold" />
+                  </div>
+                  <div className="text-left text-[10px] font-mono text-muted leading-tight">
+                    <span className="block text-fg font-semibold">ID D'ACCÈS VÉRIFIÉ</span>
+                    <span className="block text-faint mt-0.5">CNF-2026-{(user.id || '0000').slice(0, 8).toUpperCase()}</span>
+                    <span className="block text-ok mt-0.5 font-sans font-medium">Prêt pour impression</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
       )}
 
-      <div className="mt-6 card p-5 sm:p-7 flex flex-wrap items-center justify-between gap-3">
+      <div className="card p-5 sm:p-7 flex flex-wrap items-center justify-between gap-3 shadow-xs">
         <div>
-          <p className="font-medium text-fg">Session</p>
-          <p className="text-sm text-muted">Connecté avec {form?.email || user.email}.</p>
+          <p className="font-semibold text-fg text-sm">Gestion de la session</p>
+          <p className="text-xs text-muted">Connecté avec {form?.email || user.email}.</p>
         </div>
-        <button type="button" className="btn-danger" onClick={() => supabase.auth.signOut()}>
+        <button type="button" className="btn-danger btn-sm" onClick={() => supabase.auth.signOut()}>
           <SignOutIcon size={16} aria-hidden="true" />
           Se déconnecter
         </button>

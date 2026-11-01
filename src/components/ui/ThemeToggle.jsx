@@ -8,11 +8,11 @@ const OPTIONS = [
   { id: 'dark', label: 'Sombre', icon: MoonIcon },
 ]
 
-// Choix du thème dans un petit menu : un clic pour ouvrir, un clic pour choisir.
 export default function ThemeToggle({ className = '' }) {
   const [pref, setPref] = useState(readThemePref)
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
+  const timeoutRef = useRef(null)
   const current = OPTIONS.find((o) => o.id === pref) || OPTIONS[0]
   const Icon = current.icon
 
@@ -30,6 +30,18 @@ export default function ThemeToggle({ className = '' }) {
     }
   }, [open])
 
+  const handleMouseEnter = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    setOpen(true)
+  }
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      setOpen(false)
+    }, 280)
+  }
+
   const choose = (id) => {
     applyTheme(id)
     setPref(id)
@@ -37,24 +49,29 @@ export default function ThemeToggle({ className = '' }) {
   }
 
   return (
-    <div className="relative" ref={ref}>
+    <div
+      className="relative inline-flex items-center"
+      ref={ref}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={className}
+        className={`${className} transition-transform duration-150 active:scale-95`}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={`Thème : ${current.label.toLowerCase()}`}
         title={`Thème : ${current.label.toLowerCase()}`}
       >
-        <Icon size={18} aria-hidden="true" />
+        <Icon size={18} aria-hidden="true" className="transition-transform duration-300 hover:rotate-12" />
       </button>
 
       {open && (
         <div
           role="menu"
           aria-label="Thème"
-          className="absolute right-0 top-12 z-50 w-44 card p-1.5 shadow-[var(--shadow-lift)] rise"
+          className="absolute right-0 top-11 z-50 w-38 card p-1 shadow-[var(--shadow-lift)] border border-line bg-surface/98 backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 origin-top-right space-y-0.5"
         >
           {OPTIONS.map(({ id, label, icon: OptIcon }) => {
             const active = id === pref
@@ -65,13 +82,15 @@ export default function ThemeToggle({ className = '' }) {
                 role="menuitemradio"
                 aria-checked={active}
                 onClick={() => choose(id)}
-                className={`w-full flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
-                  active ? 'bg-accent/12 text-fg font-medium' : 'text-muted hover:text-fg hover:bg-fg/5'
+                className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] transition-all duration-150 cursor-pointer active:scale-95 ${
+                  active
+                    ? 'bg-accent/15 text-accent-ink font-semibold shadow-xs'
+                    : 'text-muted hover:text-fg hover:bg-fg/5'
                 }`}
               >
-                <OptIcon size={17} aria-hidden="true" className={active ? 'text-accent-ink' : ''} />
+                <OptIcon size={16} aria-hidden="true" className={active ? 'text-accent-ink' : ''} />
                 <span className="flex-1 text-left">{label}</span>
-                {active && <CheckIcon size={15} weight="bold" className="text-accent-ink" aria-hidden="true" />}
+                {active && <CheckIcon size={14} weight="bold" className="text-accent-ink animate-in zoom-in-75 duration-150" aria-hidden="true" />}
               </button>
             )
           })}

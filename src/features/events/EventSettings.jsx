@@ -1,8 +1,17 @@
 import { useState } from 'react'
-import { PencilSimpleIcon, PaperPlaneTiltIcon, LockSimpleIcon, ArrowCounterClockwiseIcon, TrashIcon, ArrowRightIcon } from '@phosphor-icons/react'
+import {
+  PencilSimpleIcon,
+  PaperPlaneTiltIcon,
+  LockSimpleIcon,
+  ArrowCounterClockwiseIcon,
+  TrashIcon,
+  ArrowRightIcon,
+  InfoIcon,
+} from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { writeError } from '../../lib/errors'
 import { TYPE_LABELS, FORMAT_LABELS, PHASE_LABELS, STATUS_LABELS, STATUS_BADGE, formatDateRange } from '../../lib/constants'
+import { cleanDescription } from '../../lib/cover'
 import EventForm from './EventForm'
 
 const REFUSED = "Modification refusée : tu n'es pas organisateur de cet événement."
@@ -12,6 +21,10 @@ export default function EventSettings({ event, pendingCount, onChanged, onDelete
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState(null)
   const [notice, setNotice] = useState(null)
+
+  const isClosed = ['closed', 'archived'].includes(event.status)
+  const isLive = event.status === 'ongoing'
+  const lockedFields = isLive ? ['start_date', 'end_date', 'type', 'format'] : []
 
   const update = async (changes, okText) => {
     setError(null)
@@ -86,22 +99,36 @@ export default function EventSettings({ event, pendingCount, onChanged, onDelete
             <h3 className="font-semibold text-fg">Informations</h3>
             <p className="text-sm text-muted mt-0.5">Titre, dates, lieu et format affichés sur la fiche publique.</p>
           </div>
-          {!editing && (
+          {isClosed ? (
+            <span className="text-xs font-semibold text-muted inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 border border-line shrink-0">
+              <LockSimpleIcon size={14} weight="bold" className="text-muted" aria-hidden="true" />
+              Événement clôturé &bull; Verrouillé
+            </span>
+          ) : !editing ? (
             <button type="button" className="btn-outline btn-sm" onClick={() => setEditing(true)}>
               <PencilSimpleIcon size={15} aria-hidden="true" />
               Modifier
             </button>
-          )}
+          ) : null}
         </div>
 
         {editing ? (
           <div className="mt-6">
+            {isLive && (
+              <div className="alert-info text-xs flex items-center gap-2 mb-4 p-3 rounded-xl bg-accent/10 border border-accent/25 text-fg">
+                <InfoIcon size={18} className="text-accent-ink shrink-0" aria-hidden="true" />
+                <span>
+                  <strong>Événement en direct (Jour J) :</strong> Les dates, le type et le format sont verrouillés pour préserver la conformité des présences et des sessions.
+                </span>
+              </div>
+            )}
             <EventForm
-              initial={{ ...event, description: event.description || '', location: event.location || '' }}
+              initial={{ ...event, description: cleanDescription(event.description || ''), location: event.location || '' }}
               submitLabel="Enregistrer"
               busyLabel="Enregistrement…"
               onSubmit={saveInfo}
               onCancel={() => setEditing(false)}
+              lockedFields={lockedFields}
             />
           </div>
         ) : (

@@ -10,6 +10,7 @@ import AttendanceBadge from '../attendance/AttendanceBadge'
 export default function RegistrationCard({ event, participants, onRefresh }) {
   const myId = useAuth().user?.id ?? null
   const [payment, setPayment] = useState(null)
+  const [payType, setPayType] = useState('ccp')
   const [reference, setReference] = useState('')
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -40,7 +41,17 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
     setBusy(true)
     const { error: rpcError } = await supabase.rpc('declare_payment', {
       p_event_id: event.id,
-      p_reference: free ? 'Sans frais' : reference.trim(),
+      p_reference: free
+        ? 'Sans frais'
+        : payType === 'ccp'
+        ? `Bordereau CCP n° ${reference.trim()}`
+        : payType === 'baridimob'
+        ? `BaridiMob n° ${reference.trim()}`
+        : payType === 'bank'
+        ? `Virement bancaire n° ${reference.trim()}`
+        : payType === 'onsite'
+        ? `Sur place : ${reference.trim()}`
+        : reference.trim(),
     })
     setBusy(false)
     if (rpcError) {
@@ -70,7 +81,7 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
     return (
       <p className="text-sm text-muted leading-relaxed">
         L'inscription se fait sur invitation de l'organisateur, une fois ton article accepté. Commence par soumettre un article dans l'onglet
-        Scientifique.
+        Articles.
       </p>
     )
   }
@@ -111,11 +122,55 @@ export default function RegistrationCard({ event, participants, onRefresh }) {
   const form = (
     <form onSubmit={declare} className="space-y-3">
       {!free && (
-        <div>
-          <label htmlFor="payment-ref" className="form-label">
-            Référence du bordereau
-          </label>
-          <input id="payment-ref" className="input-field num" value={reference} onChange={(e) => setReference(e.target.value)} required />
+        <div className="space-y-2.5">
+          <div>
+            <label htmlFor="pay-type-select" className="form-label text-xs">
+              Moyen de règlement utilisé
+            </label>
+            <select
+              id="pay-type-select"
+              className="select-field text-xs"
+              value={payType}
+              onChange={(e) => setPayType(e.target.value)}
+            >
+              <option value="ccp">Bordereau CCP (Algérie Poste)</option>
+              <option value="baridimob">Virement BaridiMob</option>
+              <option value="bank">Virement Bancaire (RIB)</option>
+              <option value="onsite">Sur place / Bon de commande labo</option>
+              <option value="other">Autre référence</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="payment-ref" className="form-label text-xs">
+              {payType === 'ccp'
+                ? 'N° du bordereau CCP (sur le talon)'
+                : payType === 'baridimob'
+                ? 'N° de transaction BaridiMob'
+                : payType === 'bank'
+                ? 'Référence du virement bancaire'
+                : payType === 'onsite'
+                ? 'N° de reçu ou Bon de commande'
+                : 'Référence du paiement'}
+            </label>
+            <input
+              id="payment-ref"
+              className="input-field num text-xs"
+              placeholder={
+                payType === 'ccp'
+                  ? 'Ex: 489218'
+                  : payType === 'baridimob'
+                  ? 'Ex: 240830114923'
+                  : payType === 'bank'
+                  ? 'Ex: VIR-849204'
+                  : payType === 'onsite'
+                  ? 'Ex: BC USTO n° 12'
+                  : 'Ex: Réf-12345'
+              }
+              value={reference}
+              onChange={(e) => setReference(e.target.value)}
+              required
+            />
+          </div>
         </div>
       )}
       <button type="submit" disabled={busy} className="btn-primary w-full">

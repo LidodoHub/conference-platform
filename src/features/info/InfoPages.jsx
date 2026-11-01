@@ -123,7 +123,7 @@ const FAQ = [
   {
     group: 'Auteurs',
     items: [
-      ['Comment soumettre un article ?', 'Ouvre un événement en phase scientifique, onglet Scientifique, puis « Soumettre un article » : un titre et un résumé suffisent.'],
+      ['Comment soumettre un article ?', 'Ouvre un événement en phase scientifique, onglet Articles, puis « Soumettre un article » : un titre et un résumé suffisent.'],
       ['Puis-je modifier ou retirer mon article ?', 'Tu peux le retirer tant qu’il est en attente. Si une révision est demandée, tu le corriges et le resoumets depuis le même onglet.'],
       ['Qui voit mon article ?', 'L’organisateur et les reviewers de l’événement. Une fois accepté et l’événement publié, il apparaît dans le programme public.'],
       [`Combien d’articles peuvent être acceptés ?`, `Au plus ${MAX_ACCEPTED_PER_AUTHOR} articles par auteur et par événement.`],

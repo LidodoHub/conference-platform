@@ -2,9 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { QrCodeIcon, StopIcon, MagnifyingGlassIcon, CheckIcon, ArrowCounterClockwiseIcon, PresentationChartIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
+import { playScanSound, playSuccessSound } from '../../lib/sound'
 import Avatar from '../../components/ui/Avatar'
 import SectionTitle from '../../components/ui/SectionTitle'
 import EmptyState from '../../components/ui/EmptyState'
+import Collapsible from '../../components/ui/Collapsible'
 import { BarList } from '../../components/charts/Charts'
 
 const RESULT_CLASS = { ok: 'alert-success', warn: 'alert-info', error: 'alert-error' }
@@ -58,6 +60,8 @@ export default function AttendancePanel({ eventId, participants }) {
     const row = Array.isArray(data) ? data[0] : data
     if (!row) return
     const n = row.sessions_attended
+    if (row.was_already) playScanSound()
+    else playSuccessSound()
     setResult({
       type: row.was_already ? 'warn' : 'ok',
       text: row.was_already
@@ -170,8 +174,37 @@ export default function AttendancePanel({ eventId, participants }) {
     .sort((a, b) => Number(recordByUser.has(a.user_id)) - Number(recordByUser.has(b.user_id)) || (a.profiles?.full_name || '').localeCompare(b.profiles?.full_name || ''))
 
   return (
-    <section className="space-y-8">
-      <SectionTitle title="Présences" description="Scanne les badges QR à l'entrée de chaque session, ou pointe à la main." />
+    <section className="space-y-6">
+      <SectionTitle title="Présences & Émargement" />
+
+      {/* Rideau rétractable : Guide pour l'accueil & le pointage */}
+      <Collapsible
+        title="Guide d'émargement & Conseils d'accueil"
+        subtitle="Mode Kiosque, carillon sonore et secours manuel"
+        variant="subtle"
+        defaultOpen={false}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+          <div className="p-3 rounded-lg bg-surface border border-line">
+            <span className="font-semibold text-fg block mb-1">1. Scan caméra instantané</span>
+            <p className="text-muted leading-relaxed">
+              Pointez la caméra du smartphone vers le QR code du participant. Le carillon confirme la présence.
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-surface border border-line">
+            <span className="font-semibold text-fg block mb-1">2. Alerte doublon</span>
+            <p className="text-muted leading-relaxed">
+              Si le participant a déjà été pointé dans la même session, un son d'avertissement vous le signale.
+            </p>
+          </div>
+          <div className="p-3 rounded-lg bg-surface border border-line">
+            <span className="font-semibold text-fg block mb-1">3. Pointage manuel de secours</span>
+            <p className="text-muted leading-relaxed">
+              En cas d'écran fissuré ou de batterie vide, cherchez le nom dans la liste et cliquez sur « Pointer ».
+            </p>
+          </div>
+        </div>
+      </Collapsible>
 
       {error && (
         <div role="alert" className="alert-error">
@@ -220,16 +253,56 @@ export default function AttendancePanel({ eventId, participants }) {
           </div>
 
           {sessionId && (
-            <div className="flex items-end gap-4">
-              <p className="num text-5xl font-semibold tracking-tight text-fg leading-none">
-                {presentMembers}
-                <span className="text-2xl text-faint font-normal"> / {members.length}</span>
-              </p>
-              <p className="text-sm text-muted pb-1">inscrits présents dans cette session</p>
+            <div className="space-y-3 pt-1">
+              <div className="flex items-end gap-4">
+                <p className="num text-4xl sm:text-5xl font-bold tracking-tight text-fg leading-none">
+                  {presentMembers}
+                  <span className="text-xl sm:text-2xl text-faint font-normal"> / {members.length}</span>
+                </p>
+                <p className="text-xs sm:text-sm text-muted pb-1">participants émargés dans cette session</p>
+              </div>
+
+              {members.length > 0 && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-xs text-muted">
+                    <span className="font-medium text-fg flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-ok animate-pulse" />
+                      Affluence en temps réel
+                    </span>
+                    <span className="num font-bold text-accent-ink">
+                      {Math.round((presentMembers / members.length) * 100)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-2 rounded-full bg-fg/10 overflow-hidden">
+                    <div
+                      className="h-full bg-ok transition-all duration-300 rounded-full"
+                      style={{ width: `${Math.round((presentMembers / members.length) * 100)}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {scanning && <div id="qr-reader" className="w-full max-w-sm overflow-hidden rounded-xl border border-line" />}
+          {scanning && (
+            <div className="relative w-full max-w-md mx-auto p-4 rounded-2xl bg-surface-2/80 border-2 border-accent/40 shadow-xl overflow-hidden space-y-3 animate-in fade-in-0 duration-200">
+              <div className="flex items-center justify-between text-xs font-semibold">
+                <span className="flex items-center gap-2 text-fg">
+                  <span className="w-2.5 h-2.5 rounded-full bg-ok animate-ping" />
+                  Mode Émargement Rapide (Scan continu)
+                </span>
+                <span className="text-accent-ink font-mono text-[11px]">Caméra active</span>
+              </div>
+
+              <div className="relative overflow-hidden rounded-xl border border-line bg-black flex items-center justify-center">
+                <div id="qr-reader" className="w-full" />
+              </div>
+
+              <p className="text-[11px] text-center text-muted">
+                Présentez le pass mobile d'un participant devant l'objectif pour valider son entrée.
+              </p>
+            </div>
+          )}
 
           {result && (
             <div role="status" className={RESULT_CLASS[result.type]}>
