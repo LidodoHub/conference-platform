@@ -8,6 +8,11 @@ import {
   TrashIcon,
   StarIcon,
   CalendarBlankIcon,
+  TrophyIcon,
+  BookBookmarkIcon,
+  EyeSlashIcon,
+  CaretDownIcon,
+  CaretUpIcon,
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
@@ -22,7 +27,17 @@ import {
 import Pill from '../../components/ui/Pill'
 import Avatar from '../../components/ui/Avatar'
 import { StackedBar } from '../../components/charts/Charts'
-import ReviewForm from '../reviews/ReviewForm'
+import IdeasReviewModal from '../reviews/IdeasReviewModal'
+import {
+  parseReviewFromComments,
+  getIdeasLabel,
+  A1_OPTIONS,
+  B3_OPTIONS,
+  C3_TRACKS,
+  C4_OPTIONS,
+  D1_OPTIONS,
+  F2_FORMATS,
+} from '../reviews/ideasReviewUtils'
 import { sentReviews, realComment, averageScore, latestRevision, statusLabel, REVISION_HINTS } from './submissionUtils'
 
 export function Stars({ value, size = 14 }) {
@@ -36,8 +51,174 @@ export function Stars({ value, size = 14 }) {
   )
 }
 
-function ReviewItem({ name, review, sessionTitle }) {
+function ReviewItem({ name, review, sessionTitle, canManage, myId }) {
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  const ideas = parseReviewFromComments(review.comments)
+  const canSeeConfidential = canManage || review.reviewer_id === myId
   const color = RECOMMENDATION_COLOR[review.recommendation] || 'var(--color-st-muted)'
+
+  if (ideas) {
+    const scoreBand =
+      ideas.f5 >= 90
+        ? { label: 'Outstanding (90-100)', color: 'text-ok bg-ok/15 border-ok/30' }
+        : ideas.f5 >= 75
+        ? { label: 'Strong, Accept (75-89)', color: 'text-info bg-info/15 border-info/30' }
+        : ideas.f5 >= 60
+        ? { label: 'Revisions (60-74)', color: 'text-accent-ink bg-accent/15 border-accent/30' }
+        : ideas.f5 >= 40
+        ? { label: 'Weaknesses (40-59)', color: 'text-warn bg-warn/15 border-warn/30' }
+        : { label: 'Reject (< 40)', color: 'text-bad bg-bad/15 border-bad/30' }
+
+    return (
+      <li className="rounded-2xl border border-line bg-surface-2/40 p-4 sm:p-5 space-y-4">
+        {/* Entete avec reviewer, note et score IDEAS */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-line/60">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <Avatar name={name} size={30} />
+            <div>
+              <span className="text-sm font-semibold text-fg block truncate">{name}</span>
+              <span className="text-[11px] text-muted">
+                Expertise : {getIdeasLabel(A1_OPTIONS, ideas.a1)}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <span className={`text-xs font-mono font-bold px-2.5 py-1 rounded-lg border ${scoreBand.color}`}>
+              Score IDEAS : {ideas.f5}/100 • {scoreBand.label.split('(')[0].trim()}
+            </span>
+            <Stars value={review.score} />
+          </div>
+        </div>
+
+        {/* Badges de decision, track, format et distinctions */}
+        <div className="flex flex-wrap items-center gap-2">
+          {review.recommendation && <Pill color={color}>{RECOMMENDATION_LABELS[review.recommendation]}</Pill>}
+
+          <span className="text-xs px-2 py-0.5 rounded-md bg-fg/5 text-fg/80 border border-line">
+            Track : {getIdeasLabel(C3_TRACKS, ideas.c3)}
+          </span>
+
+          <span className="text-xs px-2 py-0.5 rounded-md bg-fg/5 text-fg/80 border border-line">
+            Format : {getIdeasLabel(F2_FORMATS, ideas.f2)}
+          </span>
+
+          {ideas.f4 === 'yes' && (
+            <span className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-md bg-accent/20 text-accent-ink border border-accent/40">
+              <TrophyIcon size={13} weight="fill" />
+              <span>Nomination Best Paper</span>
+            </span>
+          )}
+
+          {(ideas.f3 === 'strongly' || ideas.f3 === 'possibly') && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-md bg-info/15 text-info-ink border border-info/30">
+              <BookBookmarkIcon size={13} />
+              <span>Candidat IGI Global Book</span>
+            </span>
+          )}
+
+          {review.recommended_session_id && (
+            <span className="text-xs text-muted">Session : {sessionTitle(review.recommended_session_id) || 'supprimee'}</span>
+          )}
+        </div>
+
+        {/* Section E : Commentaires pour les auteurs */}
+        <div className="space-y-3 pt-1">
+          {ideas.e1 && (
+            <div className="text-xs space-y-1">
+              <span className="font-semibold text-ok flex items-center gap-1">
+                <span>Points forts (E1) :</span>
+              </span>
+              <p className="text-fg/85 whitespace-pre-line pl-3 border-l-2 border-ok/40 leading-relaxed">
+                {ideas.e1}
+              </p>
+            </div>
+          )}
+
+          {ideas.e2 && (
+            <div className="text-xs space-y-1">
+              <span className="font-semibold text-warn flex items-center gap-1">
+                <span>Axes d'amelioration / Faiblesses (E2) :</span>
+              </span>
+              <p className="text-fg/85 whitespace-pre-line pl-3 border-l-2 border-warn/40 leading-relaxed">
+                {ideas.e2}
+              </p>
+            </div>
+          )}
+
+          {ideas.e3 && (
+            <div className="text-xs space-y-1">
+              <span className="font-semibold text-fg flex items-center gap-1">
+                <span>Suggestions concretes (E3) :</span>
+              </span>
+              <p className="text-fg/85 whitespace-pre-line pl-3 border-l-2 border-line leading-relaxed">
+                {ideas.e3}
+              </p>
+            </div>
+          )}
+
+          {/* Section E4 Confidentiel pour le comite */}
+          {canSeeConfidential && ideas.e4 && (
+            <div className="p-3 rounded-xl border border-warn/40 bg-warn/8 text-xs space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-warn uppercase tracking-wider text-[10px]">
+                <EyeSlashIcon size={14} />
+                <span>Remarques confidentielles pour les chaires (E4)</span>
+              </div>
+              <p className="text-fg/90 whitespace-pre-line pl-1 leading-relaxed">
+                {ideas.e4}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Grille detaillee depliable (B1-B5, C, D) */}
+        <div className="pt-2 border-t border-line/60">
+          <button
+            type="button"
+            onClick={() => setDetailsOpen((v) => !v)}
+            className="btn-ghost btn-sm text-[11px] text-muted hover:text-fg inline-flex items-center gap-1 p-0"
+          >
+            {detailsOpen ? <CaretUpIcon size={12} /> : <CaretDownIcon size={12} />}
+            <span>{detailsOpen ? 'Masquer la grille detaillee IDEAS’2027' : 'Voir la grille detaillee IDEAS’2027 (B1-B5, Ethique, Format)'}</span>
+          </button>
+
+          {detailsOpen && (
+            <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] p-3 rounded-xl bg-surface border border-line">
+              <div className="space-y-0.5">
+                <span className="text-muted block text-[10px] uppercase">B1. Originalite</span>
+                <span className="font-bold text-fg">{ideas.b1} / 5</span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-muted block text-[10px] uppercase">B2. Rigueur tech.</span>
+                <span className="font-bold text-fg">{ideas.b2} / 5</span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-muted block text-[10px] uppercase">B4. Conclusions</span>
+                <span className="font-bold text-fg">{ideas.b4} / 5</span>
+              </div>
+              <div className="space-y-0.5">
+                <span className="text-muted block text-[10px] uppercase">B5. Etat de l'art</span>
+                <span className="font-bold text-fg">{ideas.b5} / 5</span>
+              </div>
+              <div className="col-span-2 space-y-0.5 pt-1.5 border-t border-line/50">
+                <span className="text-muted block text-[10px] uppercase">B3. Type de validation</span>
+                <span className="font-medium text-fg truncate block">{getIdeasLabel(B3_OPTIONS, ideas.b3)}</span>
+              </div>
+              <div className="space-y-0.5 pt-1.5 border-t border-line/50">
+                <span className="text-muted block text-[10px] uppercase">C4. Format IEEE</span>
+                <span className="font-medium text-fg truncate block">{getIdeasLabel(C4_OPTIONS, ideas.c4)}</span>
+              </div>
+              <div className="space-y-0.5 pt-1.5 border-t border-line/50">
+                <span className="text-muted block text-[10px] uppercase">D1. Ethique</span>
+                <span className="font-medium text-fg">{getIdeasLabel(D1_OPTIONS, ideas.d1)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      </li>
+    )
+  }
+
   return (
     <li className="rounded-xl border border-line bg-surface-2/50 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -309,7 +490,7 @@ export default function SubmissionDetail({
             ) : (
               <ul className="space-y-2.5">
                 {(canManage ? reviews : mine).map((r) => (
-                  <ReviewItem key={r.id} name={canManage ? reviewerName(r.reviewer_id) : 'Mon avis'} review={r} sessionTitle={sessionTitle} />
+                  <ReviewItem key={r.id} name={canManage ? reviewerName(r.reviewer_id) : 'Mon avis'} review={r} sessionTitle={sessionTitle} canManage={canManage} myId={myId} />
                 ))}
               </ul>
             )}
@@ -327,7 +508,7 @@ export default function SubmissionDetail({
             {reviews.filter(realComment).length > 0 && (
               <ul className="space-y-2.5 mt-4">
                 {reviews.filter(realComment).map((r, i) => (
-                  <ReviewItem key={r.id} name={`Reviewer ${i + 1}`} review={r} sessionTitle={sessionTitle} />
+                  <ReviewItem key={r.id} name={`Reviewer ${i + 1}`} review={r} sessionTitle={sessionTitle} canManage={canManage} myId={myId} />
                 ))}
               </ul>
             )}
@@ -384,28 +565,28 @@ export default function SubmissionDetail({
         {/* Reviewer */}
         {canReview && (
           <section className="mt-8">
-            {reviewing ? (
-              <>
-                <div className="flex items-center justify-between">
-                  <h4 className="font-semibold text-fg">Ma review</h4>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setReviewing(false)}>
-                    Fermer
-                  </button>
-                </div>
-                <ReviewForm
-                  submissionId={s.id}
-                  eventId={eventId}
-                  onReviewed={() => {
-                    setReviewing(false)
-                    onRefresh()
-                  }}
-                />
-              </>
-            ) : (
-              <button type="button" className="btn-info" onClick={() => setReviewing(true)}>
-                <NotePencilIcon size={16} aria-hidden="true" />
-                Faire une review
-              </button>
+            <button
+              type="button"
+              className="btn-info inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-semibold shadow-xs hover:shadow transition-all active:scale-95"
+              onClick={() => setReviewing(true)}
+            >
+              <NotePencilIcon size={17} aria-hidden="true" />
+              <span>
+                {mine.length > 0 ? "Modifier ma grille d'évaluation IDEAS’2027" : "Remplir la grille d'évaluation IDEAS’2027"}
+              </span>
+            </button>
+
+            {reviewing && (
+              <IdeasReviewModal
+                submission={s}
+                eventId={eventId}
+                initialData={parseReviewFromComments(mine[0]?.comments)}
+                onClose={() => setReviewing(false)}
+                onReviewed={() => {
+                  setReviewing(false)
+                  onRefresh()
+                }}
+              />
             )}
           </section>
         )}
