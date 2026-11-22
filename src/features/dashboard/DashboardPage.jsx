@@ -635,7 +635,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card overflow-hidden border-line bg-surface/80 hover:bg-surface hover:border-accent/60 dark:hover:border-white/[0.12] transition-all duration-300 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
+                      className="group card overflow-hidden border-line bg-surface hover:border-accent/60 dark:hover:border-white/[0.12] transition-all duration-300 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
                     >
                       <div>
                         <EventCover
@@ -650,7 +650,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                             isOngoing
                               ? 'bg-ok text-white'
                               : isClosed
-                              ? 'bg-surface/90 text-muted border border-line'
+                              ? 'bg-surface-2 text-muted border border-line'
                               : isScientific
                               ? 'bg-accent text-on-accent'
                               : 'bg-surface-2 text-fg border border-line'
@@ -705,7 +705,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card p-4 sm:p-5 border-line bg-surface/80 hover:bg-surface hover:border-accent/60 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:translate-x-1"
+                      className="group card p-4 sm:p-5 border-line bg-surface hover:border-accent/60 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:translate-x-1"
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         {/* Bloc date jour */}
@@ -842,7 +842,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     </div>
                   </section>
                 ) : (
-                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-surface/60 border border-line/60 text-xs text-muted">
+                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-surface border border-line text-xs text-muted">
                     <CheckCircleIcon size={16} className="text-ok shrink-0" weight="bold" />
                     <span>Tout est à jour • Aucun livrable en attente</span>
                   </div>
@@ -922,7 +922,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               {/* Colonne droite : Badge d'accès & Conférences suivies */}
               <div className="space-y-8 sm:space-y-10">
                 {/* Badge d'accès numérique */}
-                <section className="card p-5 border-line bg-surface/80 space-y-3">
+                <section className="card p-5 border-line bg-surface space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-bold text-sm sm:text-base text-fg flex items-center gap-2">
                       <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
