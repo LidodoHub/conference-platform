@@ -3,7 +3,7 @@ import Logo from './Logo'
 import { SITE } from '../../lib/site'
 
 function FooterLink({ onClick, href, children }) {
-  const cls = 'text-sm text-muted hover:text-fg underline-offset-4 hover:underline decoration-accent transition-colors'
+  const cls = 'text-sm text-muted hover:text-fg dark:hover:text-white underline-offset-4 hover:underline decoration-fg/30 dark:decoration-white/40 transition-colors'
   if (href)
     return (
       <a href={href} className={cls} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
@@ -20,7 +20,7 @@ function FooterLink({ onClick, href, children }) {
 function Column({ title, children }) {
   return (
     <div>
-      <h2 className="text-[13px] font-semibold tracking-wide text-accent mb-4">{title}</h2>
+      <h2 className="text-[13px] font-semibold tracking-wide text-fg dark:text-white mb-4">{title}</h2>
       <ul className="space-y-2.5">{children}</ul>
     </div>
   )
@@ -36,7 +36,7 @@ export default function SiteFooter({ onNavigate }) {
             <Logo inverted={false} />
             <p className="mt-4 text-sm text-muted leading-relaxed">{SITE.tagline}</p>
             <p className="mt-4 flex items-start gap-2 text-[13px] text-faint">
-              <GraduationCapIcon size={16} className="shrink-0 mt-0.5 text-accent" aria-hidden="true" />
+              <GraduationCapIcon size={16} className="shrink-0 mt-0.5 text-muted dark:text-white/80" aria-hidden="true" />
               {SITE.project}
             </p>
           </div>
@@ -56,7 +56,7 @@ export default function SiteFooter({ onNavigate }) {
 
           <Column title="Contact">
             <li className="flex items-start gap-2 text-sm text-muted">
-              <MapPinIcon size={16} className="shrink-0 mt-0.5 text-accent" aria-hidden="true" />
+              <MapPinIcon size={16} className="shrink-0 mt-0.5 text-muted dark:text-white/80" aria-hidden="true" />
               <span>
                 USTO-MB
                 <br />
@@ -65,7 +65,7 @@ export default function SiteFooter({ onNavigate }) {
             </li>
             {SITE.contactEmail && (
               <li className="flex items-center gap-2">
-                <EnvelopeSimpleIcon size={16} className="shrink-0 text-accent" aria-hidden="true" />
+                <EnvelopeSimpleIcon size={16} className="shrink-0 text-muted dark:text-white/80" aria-hidden="true" />
                 <FooterLink href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</FooterLink>
               </li>
             )}

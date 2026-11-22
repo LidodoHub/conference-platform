@@ -115,7 +115,7 @@ function SubmissionCard({ s, isMine, showReviews, todo, doubleBlind, onSelect })
           )}
         </div>
 
-        <h3 className="font-semibold text-fg text-base sm:text-lg leading-snug group-hover:text-accent-ink transition-colors line-clamp-2">
+        <h3 className="font-semibold text-fg text-base sm:text-lg leading-snug group-hover:text-fg dark:group-hover:text-white transition-colors line-clamp-2">
           {s.title}
         </h3>
 
@@ -186,7 +186,7 @@ function SubmissionTable({ list, myId, showReviews, todoOf, doubleBlind, onSelec
                     </span>
                   </td>
                   <td className="px-4 py-3.5 min-w-[260px] max-w-md">
-                    <span className="font-semibold text-fg block truncate group-hover:text-accent-ink transition-colors">
+                    <span className="font-semibold text-fg block truncate group-hover:text-fg dark:group-hover:text-white transition-colors">
                       {s.title}
                     </span>
                     <span className="text-xs text-muted block truncate mt-0.5">
@@ -333,9 +333,9 @@ function ConsensusMatrix({ submissions, doubleBlind, myId, onSelect }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onSelect(s.id)}
-                      className="card p-3.5 bg-surface border-line/80 hover:border-accent hover:shadow-md transition-all cursor-pointer space-y-2.5 group text-left"
+                      className="card p-3.5 bg-surface border-line/80 hover:border-black/20 dark:hover:border-white/[0.12] hover:shadow-md transition-all cursor-pointer space-y-2.5 group text-left"
                     >
-                      <h4 className="text-xs font-semibold text-fg line-clamp-2 leading-snug group-hover:text-accent-ink transition-colors">
+                      <h4 className="text-xs font-semibold text-fg line-clamp-2 leading-snug group-hover:text-fg dark:group-hover:text-white transition-colors">
                         {s.title}
                       </h4>
 
@@ -362,7 +362,7 @@ function ConsensusMatrix({ submissions, doubleBlind, myId, onSelect }) {
                         <span className="text-muted num">
                           {revs.length} review{revs.length > 1 ? 's' : ''}
                         </span>
-                        <span className="text-accent-ink font-semibold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5">
+                        <span className="text-fg dark:text-white font-semibold group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-0.5">
                           Arbitrer &rarr;
                         </span>
                       </div>

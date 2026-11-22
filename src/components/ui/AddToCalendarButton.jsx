@@ -91,7 +91,7 @@ export default function AddToCalendarButton({
         >
           <div className="px-2 py-1 text-[11px] font-semibold text-muted uppercase tracking-wider border-b border-line/60 mb-1 flex items-center justify-between">
             <span>Exporter</span>
-            <span className="text-[10px] lowercase text-accent-ink font-normal">au choix</span>
+            <span className="text-[10px] lowercase text-muted font-normal">au choix</span>
           </div>
           <a
             role="menuitem"
@@ -99,9 +99,9 @@ export default function AddToCalendarButton({
             target="_blank"
             rel="noopener noreferrer"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-fg hover:bg-accent/12 hover:text-accent-ink rounded-lg transition-all duration-150"
+            className="flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-fg hover:bg-fg/5 hover:text-fg dark:hover:text-white rounded-lg transition-all duration-150"
           >
-            <GoogleLogoIcon size={16} className="text-accent-ink shrink-0" weight="bold" />
+            <GoogleLogoIcon size={16} className="text-muted shrink-0" weight="bold" />
             <span>Google Calendar</span>
           </a>
 
@@ -109,9 +109,9 @@ export default function AddToCalendarButton({
             type="button"
             role="menuitem"
             onClick={onDownloadICS}
-            className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-fg hover:bg-accent/12 hover:text-accent-ink rounded-lg transition-all duration-150 cursor-pointer"
+            className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-fg hover:bg-fg/5 hover:text-fg dark:hover:text-white rounded-lg transition-all duration-150 cursor-pointer"
           >
-            <CalendarBlankIcon size={16} className="text-accent-ink shrink-0" weight="bold" />
+            <CalendarBlankIcon size={16} className="text-muted shrink-0" weight="bold" />
             <span>Fichier iCalendar (.ics)</span>
           </button>
         </div>

@@ -341,7 +341,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
       <div className="hidden sm:flex items-center gap-2 text-xs text-muted shrink-0">
         <span className="font-semibold text-fg/80">Campus USTO-MB</span>
         <span>•</span>
-        <span className="text-accent-ink font-medium">2026/2027</span>
+        <span className="text-muted font-medium">2026/2027</span>
       </div>
     </div>
   )
@@ -353,7 +353,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
         {/* FORMULAIRE DE CRÉATION DE CONFÉRENCE (DÉPLIABLE EN 1 CLIC) */}
         {showCreateForm && (
-          <div className="card p-5 sm:p-7 border border-accent/40 bg-surface shadow-xl space-y-4 animate-view-fade">
+          <div className="card p-5 sm:p-7 border border-line bg-surface shadow-xl space-y-4 animate-view-fade">
             <div className="flex items-center justify-between pb-3 border-b border-line">
               <div>
                 <h3 className="font-semibold text-base sm:text-lg text-fg">Nouvelle conférence universitaire</h3>
@@ -397,7 +397,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     <div className="text-xs sm:text-sm text-white font-medium flex items-center gap-2 [text-shadow:_0_1px_4px_rgba(0,0,0,0.85)]">
                       <span className="first-letter:uppercase">{todayLabel}</span>
                       <span className="text-white/60">•</span>
-                      <span className="text-accent font-semibold tracking-wide [text-shadow:_0_1px_4px_rgba(0,0,0,0.95)]">USTO-MB, ORAN</span>
+                      <span className="text-white font-semibold tracking-wide [text-shadow:_0_1px_4px_rgba(0,0,0,0.95)]">USTO-MB, ORAN</span>
                     </div>
 
                     <div>
@@ -413,7 +413,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                               const el = document.getElementById('main-content-section')
                               el?.scrollIntoView({ behavior: 'smooth' })
                             }}
-                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-accent/40 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-white/25 hover:border-accent active:scale-95 transition-all"
+                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-white/20 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-white/25 hover:border-white/40 active:scale-95 transition-all"
                           >
                             <span className="w-2 h-2 rounded-full bg-warn" />
                             <span>
@@ -440,7 +440,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         const el = document.getElementById('main-content-section')
                         el?.scrollIntoView({ behavior: 'smooth' })
                       }}
-                      className="btn-accent btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                      className="bg-white text-[#1D1D1F] hover:bg-neutral-100 btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95 rounded-xl"
                     >
                       <PlusIcon size={16} weight="bold" />
                       <span>Proposer une conférence</span>
@@ -463,7 +463,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
             {/* CONFÉRENCE VEDETTE À LA UNE */}
             {featuredEvent && (
-              <section className="card p-6 sm:p-8 border border-line bg-surface relative overflow-hidden shadow-card hover:border-accent/40 transition-all duration-300">
+              <section className="card p-6 sm:p-8 border border-line bg-surface relative overflow-hidden shadow-card hover:border-black/20 dark:hover:border-white/[0.12] transition-all duration-300">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                   {/* Colonne gauche : texte et boutons (md:col-span-7) */}
                   <div className="md:col-span-7 space-y-4">
@@ -549,7 +549,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           </span>
                         </div>
                         <div className="relative z-10 flex items-center justify-between text-xs">
-                          <span className="font-semibold text-accent-ink bg-surface/90 dark:bg-[#222226] border border-line/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                          <span className="font-semibold text-muted bg-surface/90 dark:bg-[#222226] border border-line/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
                             Actes & Archives
                           </span>
                         </div>
@@ -585,7 +585,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       onClick={() => setFilterChip(chip.id)}
                       className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors ${
                         filterChip === chip.id
-                          ? 'bg-accent text-on-accent'
+                          ? 'bg-[#1D1D1F] text-white dark:bg-white dark:text-[#1D1D1F]'
                           : 'bg-surface border border-line text-muted hover:text-fg'
                       }`}
                     >
@@ -635,7 +635,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card overflow-hidden border-line bg-surface hover:border-accent/60 dark:hover:border-white/[0.12] transition-all duration-300 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
+                      className="group card overflow-hidden border-line bg-surface hover:border-black/20 dark:hover:border-white/[0.12] transition-all duration-300 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
                     >
                       <div>
                         <EventCover
@@ -660,7 +660,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         </EventCover>
 
                         <div className="p-4 space-y-2">
-                          <h3 className="font-semibold text-fg text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-accent-ink transition-colors">
+                          <h3 className="font-semibold text-fg text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-fg dark:group-hover:text-white transition-colors">
                             {ev.title}
                           </h3>
                           {ev.description && (
@@ -673,7 +673,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
                       <div className="px-4 pb-4 pt-2 border-t border-line/60 flex items-center justify-between text-xs text-muted mt-2">
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-xs text-muted truncate max-w-[70%]">
-                          <MapPinIcon size={13} className="shrink-0 text-accent-ink" />
+                          <MapPinIcon size={13} className="shrink-0 text-muted" />
                           <span className="truncate">
                             {dateStr}
                             {ev.location ? ` • ${ev.location}` : ''}
@@ -705,13 +705,13 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card p-4 sm:p-5 border-line bg-surface hover:border-accent/60 transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:translate-x-1"
+                      className="group card p-4 sm:p-5 border-line bg-surface hover:border-black/20 dark:hover:border-white/[0.12] transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:translate-x-1"
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         {/* Bloc date jour */}
                         <div className="w-14 h-14 rounded-xl bg-surface-2 border border-line flex flex-col items-center justify-center shrink-0">
                           <span className="num text-lg font-bold text-fg leading-none font-mono">{dayNum}</span>
-                          <span className="text-xs font-semibold text-accent-ink leading-tight mt-0.5 capitalize">{monthName}</span>
+                          <span className="text-xs font-semibold text-muted leading-tight mt-0.5 capitalize">{monthName}</span>
                         </div>
 
                         <div className="min-w-0">
@@ -737,7 +737,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                               {TYPE_LABELS[ev.type] || ev.type}
                             </span>
                           </div>
-                          <h3 className="font-semibold text-fg text-sm sm:text-base leading-snug line-clamp-1 group-hover:text-accent-ink transition-colors">
+                          <h3 className="font-semibold text-fg text-sm sm:text-base leading-snug line-clamp-1 group-hover:text-fg dark:group-hover:text-white transition-colors">
                             {ev.title}
                           </h3>
                           <p className="text-xs text-muted truncate mt-0.5">
@@ -776,7 +776,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 <div className="text-xs text-muted font-medium flex items-center gap-2">
                   <span className="first-letter:uppercase">{todayLabel}</span>
                   <span>•</span>
-                  <span className="text-accent-ink font-semibold">Espace Chercheur</span>
+                  <span className="text-muted font-semibold">Espace Chercheur</span>
                 </div>
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-fg">
                   Bonjour{firstName ? `, ${firstName}` : ''}
@@ -791,7 +791,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     const el = document.getElementById('main-content-section')
                     el?.scrollIntoView({ behavior: 'smooth' })
                   }}
-                  className="btn-accent btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                  className="bg-[#1D1D1F] text-white hover:bg-black dark:bg-white dark:text-[#1D1D1F] dark:hover:bg-neutral-200 btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95 rounded-xl"
                 >
                   <PlusIcon size={16} weight="bold" />
                   <span>Proposer une conférence</span>
@@ -822,18 +822,18 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           className="group w-full text-left py-3.5 px-5 flex items-center justify-between gap-4 hover:bg-surface-2/60 transition-colors"
                         >
                           <div className="min-w-0 flex-1 flex items-start gap-3">
-                            <span className="w-2 h-2 rounded-full bg-accent shrink-0 mt-1.5" aria-hidden="true" />
+                            <span className="w-2 h-2 rounded-full bg-fg/40 dark:bg-white/60 shrink-0 mt-1.5" aria-hidden="true" />
                             <div className="min-w-0 flex-1 space-y-0.5">
                               <div className="flex items-center gap-2 text-xs text-muted">
-                                <span className="font-semibold text-accent-ink">{category}</span>
+                                <span className="font-semibold text-muted">{category}</span>
                                 {detail && <span>• {detail}</span>}
                               </div>
-                              <p className="font-semibold text-fg text-sm leading-snug truncate group-hover:text-accent-ink transition-colors">
+                              <p className="font-semibold text-fg text-sm leading-snug truncate group-hover:text-fg dark:group-hover:text-white transition-colors">
                                 {title}
                               </p>
                             </div>
                           </div>
-                          <div className="shrink-0 flex items-center gap-1 text-xs font-medium text-muted group-hover:text-accent-ink transition-colors">
+                          <div className="shrink-0 flex items-center gap-1 text-xs font-medium text-muted group-hover:text-fg dark:group-hover:text-white transition-colors">
                             <span>Traiter</span>
                             <ArrowRightIcon size={13} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
                           </div>
@@ -902,7 +902,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                               </span>
                               <span className="text-muted truncate">{s.events?.title}</span>
                             </div>
-                            <p className="font-semibold text-fg text-sm leading-snug truncate group-hover:text-accent-ink transition-colors">
+                            <p className="font-semibold text-fg text-sm leading-snug truncate group-hover:text-fg dark:group-hover:text-white transition-colors">
                               {s.title}
                             </p>
                           </div>
@@ -910,7 +910,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                             <span className="text-xs text-faint num">
                               {formatDate(s.submitted_at, { day: 'numeric', month: 'short' })}
                             </span>
-                            <ArrowRightIcon size={13} weight="bold" className="text-muted group-hover:text-accent-ink transition-transform group-hover:translate-x-0.5" />
+                            <ArrowRightIcon size={13} weight="bold" className="text-muted group-hover:text-fg dark:group-hover:text-white transition-transform group-hover:translate-x-0.5" />
                           </div>
                         </button>
                       ))}
@@ -925,7 +925,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 <section className="card p-5 border-line bg-surface space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="font-bold text-sm sm:text-base text-fg flex items-center gap-2">
-                      <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
+                      <ShieldCheckIcon size={16} className="text-muted" weight="bold" />
                       <span>Badge d'accès</span>
                     </h3>
                     {validatedParticipation && (
@@ -934,14 +934,14 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                   </div>
 
                   {validatedParticipation ? (
-                    <div className="p-4 rounded-xl border border-accent/40 bg-gradient-to-br from-accent/10 to-surface-2 space-y-2">
+                    <div className="p-4 rounded-xl border border-line bg-surface-2 space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <span className="text-xs font-medium text-accent-ink">Participant validé</span>
+                          <span className="text-xs font-medium text-muted">Participant validé</span>
                           <p className="font-bold text-sm text-fg mt-0.5">{validatedParticipation.events?.title}</p>
                           <p className="text-xs text-muted">{validatedParticipation.events?.location || 'Campus USTO-MB'}</p>
                         </div>
-                        <span className="w-12 h-12 rounded-lg bg-surface border border-line flex items-center justify-center text-accent-ink shrink-0">
+                        <span className="w-12 h-12 rounded-lg bg-surface border border-line flex items-center justify-center text-fg shrink-0">
                           <QrCodeIcon size={26} weight="duotone" />
                         </span>
                       </div>
@@ -1008,7 +1008,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         >
                           <span className="w-9 h-9 rounded-xl shrink-0" style={coverStyle(p.events || p.event_id)} aria-hidden="true" />
                           <span className="min-w-0 flex-1">
-                            <span className="block font-semibold text-fg text-sm truncate group-hover:text-accent-ink transition-colors">
+                            <span className="block font-semibold text-fg text-sm truncate group-hover:text-fg dark:group-hover:text-white transition-colors">
                               {p.events.title}
                             </span>
                             <span className="block text-xs text-muted num mt-0.5">
@@ -1017,11 +1017,11 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                             </span>
                           </span>
                           <span className="flex items-center gap-2 shrink-0">
-                            <span className="text-xs font-medium text-accent-ink hidden sm:inline">{ROLE_LABELS[p.role_in_event]}</span>
+                            <span className="text-xs font-medium text-muted hidden sm:inline">{ROLE_LABELS[p.role_in_event]}</span>
                             <span className={STATUS_BADGE[p.events.status] || 'badge-draft'}>
                               {STATUS_LABELS[p.events.status]}
                             </span>
-                            <ArrowRightIcon size={13} weight="bold" className="text-muted group-hover:text-accent-ink transition-transform group-hover:translate-x-0.5" />
+                            <ArrowRightIcon size={13} weight="bold" className="text-muted group-hover:text-fg dark:group-hover:text-white transition-transform group-hover:translate-x-0.5" />
                           </span>
                         </button>
                       ))}

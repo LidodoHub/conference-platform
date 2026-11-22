@@ -31,7 +31,7 @@ function CoverDate({ date, large = false }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="bg-surface/90 dark:bg-[#18181B]/90 backdrop-blur-md border border-line/60 rounded-xl px-2.5 py-1.5 text-center text-fg dark:text-white min-w-[48px] shadow-xs">
-        <span className="block text-xs font-bold uppercase tracking-wider text-accent leading-none">
+        <span className="block text-xs font-bold uppercase tracking-wider text-muted dark:text-white/80 leading-none">
           {date.month}
         </span>
         <span className={`num block font-bold leading-none mt-1 text-fg dark:text-white ${large ? 'text-3xl' : 'text-2xl'}`}>
@@ -70,7 +70,7 @@ export default function EventCard({ event, role, onOpen, style }) {
     <button
       type="button"
       onClick={() => onOpen(event.id)}
-      className="group card overflow-hidden text-left flex flex-col rise transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft) hover:-translate-y-1 hover:shadow-lift hover:border-accent/40 dark:hover:border-white/[0.12] active:translate-y-0 active:scale-[0.985] cursor-pointer"
+      className="group card overflow-hidden text-left flex flex-col rise transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft) hover:-translate-y-1 hover:shadow-lift hover:border-black/20 dark:hover:border-white/[0.12] active:translate-y-0 active:scale-[0.985] cursor-pointer"
       style={style}
     >
       <EventCover seed={event.id} event={event} className="h-36 sm:h-44 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden">
@@ -100,21 +100,21 @@ export default function EventCard({ event, role, onOpen, style }) {
 
       <div className="flex-1 flex flex-col p-4 sm:p-5 space-y-3">
         <Meta event={event} />
-        <h3 className="font-semibold text-base sm:text-[17px] leading-snug tracking-tight text-fg group-hover:text-accent-ink transition-colors" style={{ overflowWrap: 'anywhere' }}>
+        <h3 className="font-semibold text-base sm:text-[17px] leading-snug tracking-tight text-fg group-hover:text-fg dark:group-hover:text-white transition-colors" style={{ overflowWrap: 'anywhere' }}>
           {event.title}
         </h3>
         <div className="mt-auto pt-3 flex items-center justify-between gap-3 text-xs text-muted border-t border-line/50">
           <span className="min-w-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-muted truncate">
             {event.location ? (
               <>
-                <MapPinIcon size={14} className="shrink-0 text-accent-ink" aria-hidden="true" />
+                <MapPinIcon size={14} className="shrink-0 text-muted" aria-hidden="true" />
                 <span className="truncate">{event.location}</span>
               </>
             ) : (
               <span>Campus USTO-MB</span>
             )}
           </span>
-          {role && <span className="shrink-0 font-semibold text-accent-ink">{ROLE_LABELS[role]}</span>}
+          {role && <span className="shrink-0 font-semibold text-muted">{ROLE_LABELS[role]}</span>}
         </div>
       </div>
     </button>
@@ -130,7 +130,7 @@ export function FeaturedEventCard({ event, role, onOpen }) {
     <button
       type="button"
       onClick={() => onOpen(event.id)}
-      className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-[transform,box-shadow,border-color] duration-200 hover:shadow-lift hover:border-accent/40 dark:hover:border-white/[0.12] active:scale-[0.99] cursor-pointer"
+      className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-[transform,box-shadow,border-color] duration-200 hover:shadow-lift hover:border-black/20 dark:hover:border-white/[0.12] active:scale-[0.99] cursor-pointer"
     >
       <EventCover seed={event.id} event={event} className="min-h-48 md:min-h-80 p-5 sm:p-8 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">
@@ -150,10 +150,10 @@ export function FeaturedEventCard({ event, role, onOpen }) {
 
       <div className="p-5 sm:p-8 flex flex-col justify-between">
         <div>
-          <span className="text-xs font-semibold text-accent-ink uppercase tracking-wider">
+          <span className="text-xs font-semibold text-muted uppercase tracking-wider">
             Événement phare de l'université
           </span>
-          <h2 className="mt-2 text-xl sm:text-2xl font-bold tracking-tight leading-snug text-fg group-hover:text-accent-ink transition-colors" style={{ overflowWrap: 'anywhere' }}>
+          <h2 className="mt-2 text-xl sm:text-2xl font-bold tracking-tight leading-snug text-fg group-hover:text-fg dark:group-hover:text-white transition-colors" style={{ overflowWrap: 'anywhere' }}>
             {event.title}
           </h2>
           {event.description && (
@@ -164,12 +164,12 @@ export function FeaturedEventCard({ event, role, onOpen }) {
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-2 text-fg font-medium num">
-              <CalendarBlankIcon size={14} className="text-accent-ink shrink-0" />
+              <CalendarBlankIcon size={14} className="text-muted shrink-0" />
               <span>{formatDateRange(event.start_date, event.end_date)}</span>
             </span>
             {event.location && (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-2 text-muted">
-                <MapPinIcon size={14} className="text-accent-ink shrink-0" aria-hidden="true" />
+                <MapPinIcon size={14} className="text-muted shrink-0" aria-hidden="true" />
                 <span>{event.location}</span>
               </span>
             )}
@@ -179,9 +179,9 @@ export function FeaturedEventCard({ event, role, onOpen }) {
         <div className="mt-6 pt-5 flex flex-wrap items-center justify-between gap-3 border-t border-line/60">
           <div className="flex items-center gap-2">
             <Meta event={event} />
-            {role && <span className="text-xs font-semibold text-accent-ink">{ROLE_LABELS[role]}</span>}
+            {role && <span className="text-xs font-semibold text-muted">{ROLE_LABELS[role]}</span>}
           </div>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-ink group-hover:translate-x-1 transition-transform">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-fg dark:text-white group-hover:translate-x-1 transition-transform">
             Ouvrir la conférence
             <ArrowRightIcon size={14} weight="bold" aria-hidden="true" />
           </span>

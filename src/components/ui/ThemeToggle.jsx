@@ -84,13 +84,13 @@ export default function ThemeToggle({ className = '' }) {
                 onClick={() => choose(id)}
                 className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] transition-all duration-150 cursor-pointer active:scale-95 ${
                   active
-                    ? 'bg-accent/15 text-accent-ink font-semibold shadow-xs'
+                    ? 'bg-black/[0.06] dark:bg-white/10 text-fg dark:text-white font-semibold shadow-xs'
                     : 'text-muted hover:text-fg hover:bg-fg/5'
                 }`}
               >
-                <OptIcon size={16} aria-hidden="true" className={active ? 'text-accent-ink' : ''} />
+                <OptIcon size={16} aria-hidden="true" className={active ? 'text-fg dark:text-white' : ''} />
                 <span className="flex-1 text-left">{label}</span>
-                {active && <CheckIcon size={14} weight="bold" className="text-accent-ink animate-in zoom-in-75 duration-150" aria-hidden="true" />}
+                {active && <CheckIcon size={14} weight="bold" className="text-fg dark:text-white animate-in zoom-in-75 duration-150" aria-hidden="true" />}
               </button>
             )
           })}

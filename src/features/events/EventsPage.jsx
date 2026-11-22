@@ -353,7 +353,7 @@ export default function EventsPage({ onSelectEvent }) {
                         </span>
                       </div>
                       <div className="min-w-0 flex-1">
-                        <h4 className="text-xs font-semibold text-fg group-hover:text-accent-ink line-clamp-2 leading-snug transition-colors">
+                        <h4 className="text-xs font-semibold text-fg group-hover:text-fg dark:group-hover:text-white line-clamp-2 leading-snug transition-colors">
                           {item.title}
                         </h4>
                         <div className="flex items-center gap-2 mt-1">

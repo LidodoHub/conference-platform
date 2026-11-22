@@ -233,7 +233,7 @@ export default function AdminPanel({ onOpenEvent }) {
                     onClick={() => onOpenEvent(ev.id)}
                     className="min-w-0 flex-1 text-left group"
                   >
-                    <span className="block font-medium text-fg truncate group-hover:text-accent-ink transition-colors">
+                    <span className="block font-medium text-fg truncate group-hover:text-fg dark:group-hover:text-white transition-colors">
                       {ev.title}
                     </span>
                     <span className="block text-[13px] text-muted truncate">

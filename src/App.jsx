@@ -249,12 +249,12 @@ function App() {
                 onClick={() => go(id)}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center justify-center gap-1 h-[62px] transition-colors ${
-                  active ? 'text-accent font-semibold' : 'text-muted hover:text-fg'
+                  active ? 'text-fg dark:text-white font-semibold' : 'text-muted hover:text-fg'
                 }`}
               >
                 <span
                   className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
-                    active ? 'bg-accent/15' : ''
+                    active ? 'bg-black/[0.08] dark:bg-white/10' : ''
                   }`}
                 >
                   {glyph}

@@ -198,7 +198,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
       <div className="w-full max-w-xl card border-line bg-surface/95 shadow-lift overflow-hidden backdrop-blur-md flex flex-col">
         {/* Barre de recherche */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
-          <MagnifyingGlassIcon size={18} className="text-accent-ink shrink-0" aria-hidden="true" />
+          <MagnifyingGlassIcon size={18} className="text-muted shrink-0" aria-hidden="true" />
           <input
             ref={inputRef}
             type="text"
@@ -242,12 +242,12 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
                   onMouseEnter={() => setSelectedIndex(i)}
                   className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm text-left transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-accent/15 text-accent-ink font-medium ring-1 ring-accent/30'
+                      ? 'bg-black/[0.06] dark:bg-white/10 text-fg dark:text-white font-medium ring-1 ring-black/[0.08] dark:ring-white/10'
                       : 'text-fg/85 hover:bg-surface-2/60'
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Icon size={16} className={isSelected ? 'text-accent-ink shrink-0' : 'text-faint shrink-0'} />
+                    <Icon size={16} className={isSelected ? 'text-fg dark:text-white shrink-0' : 'text-faint shrink-0'} />
                     <span className="truncate">{action.label}</span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
@@ -256,7 +256,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
                     </span>
                     <ArrowRightIcon
                       size={12}
-                      className={isSelected ? 'opacity-100 text-accent-ink' : 'opacity-0'}
+                      className={isSelected ? 'opacity-100 text-fg dark:text-white' : 'opacity-0'}
                     />
                   </div>
                 </button>

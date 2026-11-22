@@ -470,13 +470,13 @@ function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, 
         </div>
 
         <div>
-          <h4 className="text-base font-semibold leading-snug tracking-tight text-fg group-hover:text-accent-ink transition-colors">
+          <h4 className="text-base font-semibold leading-snug tracking-tight text-fg group-hover:text-fg dark:group-hover:text-white transition-colors">
             {s.title}
           </h4>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
             {room && (
               <span className="inline-flex items-center gap-1.5">
-                <DoorOpenIcon size={14} className="text-accent-ink" aria-hidden="true" />
+                <DoorOpenIcon size={14} className="text-muted" aria-hidden="true" />
                 <span className="font-medium text-fg">{room.name}</span>
                 {room.location && <span className="text-faint">({room.location})</span>}
               </span>
