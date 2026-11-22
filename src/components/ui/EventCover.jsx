@@ -18,10 +18,11 @@ export default function EventCover({
 
   const isGenerative = Boolean(resolved?.isGenerative && resolved?.patternKey)
   const photo = !isGenerative && resolved?.photo && !failedUrls[resolved.photo] ? resolved.photo : null
+  const isEditorial = Boolean(resolved?.isEditorial || (!photo && !coverUrl))
 
   return (
     <div
-      className={`relative overflow-hidden group/cover ${className}`}
+      className={`relative overflow-hidden group/cover ${isEditorial && resolved?.id ? `editorial-cover editorial-cover--${resolved.id}` : ''} ${className}`}
       style={{
         backgroundColor: resolved?.color || '#0E1D38',
         ...(!photo && !isGenerative ? coverStyle(seed || event?.id) : {}),
@@ -48,17 +49,19 @@ export default function EventCover({
         />
       )}
 
-      {/* 3. Filtre Duotone signature USTO pour garantir 100% de lisibilité du texte et des badges */}
-      <div
-        className="absolute inset-0 pointer-events-none transition-opacity duration-300"
-        style={{
-          background: [
-            'linear-gradient(180deg, rgba(8, 16, 32, 0.35) 0%, rgba(8, 16, 32, 0.60) 45%, rgba(4, 9, 20, 0.90) 100%)',
-            `radial-gradient(ellipse at 85% 15%, ${resolved?.accent ? resolved.accent + '38' : 'rgba(210, 162, 78, 0.22)'}, transparent 65%)`,
-          ].join(', '),
-        }}
-        aria-hidden="true"
-      />
+      {/* 3. Filtre Duotone signature USTO pour photos réelles */}
+      {photo && (
+        <div
+          className="absolute inset-0 pointer-events-none transition-opacity duration-300"
+          style={{
+            background: [
+              'linear-gradient(180deg, rgba(8, 16, 32, 0.35) 0%, rgba(8, 16, 32, 0.60) 45%, rgba(4, 9, 20, 0.90) 100%)',
+              `radial-gradient(ellipse at 85% 15%, ${resolved?.accent ? resolved.accent + '38' : 'rgba(210, 162, 78, 0.22)'}, transparent 65%)`,
+            ].join(', '),
+          }}
+          aria-hidden="true"
+        />
+      )}
 
       {/* 4. Trame scientifique subtile (tampon / grille de recherche) */}
       <div

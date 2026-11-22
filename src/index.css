@@ -71,41 +71,41 @@
   --c-bg: #F5F5F7;
   --c-surface: #FFFFFF;
   --c-surface-2: #E8EAEE;
-  --c-line: rgba(22, 35, 63, 0.08);
+  --c-line: rgba(0, 0, 0, 0.06);
   --c-fg: #1D1D1F;
-  --c-muted: #5C6479;
-  --c-faint: #7C869D;
+  --c-muted: #6E6E73;
+  --c-faint: #86868B;
   --c-accent: #C8963E;
   --c-accent-ink: #8A5F1C;
   --c-ok: #1E7553;
   --c-warn: #A35F0C;
   --c-bad: #B03A32;
   --c-info: #2C5DA6;
-  --c-neutral: #5C6479;
+  --c-neutral: #6E6E73;
 
-  --shadow-card: 0 4px 20px rgba(22, 35, 63, 0.06);
-  --shadow-lift: 0 10px 28px rgba(22, 35, 63, 0.10);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 10px 28px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --c-bg: #0D1117;
-  --c-surface: #161B22;
-  --c-surface-2: #21262D;
-  --c-line: #30363D;
-  --c-fg: #E6EDF3;
-  --c-muted: #A3ACB7;
-  --c-faint: #858E99;
+  --c-bg: #141416;
+  --c-surface: #1C1C1F;
+  --c-surface-2: #26262B;
+  --c-line: rgba(255, 255, 255, 0.08);
+  --c-fg: #F0F2F5;
+  --c-muted: #9E9EA7;
+  --c-faint: #7A7A85;
   --c-accent: #D2A24E;
   --c-accent-ink: #D4A759;
   --c-ok: #2A8E66;
   --c-warn: #BD7C24;
   --c-bad: #BD4239;
   --c-info: #3D6FB0;
-  --c-neutral: #A3ACB7;
+  --c-neutral: #9E9EA7;
 
-  --shadow-card: 0 1px 2px rgb(22 35 63 / 0.06), 0 8px 24px -12px rgb(22 35 63 / 0.18);
-  --shadow-lift: 0 2px 4px rgb(22 35 63 / 0.08), 0 18px 40px -16px rgb(22 35 63 / 0.28);
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.4);
+  --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 40px -16px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {
@@ -321,6 +321,27 @@
 
   .card:hover {
     box-shadow: var(--shadow-lift);
+  }
+
+  .editorial-cover--sand {
+    background: linear-gradient(135deg, #F5F1EB 0%, #E8E2D8 100%) !important;
+  }
+  [data-theme="dark"] .editorial-cover--sand {
+    background: linear-gradient(135deg, #201E1A 0%, #151412 100%) !important;
+  }
+
+  .editorial-cover--slate {
+    background: linear-gradient(135deg, #EEF3F8 0%, #DFE7F0 100%) !important;
+  }
+  [data-theme="dark"] .editorial-cover--slate {
+    background: linear-gradient(135deg, #1B1E26 0%, #12141A 100%) !important;
+  }
+
+  .editorial-cover--sage {
+    background: linear-gradient(135deg, #F0F5F1 0%, #DDE6DF 100%) !important;
+  }
+  [data-theme="dark"] .editorial-cover--sage {
+    background: linear-gradient(135deg, #18201A 0%, #111612 100%) !important;
   }
 
   .card-panel {

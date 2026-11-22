@@ -30,19 +30,19 @@ function CoverDate({ date, large = false }) {
   if (!date) return null
   return (
     <div className="flex items-center gap-2.5">
-      <div className="bg-white/18 backdrop-blur-md border border-white/25 rounded-xl px-2.5 py-1.5 text-center text-white min-w-[48px] shadow-xs">
+      <div className="bg-surface/90 dark:bg-black/50 backdrop-blur-md border border-line/60 rounded-xl px-2.5 py-1.5 text-center text-fg dark:text-white min-w-[48px] shadow-xs">
         <span className="block text-xs font-bold uppercase tracking-wider text-accent leading-none">
           {date.month}
         </span>
-        <span className={`num block font-bold leading-none mt-1 ${large ? 'text-3xl' : 'text-2xl'}`}>
+        <span className={`num block font-bold leading-none mt-1 text-fg dark:text-white ${large ? 'text-3xl' : 'text-2xl'}`}>
           {date.day}
         </span>
       </div>
-      <div className="text-white">
-        <span className="block text-xs font-semibold text-white/95 leading-tight">
+      <div>
+        <span className="block text-xs font-semibold text-fg dark:text-white/95 leading-tight">
           {date.year}
         </span>
-        <span className="block text-xs text-white/70 leading-tight mt-0.5">
+        <span className="block text-xs text-muted dark:text-white/70 leading-tight mt-0.5">
           Calendrier officiel
         </span>
       </div>
@@ -53,9 +53,9 @@ function CoverDate({ date, large = false }) {
 function Meta({ event }) {
   return (
     <div className="flex flex-wrap items-center gap-1.5">
-      <span className={STATUS_BADGE[event.status] || 'badge-draft'}>{STATUS_LABELS[event.status] || event.status}</span>
+      <span className={`w-fit self-start shrink-0 ${STATUS_BADGE[event.status] || 'badge-draft'}`}>{STATUS_LABELS[event.status] || event.status}</span>
       {['published', 'ongoing'].includes(event.status) && event.phase && (
-        <span className="badge-type">{PHASE_LABELS[event.phase]}</span>
+        <span className="badge-type w-fit self-start shrink-0">{PHASE_LABELS[event.phase]}</span>
       )}
     </div>
   )
@@ -75,12 +75,12 @@ export default function EventCard({ event, role, onOpen, style }) {
     >
       <EventCover seed={event.id} event={event} className="h-36 sm:h-44 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <span className="text-xs font-medium text-white/90 px-2 py-0.5 rounded-full bg-black/30 backdrop-blur-xs">
+          <span className="text-xs font-medium text-fg dark:text-white/90 px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs">
             {TYPE_LABELS[event.type] || event.type}
-            {event.format && event.format !== 'onsite' && <span className="text-white/70"> • {FORMAT_LABELS[event.format].toLowerCase()}</span>}
+            {event.format && event.format !== 'onsite' && <span className="text-muted dark:text-white/70"> • {FORMAT_LABELS[event.format].toLowerCase()}</span>}
           </span>
           {timer && (
-            <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs w-fit self-start ${timer.cls}`}>
+            <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs w-fit self-start shrink-0 ${timer.cls}`}>
               {timer.label}
             </span>
           )}
@@ -134,11 +134,11 @@ export function FeaturedEventCard({ event, role, onOpen }) {
     >
       <EventCover seed={event.id} event={event} className="min-h-48 md:min-h-80 p-5 sm:p-8 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <span className="text-sm font-medium text-white/90 px-3 py-1 rounded-full bg-black/30 backdrop-blur-xs">
+          <span className="text-sm font-medium text-fg dark:text-white/90 px-3 py-1 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs">
             {TYPE_LABELS[event.type] || event.type} • {(FORMAT_LABELS[event.format] || '').toLowerCase()}
           </span>
           {timer && (
-            <span className={`text-xs uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs w-fit self-start ${timer.cls}`}>
+            <span className={`text-xs uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs w-fit self-start shrink-0 ${timer.cls}`}>
               {timer.label}
             </span>
           )}

@@ -1,9 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ArticleIcon,
-  UserIcon,
   ArrowRightIcon,
-  CompassIcon,
   CalendarBlankIcon,
   SquaresFourIcon,
   MapPinIcon,
@@ -298,69 +296,60 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
   })
   const validatedParticipation = data?.parts.find((p) => p.registration_status === 'validated')
 
+  const renderTabSwitcher = () => (
+    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line/60">
+      <div className="inline-flex items-center bg-black/[0.04] dark:bg-white/[0.06] p-1 rounded-xl border border-black/[0.06] dark:border-white/[0.06] gap-1 max-w-full overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('discover')}
+          aria-selected={activeMainTab === 'discover'}
+          className={`px-4 sm:px-5 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 select-none ${
+            activeMainTab === 'discover'
+              ? 'bg-surface text-fg shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.08]'
+              : 'text-muted hover:text-fg hover:bg-black/[0.02] dark:hover:bg-white/[0.04]'
+          }`}
+        >
+          <span>Découvrir & Conférences</span>
+          <span className={`ml-2 text-xs font-mono font-medium px-2 py-0.5 rounded-full transition-colors ${
+            activeMainTab === 'discover'
+              ? 'bg-black/[0.06] dark:bg-white/10 text-fg'
+              : 'text-faint'
+          }`}>
+            {publicEvents.length}
+          </span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveMainTab('myspace')}
+          aria-selected={activeMainTab === 'myspace'}
+          className={`px-4 sm:px-5 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 select-none ${
+            activeMainTab === 'myspace'
+              ? 'bg-surface text-fg shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.08]'
+              : 'text-muted hover:text-fg hover:bg-black/[0.02] dark:hover:bg-white/[0.04]'
+          }`}
+        >
+          <span>Mon Espace</span>
+          {todos.length > 0 && (
+            <span className="ml-2 text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-warn text-white shadow-xs">
+              {todos.length} à traiter
+            </span>
+          )}
+        </button>
+      </div>
+
+      <div className="hidden sm:flex items-center gap-2 text-xs text-muted shrink-0">
+        <span className="font-semibold text-fg/80">Campus USTO-MB</span>
+        <span>•</span>
+        <span className="text-accent-ink font-medium">2026/2027</span>
+      </div>
+    </div>
+  )
+
   return (
     <>
       <div id="main-content-section" className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-8 sm:space-y-10">
         {error && <div className="alert-error">{error}</div>}
-
-        {/* COMMUTATEUR MAÎTRE : DÉCOUVRIR vs MON ESPACE */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line/60">
-          <div className="inline-flex items-center bg-navy dark:bg-surface-2 p-1 sm:p-1.5 rounded-2xl border border-white/10 dark:border-line shadow-sm backdrop-blur-md gap-1 max-w-full overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setActiveMainTab('discover')}
-              aria-selected={activeMainTab === 'discover'}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 select-none ${
-                activeMainTab === 'discover'
-                  ? 'bg-white text-navy shadow-sm ring-1 ring-white/20 dark:bg-surface dark:text-fg dark:ring-1 dark:ring-accent/30'
-                  : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-muted dark:hover:text-fg dark:hover:bg-surface/50'
-              }`}
-            >
-              <CompassIcon
-                size={18}
-                weight={activeMainTab === 'discover' ? 'duotone' : 'regular'}
-                className={activeMainTab === 'discover' ? 'text-accent-ink' : 'text-white/50 dark:text-faint'}
-              />
-              <span className="tracking-tight">Découvrir & Conférences</span>
-              <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full transition-colors ${
-                activeMainTab === 'discover'
-                  ? 'bg-accent text-on-accent shadow-xs'
-                  : 'bg-white/10 text-white/80 border border-white/10 dark:bg-surface dark:border-line dark:text-muted'
-              }`}>
-                {publicEvents.length}
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveMainTab('myspace')}
-              aria-selected={activeMainTab === 'myspace'}
-              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 select-none ${
-                activeMainTab === 'myspace'
-                  ? 'bg-white text-navy shadow-sm ring-1 ring-white/20 dark:bg-surface dark:text-fg dark:ring-1 dark:ring-accent/30'
-                  : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-muted dark:hover:text-fg dark:hover:bg-surface/50'
-              }`}
-            >
-              <UserIcon
-                size={18}
-                weight={activeMainTab === 'myspace' ? 'duotone' : 'regular'}
-                className={activeMainTab === 'myspace' ? 'text-accent-ink' : 'text-white/50 dark:text-faint'}
-              />
-              <span className="tracking-tight">Mon Espace</span>
-              {todos.length > 0 && (
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-warn text-white shadow-xs">
-                  {todos.length} à traiter
-                </span>
-              )}
-            </button>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-2 text-xs text-muted shrink-0">
-            <span className="font-semibold text-fg/80">Campus USTO-MB</span>
-            <span>•</span>
-            <span className="text-accent-ink font-medium">2026/2027</span>
-          </div>
-        </div>
 
         {/* FORMULAIRE DE CRÉATION DE CONFÉRENCE (DÉPLIABLE EN 1 CLIC) */}
         {showCreateForm && (
@@ -397,7 +386,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             {/* CARTE HERO USTO-MB ARRONDIE DANS LA LARGEUR DU CONTENU */}
             <div className="hero relative overflow-hidden text-white rounded-3xl shadow-card border border-white/10">
               <img className="hero-photo hero-photo--usto" src={HERO_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
-              <div className="hero-shade" aria-hidden="true" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/25 pointer-events-none" aria-hidden="true" />
               <div className="hero-glow" aria-hidden="true" />
               <div className="hero-dots" aria-hidden="true" />
 
@@ -405,8 +394,8 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   {/* Colonne gauche : Salutation & Ligne contextuelle */}
                   <header className="hero-text space-y-3">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs text-white/90 shadow-sm">
-                      <span className="first-letter:uppercase font-medium">{todayLabel}</span>
+                    <div className="text-xs sm:text-sm text-white/80 font-medium flex items-center gap-2">
+                      <span className="first-letter:uppercase">{todayLabel}</span>
                       <span className="text-white/40">•</span>
                       <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
                     </div>
@@ -424,7 +413,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                               const el = document.getElementById('main-content-section')
                               el?.scrollIntoView({ behavior: 'smooth' })
                             }}
-                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/85 backdrop-blur-sm border border-accent/40 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-navy hover:border-accent active:scale-95 transition-all"
+                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/15 backdrop-blur-sm border border-accent/40 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-white/25 hover:border-accent active:scale-95 transition-all"
                           >
                             <span className="w-2 h-2 rounded-full bg-warn" />
                             <span>
@@ -468,6 +457,10 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 {HERO_PHOTO.credit}
               </a>
             </div>
+
+            {/* COMMUTATEUR MAÎTRE : DÉCOUVRIR vs MON ESPACE (SÉLECTEUR NEUTRE ÉPURÉ SOUS LE HERO) */}
+            {renderTabSwitcher()}
+
             {/* CONFÉRENCE VEDETTE À LA UNE */}
             {featuredEvent && (
               <section className="card p-6 sm:p-8 border border-line bg-surface relative overflow-hidden shadow-card hover:border-accent/40 transition-all duration-300">
@@ -520,11 +513,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                                 : 'scientific',
                           })
                         }
-                        className={`${
-                          featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                            ? 'btn-success'
-                            : 'btn-info'
-                        } btn-sm text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 active:scale-95 transition-all`}
+                        className="btn-sm text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 active:scale-95 transition-all bg-[#1D1D1F] text-white hover:bg-black dark:bg-white dark:text-[#1D1D1F] dark:hover:bg-neutral-200 rounded-lg px-4 py-2"
                       >
                         <span>
                           {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
@@ -545,25 +534,27 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
                   {/* Colonne droite : visuel/couverture de la conférence (md:col-span-5) */}
                   <div className="md:col-span-5">
-                    <EventCover
-                      seed={featuredEvent.id}
-                      event={featuredEvent}
-                      className="w-full h-48 sm:h-56 md:h-64 rounded-xl overflow-hidden shadow-inner border border-line/40 flex flex-col justify-between p-4 sm:p-5"
-                    >
-                      <div className="flex items-center justify-between gap-2 relative z-10">
-                        <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-black/40 text-white backdrop-blur-xs">
-                          {TYPE_LABELS[featuredEvent.type] || featuredEvent.type}
-                        </span>
-                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface/90 text-fg border border-line shadow-xs">
-                          USTO-MB
-                        </span>
-                      </div>
-                      <div className="relative z-10 flex items-center justify-between text-xs text-white/90">
-                        <span className="font-semibold text-accent-ink bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-lg">
-                          Actes & Archives
-                        </span>
-                      </div>
-                    </EventCover>
+                    <div className="rounded-2xl overflow-hidden border border-line/50 shadow-xs">
+                      <EventCover
+                        seed={featuredEvent.id}
+                        event={featuredEvent}
+                        className="w-full h-48 sm:h-56 md:h-64 flex flex-col justify-between p-4 sm:p-5"
+                      >
+                        <div className="flex items-center justify-between gap-2 relative z-10">
+                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs">
+                            {TYPE_LABELS[featuredEvent.type] || featuredEvent.type}
+                          </span>
+                          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 shadow-xs">
+                            USTO-MB
+                          </span>
+                        </div>
+                        <div className="relative z-10 flex items-center justify-between text-xs">
+                          <span className="font-semibold text-accent-ink bg-surface/90 dark:bg-black/50 border border-line/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                            Actes & Archives
+                          </span>
+                        </div>
+                      </EventCover>
+                    </div>
                   </div>
                 </div>
               </section>
@@ -652,10 +643,10 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           seed={ev.id}
                           className="h-28 px-4 py-3 flex items-start justify-between relative overflow-hidden"
                         >
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-black/40 text-white backdrop-blur-xs">
+                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs">
                             {TYPE_LABELS[ev.type] || ev.type}
                           </span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shadow-xs w-fit self-start ${
+                          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-xs w-fit self-start shrink-0 ${
                             isOngoing
                               ? 'bg-ok text-white'
                               : isClosed
@@ -782,8 +773,8 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             {/* EN-TÊTE SOBRE MODE TRAVAIL */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
               <div className="space-y-1">
-                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-surface-2 border border-line text-xs text-muted">
-                  <span className="first-letter:uppercase font-medium">{todayLabel}</span>
+                <div className="text-xs text-muted font-medium flex items-center gap-2">
+                  <span className="first-letter:uppercase">{todayLabel}</span>
                   <span>•</span>
                   <span className="text-accent-ink font-semibold">Espace Chercheur</span>
                 </div>
@@ -807,6 +798,9 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 </button>
               </div>
             </div>
+
+            {/* COMMUTATEUR MAÎTRE : DÉCOUVRIR vs MON ESPACE (SOUS L'EN-TÊTE) */}
+            {renderTabSwitcher()}
 
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-8 items-start">
               {/* Colonne gauche : Actions à faire & Mes articles */}

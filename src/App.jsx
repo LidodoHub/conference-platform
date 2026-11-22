@@ -124,7 +124,7 @@ function App() {
           Aller au contenu
         </a>
 
-        <header className="sticky top-0 z-40 bg-navy/95 dark:bg-[#161B22]/95 backdrop-blur-md border-b border-white/10 dark:border-line shadow-sm">
+        <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#141416]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] shadow-xs">
           <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 h-14 sm:h-16 flex items-center justify-between gap-3">
             <button
               type="button"
@@ -132,23 +132,22 @@ function App() {
               className="rounded-lg focus-visible:outline-offset-4"
               aria-label="CONFERA, accueil"
             >
-              <Logo inverted />
+              <Logo inverted={false} />
             </button>
 
             <nav className="hidden lg:flex items-center gap-1" aria-label="Navigation principale">
-              {nav.map(({ id, label, icon: Icon, active }) => (
+              {nav.map(({ id, label, active }) => (
                 <button
                   key={id}
                   type="button"
                   onClick={() => go(id)}
                   aria-current={active ? 'page' : undefined}
-                  className={`inline-flex items-center gap-2 px-3.5 h-10 rounded-[10px] text-sm transition-all duration-150 active:scale-95 ${
+                  className={`inline-flex items-center px-3.5 h-9 rounded-lg text-sm transition-all duration-150 active:scale-95 ${
                     active
-                      ? 'bg-white/12 text-white font-medium'
-                      : 'text-white/65 hover:text-white hover:bg-white/8 hover:-translate-y-0.5'
+                      ? 'bg-black/[0.06] dark:bg-white/10 text-fg font-semibold'
+                      : 'text-muted hover:text-fg hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
                   }`}
                 >
-                  <Icon size={17} weight={active ? 'fill' : 'regular'} aria-hidden="true" />
                   {label}
                 </button>
               ))}
@@ -157,33 +156,33 @@ function App() {
             <div className="flex items-center gap-1">
               <NotificationsMenu
                 onOpenEvent={openEvent}
-                className="icon-btn text-white/70 hover:text-white hover:bg-white/8"
+                className="icon-btn text-muted hover:text-fg hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
               />
               <button
                 type="button"
                 onClick={() => setPaletteOpen(true)}
-                className="hidden sm:inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/8 hover:bg-white/14 text-white/70 hover:text-white text-xs transition-colors"
+                className="hidden sm:inline-flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-black/[0.04] dark:bg-white/[0.06] hover:bg-black/[0.08] dark:hover:bg-white/10 text-muted hover:text-fg text-xs transition-colors"
                 title="Rechercher (Ctrl+K)"
               >
                 <MagnifyingGlassIcon size={14} />
                 <span className="hidden md:inline">Rechercher…</span>
-                <kbd className="font-mono text-[10px] bg-white/12 px-1.5 py-0.5 rounded text-white/80">⌘K</kbd>
+                <kbd className="font-mono text-[10px] bg-black/[0.06] dark:bg-white/12 px-1.5 py-0.5 rounded text-muted">⌘K</kbd>
               </button>
-              <ThemeToggle className="icon-btn text-white/70 hover:text-white hover:bg-white/8" />
+              <ThemeToggle className="icon-btn text-muted hover:text-fg hover:bg-black/[0.04] dark:hover:bg-white/[0.06]" />
               <button
                 type="button"
                 onClick={() => go(VIEWS.profile)}
                 aria-current={view === VIEWS.profile ? 'page' : undefined}
                 aria-label="Mon profil"
-                className="hidden lg:flex items-center gap-2.5 ml-1 pl-3 pr-2 h-10 rounded-r-[10px] border-l border-white/12 hover:bg-white/8 hover:-translate-y-0.5 active:scale-95 transition-all duration-150"
+                className="hidden lg:flex items-center gap-2.5 ml-1 pl-3 pr-2 h-9 rounded-r-lg border-l border-black/[0.08] dark:border-white/[0.08] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] active:scale-95 transition-all duration-150"
               >
                 <Avatar name={name} size={30} tone="brand" />
-                <span className="text-sm text-white/85 max-w-[160px] truncate">{name}</span>
+                <span className="text-sm font-medium text-fg max-w-[160px] truncate">{name}</span>
               </button>
               <button
                 type="button"
                 onClick={() => supabase.auth.signOut()}
-                className="icon-btn hidden lg:inline-flex text-white/70 hover:text-white hover:bg-white/8"
+                className="icon-btn hidden lg:inline-flex text-muted hover:text-fg hover:bg-black/[0.04] dark:hover:bg-white/[0.06]"
                 aria-label="Se déconnecter"
                 title="Se déconnecter"
               >
@@ -226,7 +225,7 @@ function App() {
 
         {/* Navigation téléphone et tablette : barre fixe en bas, épurée et sans doublons */}
         <nav
-          className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-navy/97 dark:bg-surface/95 backdrop-blur-md border-t border-white/10 dark:border-line pb-[env(safe-area-inset-bottom)]"
+          className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/90 dark:bg-[#141416]/95 backdrop-blur-md border-t border-black/[0.06] dark:border-white/[0.06] pb-[env(safe-area-inset-bottom)]"
           aria-label="Navigation principale"
         >
           <div className="mx-auto grid max-w-md" style={{ gridTemplateColumns: `repeat(${nav.length + 1}, minmax(0, 1fr))` }}>
@@ -250,12 +249,12 @@ function App() {
                 onClick={() => go(id)}
                 aria-current={active ? 'page' : undefined}
                 className={`flex flex-col items-center justify-center gap-1 h-[62px] transition-colors ${
-                  active ? 'text-accent' : 'text-white/60 dark:text-muted'
+                  active ? 'text-accent font-semibold' : 'text-muted hover:text-fg'
                 }`}
               >
                 <span
                   className={`flex h-7 w-12 items-center justify-center rounded-full transition-colors ${
-                    active ? 'bg-accent/18' : ''
+                    active ? 'bg-accent/15' : ''
                   }`}
                 >
                   {glyph}

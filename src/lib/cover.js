@@ -5,7 +5,47 @@
 // 3. Détection intelligente automatique et zéro latence de commutation
 // 4. Personnalisation par l'organisateur (choix de thème ou image d'affiche personnalisée)
 
+export const EDITORIAL_THEMES = {
+  sand: {
+    id: 'sand',
+    label: 'Sable chaud (Éditorial)',
+    isEditorial: true,
+    isGenerative: true,
+    patternKey: 'arxiv_graph',
+    lightBg: '#F3EFEA',
+    darkBg: '#1E1C19',
+    color: '#EDE8E1',
+    accent: '#C8963E',
+    badge: 'Édition USTO • Sable',
+  },
+  slate: {
+    id: 'slate',
+    label: 'Ardoise pâle (Éditorial)',
+    isEditorial: true,
+    isGenerative: true,
+    patternKey: 'nature_topo',
+    lightBg: '#EBF0F5',
+    darkBg: '#181B22',
+    color: '#E2E8F0',
+    accent: '#3D6FB0',
+    badge: 'Édition USTO • Ardoise',
+  },
+  sage: {
+    id: 'sage',
+    label: 'Sauge douce (Éditorial)',
+    isEditorial: true,
+    isGenerative: true,
+    patternKey: 'nature_lattice',
+    lightBg: '#EAF1EB',
+    darkBg: '#161C18',
+    color: '#DFE7E1',
+    accent: '#2A8E66',
+    badge: 'Édition USTO • Sauge',
+  },
+}
+
 export const GENERATIVE_THEMES = {
+  ...EDITORIAL_THEMES,
   arxiv_graph: {
     id: 'arxiv_graph',
     label: 'ArXiv Graph (Réseaux & IA)',
@@ -139,7 +179,7 @@ export const THEMES = {
   ...PHOTO_THEMES,
 }
 
-const GENERATIVE_KEYS = Object.keys(GENERATIVE_THEMES)
+export const GENERATIVE_KEYS = Object.keys(GENERATIVE_THEMES)
 
 export function hashOf(text) {
   let h = 2166136261
@@ -240,10 +280,11 @@ export function detectTheme(eventOrSeed) {
     }
 
     // 5. PAR DÉFAUT SI AUCUN MOT-CLÉ SCIENTIFIQUE (ex. "test_event", titre arbitraire, etc.) :
-    // -> Attribuer une illustration scientifique générative moderne (Style Nature / ArXiv) !
+    // -> Attribuer une tonalité éditoriale douce et variée (sable chaud, ardoise pâle, sauge douce)
     const h = hashOf(eventOrSeed.id || eventOrSeed.title || 'default-seed')
-    const defaultGenKey = GENERATIVE_KEYS[h % GENERATIVE_KEYS.length]
-    return GENERATIVE_THEMES[defaultGenKey]
+    const editorialKeys = Object.keys(EDITORIAL_THEMES)
+    const editorialKey = editorialKeys[Math.abs(h) % editorialKeys.length]
+    return EDITORIAL_THEMES[editorialKey]
   }
 
   // Si c'est une chaîne de caractères (seed ou mot-clé)
@@ -252,10 +293,11 @@ export function detectTheme(eventOrSeed) {
     return { id: 'custom', custom: true, photo: eventOrSeed, color: '#101d36', accent: '#D2A24E' }
   }
 
-  // Fallback génératif basé sur la graine
+  // Fallback éditorial basé sur la graine
   const h = hashOf(eventOrSeed)
-  const defaultGenKey = GENERATIVE_KEYS[h % GENERATIVE_KEYS.length]
-  return GENERATIVE_THEMES[defaultGenKey]
+  const editorialKeys = Object.keys(EDITORIAL_THEMES)
+  const editorialKey = editorialKeys[Math.abs(h) % editorialKeys.length]
+  return EDITORIAL_THEMES[editorialKey]
 }
 
 export function coverStyle(seed) {

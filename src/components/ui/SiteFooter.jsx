@@ -3,7 +3,7 @@ import Logo from './Logo'
 import { SITE } from '../../lib/site'
 
 function FooterLink({ onClick, href, children }) {
-  const cls = 'text-sm text-white/75 hover:text-white underline-offset-4 hover:underline decoration-accent transition-colors'
+  const cls = 'text-sm text-muted hover:text-fg underline-offset-4 hover:underline decoration-accent transition-colors'
   if (href)
     return (
       <a href={href} className={cls} target={href.startsWith('http') ? '_blank' : undefined} rel="noopener noreferrer">
@@ -29,13 +29,13 @@ function Column({ title, children }) {
 // Pied de page : liens secondaires (à propos, aide, confidentialité, contact), à l'écart de la navigation principale.
 export default function SiteFooter({ onNavigate }) {
   return (
-    <footer className="mt-auto bg-navy text-white border-t-2 border-accent/60 dark:bg-[#161B22] dark:border-line">
+    <footer className="mt-auto bg-surface text-fg border-t border-black/[0.06] dark:bg-[#141416] dark:border-white/[0.06] transition-colors">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-12 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] gap-x-8 gap-y-10">
           <div className="col-span-2 md:col-span-1 max-w-sm">
-            <Logo inverted />
-            <p className="mt-4 text-sm text-white/70 leading-relaxed">{SITE.tagline}</p>
-            <p className="mt-4 flex items-start gap-2 text-[13px] text-white/55">
+            <Logo inverted={false} />
+            <p className="mt-4 text-sm text-muted leading-relaxed">{SITE.tagline}</p>
+            <p className="mt-4 flex items-start gap-2 text-[13px] text-faint">
               <GraduationCapIcon size={16} className="shrink-0 mt-0.5 text-accent" aria-hidden="true" />
               {SITE.project}
             </p>
@@ -55,7 +55,7 @@ export default function SiteFooter({ onNavigate }) {
           </Column>
 
           <Column title="Contact">
-            <li className="flex items-start gap-2 text-sm text-white/75">
+            <li className="flex items-start gap-2 text-sm text-muted">
               <MapPinIcon size={16} className="shrink-0 mt-0.5 text-accent" aria-hidden="true" />
               <span>
                 USTO-MB
@@ -75,7 +75,7 @@ export default function SiteFooter({ onNavigate }) {
           </Column>
         </div>
 
-        <div className="mt-12 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-white/45">
+        <div className="mt-12 pt-6 border-t border-black/[0.06] dark:border-white/[0.06] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-muted">
           <p>
             © {SITE.year} {SITE.name}. Tous droits réservés.
           </p>
