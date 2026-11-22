@@ -633,7 +633,6 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                   const cityName = ev.location
                     ? ev.location.split(',').pop().trim().replace(/^Campus\s+/i, '') || 'Oran'
                     : 'Oran'
-                  const cardTheme = isOngoing ? 'radar' : isScientific ? 'slate' : 'sand'
 
                   return (
                     <div
@@ -648,7 +647,6 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         <EventCover
                           event={ev}
                           seed={ev.id}
-                          themeKey={cardTheme}
                           className="h-36 sm:h-40 px-4 py-3 flex flex-col justify-end relative overflow-hidden"
                         >
                           {isOngoing ? (

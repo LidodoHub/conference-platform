@@ -322,21 +322,6 @@
     border-color: rgba(255, 255, 255, 0.12);
   }
 
-  .editorial-cover--sand {
-    background: linear-gradient(135deg, #F5F1EB 0%, #E8E2D8 100%) !important;
-  }
-
-  .editorial-cover--slate {
-    background: linear-gradient(135deg, #EEF3F8 0%, #DFE7F0 100%) !important;
-  }
-
-  .editorial-cover--sage {
-    background: linear-gradient(135deg, #F0F5F1 0%, #DDE6DF 100%) !important;
-  }
-
-  .editorial-cover--radar {
-    background: #141416 !important;
-  }
 
   .card-panel {
     @apply bg-surface rounded-2xl border border-line p-5 sm:p-7;
