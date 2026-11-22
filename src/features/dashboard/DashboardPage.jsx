@@ -42,12 +42,17 @@ const localToday = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-// "J-12", "Aujourd'hui" ou "En cours"
+// Décompte précis : "J-12", "Jour J", "En cours" ou "Terminé" (jamais de compte négatif)
 const countdown = (ev) => {
+  if (!ev?.start_date) return 'À venir'
   const today = localToday()
-  if (ev.start_date <= today && today <= (ev.end_date || ev.start_date)) return ev.start_date === today ? "Aujourd'hui" : 'En cours'
-  const days = Math.round((new Date(`${ev.start_date}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000)
-  return days === 1 ? 'Demain' : `J-${days}`
+  if (ev.start_date <= today && today <= (ev.end_date || ev.start_date)) {
+    return ev.start_date === today ? 'Jour J' : 'En cours'
+  }
+  const daysLeft = Math.round((new Date(`${ev.start_date}T00:00:00`) - new Date(`${today}T00:00:00`)) / 86400000)
+  if (daysLeft > 0) return `J-${daysLeft}`
+  if (daysLeft === 0) return 'Jour J'
+  return ev.status === 'ongoing' ? 'En cours' : 'Terminé'
 }
 
 // Construit la liste "À faire" avec typage d'urgence et catégories pour une clarté maximale
@@ -237,7 +242,8 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
     load()
   }, [load])
 
-  const firstName = (profile?.full_name || '').trim().split(/\s+/)[0]
+  const rawFirstName = (profile?.full_name || '').trim().split(/\s+/)[0]
+  const firstName = rawFirstName ? rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1) : ''
   const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
   const nextEvent = data?.parts
     .filter((p) => (p.events.end_date || p.events.start_date || '') >= localToday() && p.events.status !== 'draft')
@@ -311,10 +317,10 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-center">
             {/* Colonne gauche : Salutation & Raccourcis */}
             <header className="hero-text space-y-4">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-xs text-white/90">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs text-white/90 shadow-sm">
                 <span className="first-letter:uppercase font-medium">{todayLabel}</span>
                 <span className="text-white/40">&bull;</span>
-                <span className="text-accent font-semibold tracking-wide">USTO-MB ORAN</span>
+                <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
               </div>
 
               <div>
@@ -339,7 +345,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       const el = document.getElementById('main-content-section')
                       el?.scrollIntoView({ behavior: 'smooth' })
                     }}
-                    className="btn-warning btn-sm text-xs sm:text-sm shadow-md inline-flex items-center gap-2 active:scale-95 transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-navy/90 hover:border-white/25 active:scale-95 transition-all"
                   >
                     <span className="w-2 h-2 rounded-full bg-warn animate-pulse" />
                     <span>Traiter mes livrables prioritaires ({todos.length})</span>
@@ -617,12 +623,25 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     <div className="flex flex-wrap items-center gap-3 pt-3">
                       <button
                         type="button"
-                        onClick={() => onOpenEvent(featuredEvent.id, { tab: featuredEvent.phase === 'scientific' ? 'scientific' : 'program' })}
+                        onClick={() =>
+                          onOpenEvent(featuredEvent.id, {
+                            tab:
+                              featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                                ? 'program'
+                                : 'scientific',
+                          })
+                        }
                         className={`${
-                          featuredEvent.phase === 'scientific' ? 'btn-info' : 'btn-success'
+                          featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                            ? 'btn-success'
+                            : 'btn-info'
                         } btn-sm text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 active:scale-95 transition-all`}
                       >
-                        <span>{featuredEvent.phase === 'scientific' ? 'Déposer une communication' : 'Consulter les sessions'}</span>
+                        <span>
+                          {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                            ? 'Accéder au programme'
+                            : 'Déposer une communication'}
+                        </span>
                         <ArrowRightIcon size={14} weight="bold" />
                       </button>
                       <button
@@ -638,13 +657,17 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                   {/* Carte latérale de deadline */}
                   <div className="p-5 rounded-2xl border border-line bg-surface/90 text-center space-y-2 shadow-sm">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-muted block">
-                      {featuredEvent.phase === 'scientific' ? 'Date limite de soumission' : 'Statut officiel'}
+                      {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                        ? "Statut de l'événement"
+                        : 'Date limite de soumission'}
                     </span>
                     <div className="num text-4xl sm:text-5xl font-extrabold text-accent-ink tracking-tight font-mono">
                       {countdown(featuredEvent)}
                     </div>
                     <p className="text-xs text-muted">
-                      {featuredEvent.phase === 'scientific' ? 'Arbitrage par les pairs en double aveugle' : 'Accès aux amphis sur badge QR'}
+                      {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                        ? 'Accès aux amphis sur badge QR'
+                        : 'Arbitrage par les pairs en double aveugle'}
                     </p>
                     <div className="pt-2">
                       <span className="badge badge-accent w-full justify-center py-1">
@@ -859,7 +882,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                   className="btn-accent btn-sm sm:btn-base px-4 py-2.5 text-xs sm:text-sm font-bold shadow-md inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                 >
                   <PlusIcon size={16} weight="bold" />
-                  <span>+ Proposer une conférence</span>
+                  <span>Proposer une conférence</span>
                 </button>
               </div>
             </div>
