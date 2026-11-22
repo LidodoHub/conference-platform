@@ -245,9 +245,6 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
   const rawFirstName = (profile?.full_name || '').trim().split(/\s+/)[0]
   const firstName = rawFirstName ? rawFirstName.charAt(0).toUpperCase() + rawFirstName.slice(1) : ''
   const todayLabel = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
-  const nextEvent = data?.parts
-    .filter((p) => (p.events.end_date || p.events.start_date || '') >= localToday() && p.events.status !== 'draft')
-    .sort((x, y) => x.events.start_date.localeCompare(y.events.start_date))[0]
   const todos = data ? buildTodos({ ...data, isAdmin }) : []
 
   const open = (target) => {
@@ -313,114 +310,61 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
         <div className="hero-glow" aria-hidden="true" />
         <div className="hero-dots" aria-hidden="true" />
 
-        <div className="relative max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-8 pb-10 sm:pt-12 sm:pb-14">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8 items-center">
-            {/* Colonne gauche : Salutation & Raccourcis */}
-            <header className="hero-text space-y-4">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs text-white/90 shadow-sm">
+        <div className="relative max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-7 pb-8 sm:pt-9 sm:pb-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            {/* Colonne gauche : Salutation & Ligne contextuelle */}
+            <header className="hero-text space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs text-white/90 shadow-sm">
                 <span className="first-letter:uppercase font-medium">{todayLabel}</span>
                 <span className="text-white/40">•</span>
                 <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
               </div>
 
               <div>
-                <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-white leading-[1.1]">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
                   Bonjour{firstName ? `, ${firstName}` : ''}
                 </h1>
-                <p className="text-white/80 text-sm sm:text-base mt-2 max-w-[55ch] leading-relaxed">
-                  {!data
-                    ? 'Chargement du portail des conférences…'
-                    : todos.length === 0
-                      ? 'Explorez les manifestations scientifiques et appels à communications du campus.'
-                      : `${plural(todos.length, 'action prioritaire requiert', 'actions prioritaires requièrent')} votre attention.`}
-                </p>
+                <div className="mt-2.5 flex items-center gap-3 flex-wrap">
+                  {todos.length > 0 ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveMainTab('myspace')
+                        const el = document.getElementById('main-content-section')
+                        el?.scrollIntoView({ behavior: 'smooth' })
+                      }}
+                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/85 backdrop-blur-sm border border-accent/40 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-navy hover:border-accent active:scale-95 transition-all"
+                    >
+                      <span className="w-2 h-2 rounded-full bg-warn animate-pulse" />
+                      <span>
+                        {todos.length} action{todos.length > 1 ? 's' : ''} prioritaire{todos.length > 1 ? 's' : ''} &rarr;
+                      </span>
+                    </button>
+                  ) : (
+                    <p className="text-white/80 text-xs sm:text-sm max-w-[60ch] leading-relaxed">
+                      {!data
+                        ? 'Chargement du portail des conférences…'
+                        : 'Bienvenue sur votre portail académique. Retrouvez ici vos manifestations et vos travaux scientifiques.'}
+                    </p>
+                  )}
+                </div>
               </div>
-
-              {todos.length > 0 ? (
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveMainTab('myspace')
-                      const el = document.getElementById('main-content-section')
-                      el?.scrollIntoView({ behavior: 'smooth' })
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-navy/90 hover:border-white/25 active:scale-95 transition-all"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-warn animate-pulse" />
-                    <span>Traiter mes livrables prioritaires ({todos.length})</span>
-                    <ArrowRightIcon size={13} weight="bold" />
-                  </button>
-                </div>
-              ) : (
-                <div className="pt-1 flex items-center gap-2 text-xs text-white/70">
-                  <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                  <span>Portail officiel des manifestations académiques • Campus USTO-MB Oran</span>
-                </div>
-              )}
             </header>
 
-            {/* Colonne droite : Prochain rendez-vous ou Carte d'appel */}
-            <div>
-              {nextEvent ? (
-                <button
-                  type="button"
-                  onClick={() => onOpenEvent(nextEvent.event_id)}
-                  className="group card overflow-hidden text-left w-full border border-white/20 bg-surface/90 backdrop-blur-md hover:border-accent transition-all duration-300 shadow-xl hover:-translate-y-1 text-fg relative"
-                >
-                  <EventCover
-                    event={nextEvent.events}
-                    seed={nextEvent.event_id}
-                    className="h-24 px-4 py-3 flex items-end justify-between gap-4 relative overflow-hidden"
-                  >
-                    <span className="text-xs font-semibold uppercase tracking-wider text-white px-2.5 py-0.5 rounded-full bg-black/35 backdrop-blur-xs">
-                      Prochain rendez-vous
-                    </span>
-                    <span className="text-right">
-                      <span className="num font-bold text-2xl sm:text-3xl text-white tracking-tight">
-                        {countdown(nextEvent.events)}
-                      </span>
-                    </span>
-                  </EventCover>
-
-                  <div className="p-4 space-y-1.5">
-                    <span className="text-xs font-semibold text-accent-ink block uppercase tracking-wide">
-                      {ROLE_LABELS[nextEvent.role_in_event]}
-                    </span>
-                    <h3 className="font-semibold text-sm sm:text-base text-fg line-clamp-1 group-hover:text-accent-ink transition-colors">
-                      {nextEvent.events.title}
-                    </h3>
-                    <p className="text-xs text-muted truncate flex items-center gap-1.5">
-                      <CalendarBlankIcon size={13} className="text-accent-ink shrink-0" aria-hidden="true" />
-                      <span>{formatDate(nextEvent.events.start_date)}</span>
-                      {nextEvent.events.location && <span>• {nextEvent.events.location}</span>}
-                    </p>
-                  </div>
-                </button>
-              ) : (
-                <div className="card p-5 border border-white/20 bg-surface/85 backdrop-blur-md text-fg space-y-2.5 shadow-xl">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-accent-ink block">
-                    Agenda Académique USTO
-                  </span>
-                  <p className="text-sm font-semibold text-fg leading-snug">
-                    Partagez vos découvertes scientifiques
-                  </p>
-                  <p className="text-xs text-muted leading-relaxed">
-                    Découvrez les appels à résumés ouverts pour soumettre vos articles aux comités de lecture.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setActiveMainTab('discover')
-                      const el = document.getElementById('main-content-section')
-                      el?.scrollIntoView({ behavior: 'smooth' })
-                    }}
-                    className="btn-outline btn-sm text-xs mt-2 w-full justify-center active:scale-95 transition-all text-accent-ink border-accent/40 hover:bg-accent/10"
-                  >
-                    Découvrir les appels &rarr;
-                  </button>
-                </div>
-              )}
+            {/* Colonne droite : Action phare Proposer une conférence */}
+            <div className="shrink-0 self-start md:self-center">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCreateForm(true)
+                  const el = document.getElementById('main-content-section')
+                  el?.scrollIntoView({ behavior: 'smooth' })
+                }}
+                className="btn-accent btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+              >
+                <PlusIcon size={16} weight="bold" />
+                <span>Proposer une conférence</span>
+              </button>
             </div>
           </div>
         </div>
@@ -467,50 +411,21 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
           </div>
         )}
 
-        {/* ALERTE TÂCHES PRIORITAIRES (Affichée uniquement si tâches réelles) */}
-        {todos.length > 0 && (
-          <div className="card p-3.5 sm:px-5 sm:py-3.5 border-accent/40 bg-surface/95 border-l-4 border-l-accent shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-view-fade">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full bg-accent animate-pulse shrink-0" aria-hidden="true" />
-              <div className="min-w-0">
-                <span className="font-semibold text-xs sm:text-sm text-fg block truncate">
-                  {todos[0].title}
-                </span>
-                {todos[0].detail && (
-                  <span className="text-xs text-muted block truncate">
-                    {todos[0].category} • {todos[0].detail}
-                  </span>
-                )}
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
-              <button
-                type="button"
-                onClick={() => open(todos[0].target)}
-                className="btn-accent btn-sm text-xs font-semibold gap-1.5 active:scale-95 transition-all shadow-xs"
-              >
-                <span>Traiter en priorité</span>
-                <ArrowRightIcon size={12} weight="bold" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* COMMUTATEUR MAÎTRE CENTRAL & HIGHLIGHTÉ : DÉCOUVRIR vs MON ESPACE CHERCHEUR */}
-        <div className="flex flex-col items-center justify-center pt-1 pb-4 border-b border-line/60 space-y-2.5">
-          <div className="inline-flex items-center bg-surface-2/90 dark:bg-surface-2/95 p-1.5 sm:p-2 rounded-2xl border border-line shadow-md backdrop-blur-md gap-1.5 max-w-full overflow-x-auto">
+        {/* COMMUTATEUR MAÎTRE : DÉCOUVRIR vs MON ESPACE */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 pb-4 border-b border-line/60">
+          <div className="inline-flex items-center bg-surface-2/90 dark:bg-surface-2/95 p-1 sm:p-1.5 rounded-2xl border border-line shadow-xs backdrop-blur-md gap-1 max-w-full overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveMainTab('discover')}
               aria-selected={activeMainTab === 'discover'}
-              className={`flex items-center gap-2.5 px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all duration-200 select-none ${
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 select-none ${
                 activeMainTab === 'discover'
-                  ? 'bg-surface text-fg shadow-md ring-1 ring-accent/30 scale-[1.02]'
+                  ? 'bg-surface text-fg shadow-sm ring-1 ring-accent/30'
                   : 'text-muted hover:text-fg hover:bg-surface/50'
               }`}
             >
               <CompassIcon
-                size={20}
+                size={18}
                 weight={activeMainTab === 'discover' ? 'duotone' : 'regular'}
                 className={activeMainTab === 'discover' ? 'text-accent-ink' : 'text-faint'}
               />
@@ -528,38 +443,30 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               type="button"
               onClick={() => setActiveMainTab('myspace')}
               aria-selected={activeMainTab === 'myspace'}
-              className={`flex items-center gap-2.5 px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl text-sm sm:text-base font-bold transition-all duration-200 select-none ${
+              className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 select-none ${
                 activeMainTab === 'myspace'
-                  ? 'bg-surface text-fg shadow-md ring-1 ring-accent/30 scale-[1.02]'
+                  ? 'bg-surface text-fg shadow-sm ring-1 ring-accent/30'
                   : 'text-muted hover:text-fg hover:bg-surface/50'
               }`}
             >
               <UserIcon
-                size={20}
+                size={18}
                 weight={activeMainTab === 'myspace' ? 'duotone' : 'regular'}
                 className={activeMainTab === 'myspace' ? 'text-accent-ink' : 'text-faint'}
               />
-              <span className="tracking-tight">Mon Espace Chercheur</span>
-              {todos.length > 0 ? (
-                <span className="text-xs font-mono font-bold px-2.5 py-0.5 rounded-full bg-warn text-white shadow-xs animate-pulse">
-                  {todos.length} {todos.length > 1 ? 'tâches' : 'tâche'}
+              <span className="tracking-tight">Mon Espace</span>
+              {todos.length > 0 && (
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-warn text-white shadow-xs animate-pulse">
+                  {todos.length} à traiter
                 </span>
-              ) : data?.parts.length > 0 ? (
-                <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full transition-colors ${
-                  activeMainTab === 'myspace'
-                    ? 'bg-accent/15 text-accent-ink border border-accent/30'
-                    : 'bg-surface border border-line text-muted'
-                }`}>
-                  {data.parts.length}
-                </span>
-              ) : null}
+              )}
             </button>
           </div>
 
-          <div className="flex items-center gap-2 text-xs text-muted">
-            <span className="font-semibold text-fg">Campus USTO-MB</span>
+          <div className="hidden sm:flex items-center gap-2 text-xs text-muted shrink-0">
+            <span className="font-semibold text-fg/80">Campus USTO-MB</span>
             <span>•</span>
-            <span className="text-accent-ink font-medium">Année Académique 2026/2027</span>
+            <span className="text-accent-ink font-medium">2026/2027</span>
           </div>
         </div>
 
@@ -849,211 +756,170 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
         )}
 
         {/* ========================================================================= */}
-        {/* ONGLET 2 : MON ESPACE CHERCHEUR (OPTION 2 COCKPIT BENTO)                  */}
+        {/* ONGLET 2 : MON ESPACE (PILOTAGE ADAPTÉ AU RÔLE)                          */}
         {/* ========================================================================= */}
         {activeMainTab === 'myspace' && (
           <div className="space-y-6 animate-view-fade">
-            {/* Top Action Bar de l'Espace Chercheur : Titre & Action Prioritaire Créer */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-surface-2/90 via-surface/80 to-surface-2/90 border border-line shadow-xs">
-              <div className="space-y-0.5">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent-ink">
-                    Espace Personnel & Comités
-                  </span>
-                  <span className="text-xs text-muted">•</span>
-                  <span className="text-xs text-muted">Campus USTO-MB</span>
-                </div>
-                <h2 className="text-base sm:text-lg font-bold text-fg">
-                  Pilotage de vos activités scientifiques
-                </h2>
-                <p className="text-xs text-muted">
-                  Gérez vos soumissions, évaluations par les pairs et initiez vos nouvelles manifestations.
-                </p>
-              </div>
-
-              <div className="shrink-0">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateForm(true)
-                    const el = document.getElementById('main-content-section')
-                    el?.scrollIntoView({ behavior: 'smooth' })
-                  }}
-                  className="btn-accent btn-sm sm:btn-base px-4 py-2.5 text-xs sm:text-sm font-bold shadow-md inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-                >
-                  <PlusIcon size={16} weight="bold" />
-                  <span>Proposer une conférence</span>
-                </button>
-              </div>
-            </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-8 items-start">
               {/* Colonne gauche : Actions à faire & Mes articles */}
-            <div className="space-y-6">
-              {/* Priorités */}
-              <section className="space-y-3">
-                <SectionTitle
-                  title="Priorités & Livrables"
-                  count={todos.length || null}
-                  description="Vos évaluations assignées, décisions du comité et validations."
-                />
+              <div className="space-y-6">
+                {/* Priorités & Livrables (affiché uniquement s'il y a des tâches) */}
+                {todos.length > 0 ? (
+                  <section className="space-y-3">
+                    <SectionTitle
+                      title="Priorités & Livrables"
+                      count={todos.length}
+                    />
 
-                {todos.length === 0 ? (
-                  <div className="card p-5 border-line bg-surface/60 text-left space-y-1">
-                    <span className="text-xs font-semibold text-ok block flex items-center gap-1.5">
-                      <CheckCircleIcon size={14} weight="bold" />
-                      Statut : Aucun livrable en attente
-                    </span>
-                    <p className="font-semibold text-fg text-sm">
-                      Vous êtes parfaitement à jour dans vos conférences.
-                    </p>
-                    <p className="text-xs text-muted">
-                      Dès qu’une relecture vous est assignée ou qu’une décision est requise, elle apparaîtra ici.
-                    </p>
-                  </div>
-                ) : (
-                  <ul className="space-y-2.5">
-                    {todos.map(({ key, category, borderClass, badgeClass, title, detail, target }, i) => (
-                      <li key={key} className="rise" style={{ '--i': i }}>
-                        <button
-                          type="button"
-                          onClick={() => open(target)}
-                          className={`group w-full text-left card p-4 border-line bg-surface/80 hover:bg-surface hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 ${borderClass}`}
-                        >
-                          <div className="space-y-1 min-w-0 flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeClass}`}>
-                                {category}
-                              </span>
-                              {detail && (
-                                <span className="text-xs font-medium text-muted truncate">
-                                  • {detail}
+                    <ul className="space-y-2.5">
+                      {todos.map(({ key, category, borderClass, badgeClass, title, detail, target }, i) => (
+                        <li key={key} className="rise" style={{ '--i': i }}>
+                          <button
+                            type="button"
+                            onClick={() => open(target)}
+                            className={`group w-full text-left card p-4 border-line bg-surface/80 hover:bg-surface hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 ${borderClass}`}
+                          >
+                            <div className="space-y-1 min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeClass}`}>
+                                  {category}
                                 </span>
-                              )}
+                                {detail && (
+                                  <span className="text-xs font-medium text-muted truncate">
+                                    • {detail}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="font-semibold text-fg text-sm leading-snug">
+                                {title}
+                              </p>
                             </div>
-                            <p className="font-semibold text-fg text-sm leading-snug">
-                              {title}
-                            </p>
-                          </div>
-                          <div className="shrink-0 self-end sm:self-center pt-2 sm:pt-0">
-                            <span className="btn-warning btn-sm text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs">
-                              <span>Traiter</span>
-                              <ArrowRightIcon size={12} weight="bold" />
-                            </span>
-                          </div>
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                            <div className="shrink-0 self-end sm:self-center pt-2 sm:pt-0">
+                              <span className="btn-warning btn-sm text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs">
+                                <span>Traiter</span>
+                                <ArrowRightIcon size={12} weight="bold" />
+                              </span>
+                            </div>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                ) : (
+                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-surface/60 border border-line/60 text-xs text-muted">
+                    <CheckCircleIcon size={16} className="text-ok shrink-0" weight="bold" />
+                    <span>Tout est à jour • Aucun livrable en attente</span>
+                  </div>
                 )}
-              </section>
 
-              {/* Mes articles déposés */}
-              <section className="space-y-3 pt-2">
-                <SectionTitle
-                  title="Mes articles scientifiques"
-                  count={data ? data.subs.length : null}
-                  description={
-                    acceptedCount > 0
-                      ? `${acceptedCount} communication(s) acceptée(s) par le comité scientifique.`
-                      : 'Suivi de vos communications soumises pour évaluation par les pairs.'
-                  }
-                />
-
-                {!data ? (
-                  <div className="skeleton h-24" />
-                ) : data.subs.length === 0 ? (
-                  <EmptyState
-                    compact
-                    icon={ArticleIcon}
-                    title="Aucun article soumis"
-                    body="Ouvrez une conférence en phase scientifique pour déposer vos résumés de recherche."
-                    action={
-                      <button
-                        type="button"
-                        onClick={() => setActiveMainTab('discover')}
-                        className="btn-outline btn-sm"
-                      >
-                        Consulter les appels ouverts
-                      </button>
+                {/* Mes articles déposés */}
+                <section className="space-y-3">
+                  <SectionTitle
+                    title="Mes articles scientifiques"
+                    count={data ? data.subs.length : null}
+                    actions={
+                      acceptedCount > 0 ? (
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full badge-ok">
+                          {plural(acceptedCount, 'communication acceptée', 'communications acceptées')}
+                        </span>
+                      ) : null
                     }
                   />
-                ) : (
-                  <ul className="space-y-2.5">
-                    {data.subs.map((s) => (
-                      <li key={s.id}>
+
+                  {!data ? (
+                    <div className="skeleton h-24" />
+                  ) : data.subs.length === 0 ? (
+                    <EmptyState
+                      compact
+                      icon={ArticleIcon}
+                      title="Aucun article soumis"
+                      body="Ouvrez une conférence en phase scientifique pour déposer vos résumés de recherche."
+                      action={
                         <button
                           type="button"
-                          onClick={() => onOpenEvent(s.event_id, { tab: 'scientific' })}
-                          className="entity w-full text-left hover:border-accent/60 transition-all p-3.5 shadow-xs"
-                          style={{ '--stripe': SUBMISSION_COLOR[s.status] }}
+                          onClick={() => setActiveMainTab('discover')}
+                          className="btn-outline btn-sm"
                         >
-                          <div className="flex items-center justify-between gap-3">
-                            <span
-                              className="text-xs font-semibold px-2 py-0.5 rounded-full"
-                              style={{
-                                color: SUBMISSION_COLOR[s.status],
-                                background: `color-mix(in srgb, ${SUBMISSION_COLOR[s.status]} 15%, transparent)`,
-                              }}
-                            >
-                              {statusOf(s)}
-                            </span>
-                            <span className="text-xs text-faint num">
-                              {formatDate(s.submitted_at, { day: 'numeric', month: 'short' })}
-                            </span>
-                          </div>
-                          <span className="block mt-1.5 font-semibold text-fg text-sm leading-snug line-clamp-1">
-                            {s.title}
-                          </span>
-                          <span className="block text-xs text-muted truncate mt-0.5">{s.events?.title}</span>
+                          Consulter les appels ouverts
                         </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </section>
-            </div>
-
-            {/* Colonne droite : Badge d'accès & Conférences suivies */}
-            <div className="space-y-6">
-              {/* Badge d'accès numérique */}
-              <section className="card p-5 border-line bg-surface/80 space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h3 className="font-semibold text-sm text-fg flex items-center gap-2">
-                    <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
-                    Badge d'Accès Numérique
-                  </h3>
-                  {validatedParticipation && (
-                    <span className="badge badge-ok">Pass Actif</span>
+                      }
+                    />
+                  ) : (
+                    <ul className="space-y-2.5">
+                      {data.subs.map((s) => (
+                        <li key={s.id}>
+                          <button
+                            type="button"
+                            onClick={() => onOpenEvent(s.event_id, { tab: 'scientific' })}
+                            className="entity w-full text-left hover:border-accent/60 transition-all p-3.5 shadow-xs"
+                            style={{ '--stripe': SUBMISSION_COLOR[s.status] }}
+                          >
+                            <div className="flex items-center justify-between gap-3">
+                              <span
+                                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                                style={{
+                                  color: SUBMISSION_COLOR[s.status],
+                                  background: `color-mix(in srgb, ${SUBMISSION_COLOR[s.status]} 15%, transparent)`,
+                                }}
+                              >
+                                {statusOf(s)}
+                              </span>
+                              <span className="text-xs text-faint num">
+                                {formatDate(s.submitted_at, { day: 'numeric', month: 'short' })}
+                              </span>
+                            </div>
+                            <span className="block mt-1.5 font-semibold text-fg text-sm leading-snug line-clamp-1">
+                              {s.title}
+                            </span>
+                            <span className="block text-xs text-muted truncate mt-0.5">{s.events?.title}</span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
                   )}
-                </div>
+                </section>
+              </div>
 
-                {validatedParticipation ? (
-                  <div className="p-4 rounded-xl border border-accent/40 bg-gradient-to-br from-accent/10 to-surface-2 space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <span className="text-[11px] font-bold text-accent-ink uppercase">Participant Validé</span>
-                        <p className="font-bold text-sm text-fg mt-0.5">{validatedParticipation.events?.title}</p>
-                        <p className="text-xs text-muted">{validatedParticipation.events?.location || 'Campus USTO-MB'}</p>
-                      </div>
-                      <span className="w-12 h-12 rounded-lg bg-surface border border-line flex items-center justify-center text-accent-ink shrink-0">
-                        <QrCodeIcon size={26} weight="duotone" />
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onOpenEvent(validatedParticipation.event_id, { tab: 'overview' })}
-                      className="btn-success btn-sm text-xs w-full justify-center mt-2 shadow-xs"
-                    >
-                      Afficher mon badge QR complet
-                    </button>
+              {/* Colonne droite : Badge d'accès & Conférences suivies */}
+              <div className="space-y-6">
+                {/* Badge d'accès numérique */}
+                <section className="card p-5 border-line bg-surface/80 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="font-semibold text-sm text-fg flex items-center gap-2">
+                      <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
+                      Badge d'Accès Numérique
+                    </h3>
+                    {validatedParticipation && (
+                      <span className="badge badge-ok">Pass Actif</span>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-xs text-muted leading-relaxed">
-                    Dès que votre inscription à une conférence est validée, votre badge d'accès numérique avec QR code s'affiche ici pour émarger en amphithéâtre.
-                  </p>
-                )}
-              </section>
+
+                  {validatedParticipation ? (
+                    <div className="p-4 rounded-xl border border-accent/40 bg-gradient-to-br from-accent/10 to-surface-2 space-y-2">
+                      <div className="flex items-center justify-between gap-3">
+                        <div>
+                          <span className="text-[11px] font-bold text-accent-ink uppercase">Participant Validé</span>
+                          <p className="font-bold text-sm text-fg mt-0.5">{validatedParticipation.events?.title}</p>
+                          <p className="text-xs text-muted">{validatedParticipation.events?.location || 'Campus USTO-MB'}</p>
+                        </div>
+                        <span className="w-12 h-12 rounded-lg bg-surface border border-line flex items-center justify-center text-accent-ink shrink-0">
+                          <QrCodeIcon size={26} weight="duotone" />
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => onOpenEvent(validatedParticipation.event_id, { tab: 'overview' })}
+                        className="btn-outline btn-sm text-xs w-full justify-center mt-2 shadow-xs"
+                      >
+                        Afficher mon badge QR complet
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted leading-relaxed">
+                      Dès que votre inscription à une conférence est validée, votre badge d'accès numérique avec QR code s'affiche ici pour émarger en amphithéâtre.
+                    </p>
+                  )}
+                </section>
 
               {/* Mes conférences actives */}
               <section className="space-y-3">
