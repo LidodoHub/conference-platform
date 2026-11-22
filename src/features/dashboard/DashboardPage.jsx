@@ -652,8 +652,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           className="h-36 sm:h-40 px-4 py-3 flex flex-col justify-end relative overflow-hidden"
                         >
                           {isOngoing ? (
-                            <span className="bg-black/60 backdrop-blur-xs text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5 shadow-xs w-fit">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                            <span className="bg-ok text-white px-3 py-1 rounded-full text-xs font-semibold shadow-xs w-fit">
                               En cours
                             </span>
                           ) : isScientific ? (
