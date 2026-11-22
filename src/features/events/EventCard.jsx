@@ -75,7 +75,7 @@ export default function EventCard({ event, role, onOpen, style }) {
     >
       <EventCover seed={event.id} event={event} className="h-36 sm:h-44 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <span className="text-xs font-medium text-fg dark:text-white/90 px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs">
+          <span className="text-xs font-medium text-fg dark:text-white/90 px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs w-fit self-start shrink-0">
             {TYPE_LABELS[event.type] || event.type}
             {event.format && event.format !== 'onsite' && <span className="text-muted dark:text-white/70"> • {FORMAT_LABELS[event.format].toLowerCase()}</span>}
           </span>
@@ -134,7 +134,7 @@ export function FeaturedEventCard({ event, role, onOpen }) {
     >
       <EventCover seed={event.id} event={event} className="min-h-48 md:min-h-80 p-5 sm:p-8 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <span className="text-sm font-medium text-fg dark:text-white/90 px-3 py-1 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs">
+          <span className="text-sm font-medium text-fg dark:text-white/90 px-3 py-1 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs w-fit self-start shrink-0">
             {TYPE_LABELS[event.type] || event.type} • {(FORMAT_LABELS[event.format] || '').toLowerCase()}
           </span>
           {timer && (

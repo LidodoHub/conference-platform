@@ -386,7 +386,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             {/* CARTE HERO USTO-MB ARRONDIE DANS LA LARGEUR DU CONTENU */}
             <div className="hero relative overflow-hidden text-white rounded-3xl shadow-card border border-white/10">
               <img className="hero-photo hero-photo--usto" src={HERO_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/45 to-black/25 pointer-events-none" aria-hidden="true" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent pointer-events-none" aria-hidden="true" />
               <div className="hero-glow" aria-hidden="true" />
               <div className="hero-dots" aria-hidden="true" />
 
@@ -394,7 +394,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   {/* Colonne gauche : Salutation & Ligne contextuelle */}
                   <header className="hero-text space-y-3">
-                    <div className="text-xs sm:text-sm text-white/80 font-medium flex items-center gap-2">
+                    <div className="text-xs sm:text-sm text-white/80 font-medium flex items-center gap-2 drop-shadow-sm">
                       <span className="first-letter:uppercase">{todayLabel}</span>
                       <span className="text-white/40">•</span>
                       <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
