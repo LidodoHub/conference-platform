@@ -71,7 +71,7 @@
   --c-bg: #F5F5F7;
   --c-surface: #FFFFFF;
   --c-surface-2: #E8EAEE;
-  --c-line: rgba(0, 0, 0, 0.06);
+  --c-line: rgba(0, 0, 0, 0.04);
   --c-fg: #1D1D1F;
   --c-muted: #6E6E73;
   --c-faint: #86868B;
@@ -84,7 +84,7 @@
   --c-neutral: #6E6E73;
 
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
-  --shadow-lift: 0 10px 28px rgba(0, 0, 0, 0.08);
+  --shadow-lift: 0 12px 28px rgba(0, 0, 0, 0.09);
 }
 
 [data-theme="dark"] {
@@ -306,13 +306,19 @@
 
   /* ---------- Surfaces ---------- */
   .card {
-    @apply bg-surface rounded-2xl border border-line transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft);
+    @apply bg-surface rounded-2xl border border-line transition-all duration-200 ease-(--ease-out-soft);
     box-shadow: var(--shadow-card);
     overflow-wrap: anywhere;
   }
 
   .card:hover {
     box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
+  }
+
+  [data-theme="dark"] .card {
+    box-shadow: none;
+    border-color: rgba(255, 255, 255, 0.06);
   }
 
   [data-theme="dark"] .card:hover,
@@ -320,11 +326,12 @@
   [data-theme="dark"] .card-ticket:hover,
   [data-theme="dark"] .entity:hover {
     border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.6);
+    transform: translateY(-2px);
   }
 
-
   .card-panel {
-    @apply bg-surface rounded-2xl border border-line p-5 sm:p-7;
+    @apply bg-surface rounded-2xl border border-line p-5 sm:p-7 transition-all duration-200 ease-(--ease-out-soft);
     box-shadow: var(--shadow-card);
     overflow-wrap: anywhere;
   }

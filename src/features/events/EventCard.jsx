@@ -70,7 +70,7 @@ export default function EventCard({ event, role, onOpen, style }) {
     <button
       type="button"
       onClick={() => onOpen(event.id)}
-      className="group card overflow-hidden text-left flex flex-col rise transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft) hover:-translate-y-1 hover:shadow-lift hover:border-black/20 dark:hover:border-white/[0.12] active:translate-y-0 active:scale-[0.985] cursor-pointer"
+      className="group card overflow-hidden text-left flex flex-col rounded-2xl border border-black/[0.04] dark:border-white/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_12px_28px_rgba(0,0,0,0.09)] dark:hover:shadow-lift hover:-translate-y-0.5 hover:border-black/[0.08] dark:hover:border-white/[0.12] transition-all duration-200 active:translate-y-0 active:scale-[0.985] cursor-pointer"
       style={style}
     >
       <EventCover seed={event.id} event={event} className="h-36 sm:h-44 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden">
@@ -130,7 +130,7 @@ export function FeaturedEventCard({ event, role, onOpen }) {
     <button
       type="button"
       onClick={() => onOpen(event.id)}
-      className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-[transform,box-shadow,border-color] duration-200 hover:shadow-lift hover:border-black/20 dark:hover:border-white/[0.12] active:scale-[0.99] cursor-pointer"
+      className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rounded-2xl border border-black/[0.04] dark:border-white/[0.06] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_12px_28px_rgba(0,0,0,0.09)] dark:hover:shadow-lift hover:-translate-y-0.5 hover:border-black/[0.08] dark:hover:border-white/[0.12] transition-all duration-200 active:scale-[0.99] cursor-pointer"
     >
       <EventCover seed={event.id} event={event} className="min-h-48 md:min-h-80 p-5 sm:p-8 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">

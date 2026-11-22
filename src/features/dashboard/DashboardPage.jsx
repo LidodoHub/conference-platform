@@ -461,7 +461,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
             {/* CONFÉRENCE VEDETTE À LA UNE */}
             {featuredEvent && (
-              <section className="card p-6 sm:p-8 border border-line bg-surface relative overflow-hidden shadow-card hover:border-black/20 dark:hover:border-white/[0.12] transition-all duration-300">
+              <section className="card p-6 sm:p-8 rounded-2xl border border-black/[0.04] dark:border-white/10 bg-surface relative overflow-hidden shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_12px_28px_rgba(0,0,0,0.09)] dark:hover:shadow-lift hover:-translate-y-0.5 hover:border-black/[0.08] dark:hover:border-white/[0.12] transition-all duration-200">
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
                   {/* Colonne gauche : texte et boutons (md:col-span-7) */}
                   <div className="md:col-span-7 space-y-4">
@@ -641,7 +641,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card rounded-2xl overflow-hidden border border-line dark:border-white/10 bg-surface dark:bg-[#141416] hover:border-black/20 dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
+                      className="group card rounded-2xl overflow-hidden border border-black/[0.04] dark:border-white/10 bg-surface dark:bg-[#141416] shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_12px_28px_rgba(0,0,0,0.09)] dark:hover:shadow-lift hover:-translate-y-0.5 hover:border-black/[0.08] dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between cursor-pointer text-left"
                     >
                       <div>
                         <EventCover
@@ -709,7 +709,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card p-4 sm:p-5 border-line bg-surface hover:border-black/20 dark:hover:border-white/[0.12] transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer hover:translate-x-1"
+                      className="group card rounded-2xl p-4 sm:p-5 border border-black/[0.04] dark:border-white/10 bg-surface shadow-[0_4px_20px_rgba(0,0,0,0.05)] dark:shadow-none hover:shadow-[0_12px_28px_rgba(0,0,0,0.09)] dark:hover:shadow-lift hover:-translate-y-0.5 hover:border-black/[0.08] dark:hover:border-white/[0.12] transition-all duration-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4 cursor-pointer"
                     >
                       <div className="flex items-center gap-4 min-w-0">
                         {/* Bloc date jour */}
@@ -817,7 +817,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       count={todos.length}
                     />
 
-                    <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface shadow-xs">
+                    <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface">
                       {todos.map(({ key, category, detail, title, target }) => (
                         <button
                           key={key}
@@ -885,7 +885,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       }
                     />
                   ) : (
-                    <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface shadow-xs">
+                    <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface">
                       {data.subs.map((s) => (
                         <button
                           key={s.id}
@@ -999,7 +999,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     }
                   />
                 ) : (
-                  <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface shadow-xs">
+                  <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface">
                     {data.parts
                       .slice()
                       .sort((a, b) => (a.events.start_date || '').localeCompare(b.events.start_date || ''))
