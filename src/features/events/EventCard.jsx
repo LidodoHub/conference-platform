@@ -80,7 +80,7 @@ export default function EventCard({ event, role, onOpen, style }) {
             {event.format && event.format !== 'onsite' && <span className="text-white/70"> • {FORMAT_LABELS[event.format].toLowerCase()}</span>}
           </span>
           {timer && (
-            <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs ${timer.cls}`}>
+            <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs w-fit self-start ${timer.cls}`}>
               {timer.label}
             </span>
           )}
@@ -138,7 +138,7 @@ export function FeaturedEventCard({ event, role, onOpen }) {
             {TYPE_LABELS[event.type] || event.type} • {(FORMAT_LABELS[event.format] || '').toLowerCase()}
           </span>
           {timer && (
-            <span className={`text-xs uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs ${timer.cls}`}>
+            <span className={`text-xs uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-xs w-fit self-start ${timer.cls}`}>
               {timer.label}
             </span>
           )}

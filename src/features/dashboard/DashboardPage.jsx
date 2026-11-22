@@ -470,73 +470,101 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             </div>
             {/* CONFÉRENCE VEDETTE À LA UNE */}
             {featuredEvent && (
-              <section className="card p-6 sm:p-8 border border-line bg-surface relative overflow-hidden shadow-card hover:border-accent/40 transition-all duration-300 space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
-                    featuredEvent.status === 'ongoing'
-                      ? 'bg-ok/15 text-ok border border-ok/30'
-                      : 'bg-accent/15 text-accent-ink border border-accent/30'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${
-                      featuredEvent.status === 'ongoing' ? 'bg-ok' : 'bg-accent'
-                    }`} />
-                    <span>{featuredEvent.status === 'ongoing' ? 'En cours' : 'Appel ouvert'}</span>
-                  </span>
-                </div>
+              <section className="card p-6 sm:p-8 border border-line bg-surface relative overflow-hidden shadow-card hover:border-accent/40 transition-all duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                  {/* Colonne gauche : texte et boutons (md:col-span-7) */}
+                  <div className="md:col-span-7 space-y-4">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold w-fit self-start ${
+                        featuredEvent.status === 'ongoing'
+                          ? 'bg-ok/15 text-ok border border-ok/30'
+                          : 'bg-accent/15 text-accent-ink border border-accent/30'
+                      }`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${
+                          featuredEvent.status === 'ongoing' ? 'bg-ok' : 'bg-accent'
+                        }`} />
+                        <span>{featuredEvent.status === 'ongoing' ? 'En cours' : 'Appel ouvert'}</span>
+                      </span>
+                    </div>
 
-                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-fg leading-tight">
-                  {featuredEvent.title}
-                </h2>
+                    <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-fg leading-tight">
+                      {featuredEvent.title}
+                    </h2>
 
-                {featuredEvent.description && (
-                  <p className="text-xs sm:text-sm text-muted line-clamp-2 leading-relaxed max-w-[75ch]">
-                    {cleanDescription(featuredEvent.description)}
-                  </p>
-                )}
+                    {featuredEvent.description && (
+                      <p className="text-xs sm:text-sm text-muted line-clamp-2 leading-relaxed max-w-[75ch]">
+                        {cleanDescription(featuredEvent.description)}
+                      </p>
+                    )}
 
-                <div className="flex items-center gap-2 text-xs text-muted">
-                  <span className="num font-medium text-fg">
-                    {formatDate(featuredEvent.start_date, { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
-                  {featuredEvent.location && (
-                    <>
-                      <span>•</span>
-                      <span>{featuredEvent.location}</span>
-                    </>
-                  )}
-                </div>
+                    <div className="flex items-center gap-2 text-xs text-muted">
+                      <span className="num font-medium text-fg">
+                        {formatDate(featuredEvent.start_date, { day: 'numeric', month: 'long', year: 'numeric' })}
+                      </span>
+                      {featuredEvent.location && (
+                        <>
+                          <span>•</span>
+                          <span>{featuredEvent.location}</span>
+                        </>
+                      )}
+                    </div>
 
-                <div className="flex flex-wrap items-center gap-3 pt-1">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onOpenEvent(featuredEvent.id, {
-                        tab:
+                    <div className="flex flex-wrap items-center gap-3 pt-1">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onOpenEvent(featuredEvent.id, {
+                            tab:
+                              featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                                ? 'program'
+                                : 'scientific',
+                          })
+                        }
+                        className={`${
                           featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                            ? 'program'
-                            : 'scientific',
-                      })
-                    }
-                    className={`${
-                      featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                        ? 'btn-success'
-                        : 'btn-info'
-                    } btn-sm text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 active:scale-95 transition-all`}
-                  >
-                    <span>
-                      {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                        ? 'Accéder au programme'
-                        : 'Déposer une communication'}
-                    </span>
-                    <ArrowRightIcon size={14} weight="bold" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onOpenEvent(featuredEvent.id)}
-                    className="btn-ghost btn-sm text-xs sm:text-sm text-muted hover:text-fg"
-                  >
-                    Détails
-                  </button>
+                            ? 'btn-success'
+                            : 'btn-info'
+                        } btn-sm text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 active:scale-95 transition-all`}
+                      >
+                        <span>
+                          {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                            ? 'Accéder au programme'
+                            : 'Déposer une communication'}
+                        </span>
+                        <ArrowRightIcon size={14} weight="bold" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onOpenEvent(featuredEvent.id)}
+                        className="btn-ghost btn-sm text-xs sm:text-sm text-muted hover:text-fg"
+                      >
+                        Détails
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Colonne droite : visuel/couverture de la conférence (md:col-span-5) */}
+                  <div className="md:col-span-5">
+                    <EventCover
+                      seed={featuredEvent.id}
+                      event={featuredEvent}
+                      className="w-full h-48 sm:h-56 md:h-64 rounded-xl overflow-hidden shadow-inner border border-line/40 flex flex-col justify-between p-4 sm:p-5"
+                    >
+                      <div className="flex items-center justify-between gap-2 relative z-10">
+                        <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-black/40 text-white backdrop-blur-xs">
+                          {TYPE_LABELS[featuredEvent.type] || featuredEvent.type}
+                        </span>
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface/90 text-fg border border-line shadow-xs">
+                          USTO-MB
+                        </span>
+                      </div>
+                      <div className="relative z-10 flex items-center justify-between text-xs text-white/90">
+                        <span className="font-semibold text-accent-ink bg-black/40 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                          Actes & Archives
+                        </span>
+                      </div>
+                    </EventCover>
+                  </div>
                 </div>
               </section>
             )}
@@ -627,7 +655,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-black/40 text-white backdrop-blur-xs">
                             {TYPE_LABELS[ev.type] || ev.type}
                           </span>
-                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shadow-xs ${
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shadow-xs w-fit self-start ${
                             isOngoing
                               ? 'bg-ok text-white'
                               : isClosed
