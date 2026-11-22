@@ -150,8 +150,10 @@ export default function IdeasReviewModal({
                 setFormData((prev) => ({ ...prev, e4: noteData.notes }))
               }
             })
+            .catch(() => {})
         }
       })
+      .catch(() => {})
   }, [submission?.id, user?.id])
 
   useEffect(() => {
@@ -248,22 +250,26 @@ export default function IdeasReviewModal({
     // Enregistrement des remarques confidentielles dans la table dédiée sécurisée
     if (targetReviewId) {
       const cleanE4 = formData.e4?.trim()
-      if (cleanE4) {
-        const { error: notesErr } = await supabase
-          .from('review_chair_notes')
-          .upsert({
-            review_id: targetReviewId,
-            notes: cleanE4,
-            updated_at: new Date().toISOString(),
-          })
-        if (notesErr) {
-          console.error('Erreur sauvegarde notes confidentielles:', notesErr)
+      try {
+        if (cleanE4) {
+          const { error: notesErr } = await supabase
+            .from('review_chair_notes')
+            .upsert({
+              review_id: targetReviewId,
+              notes: cleanE4,
+              updated_at: new Date().toISOString(),
+            })
+          if (notesErr) {
+            console.warn('Notes confidentielles non enregistrées (vérifier 003_review_confidential_notes.sql) :', notesErr.message)
+          }
+        } else {
+          await supabase
+            .from('review_chair_notes')
+            .delete()
+            .eq('review_id', targetReviewId)
         }
-      } else {
-        await supabase
-          .from('review_chair_notes')
-          .delete()
-          .eq('review_id', targetReviewId)
+      } catch (err) {
+        console.warn('Accès review_chair_notes impossible :', err)
       }
     }
 

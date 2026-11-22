@@ -280,14 +280,17 @@ export default function SubmissionDetail({
       .from('review_chair_notes')
       .select('review_id, notes')
       .in('review_id', ids)
-      .then(({ data }) => {
-        if (data) {
+      .then(({ data, error }) => {
+        if (!error && data) {
           const map = {}
           data.forEach((item) => {
             map[item.review_id] = item.notes
           })
           setChairNotes(map)
         }
+      })
+      .catch(() => {
+        // Table en attente de migration ou indisponible : ne pas bloquer l'affichage
       })
   }, [s.id, canManage, reviews, mine.length])
 
