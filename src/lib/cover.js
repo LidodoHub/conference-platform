@@ -12,8 +12,8 @@ export const GENERATIVE_THEMES = {
     desc: 'Topologie de graphes, réseaux neuronaux & clusters de données',
     isGenerative: true,
     patternKey: 'arxiv_graph',
-    color: '#0B132B',
-    accent: '#00F0FF',
+    color: '#16233F',
+    accent: '#C8963E',
     badge: 'Illustration ArXiv',
   },
   nature_quantum: {

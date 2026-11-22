@@ -11,8 +11,8 @@ export function ArxivGraphPattern({ className = '' }) {
     >
       <defs>
         <radialGradient id="ag-glow1" cx="35%" cy="45%" r="60%">
-          <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.32" />
-          <stop offset="60%" stopColor="#3A86FF" stopOpacity="0.12" />
+          <stop offset="0%" stopColor="#C8963E" stopOpacity="0.32" />
+          <stop offset="60%" stopColor="#3D6FB0" stopOpacity="0.12" />
           <stop offset="100%" stopColor="#0B132B" stopOpacity="0" />
         </radialGradient>
         <radialGradient id="ag-glow2" cx="75%" cy="30%" r="50%">
@@ -20,7 +20,7 @@ export function ArxivGraphPattern({ className = '' }) {
           <stop offset="100%" stopColor="#0B132B" stopOpacity="0" />
         </radialGradient>
         <linearGradient id="ag-line-grad" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.6" />
+          <stop offset="0%" stopColor="#C8963E" stopOpacity="0.6" />
           <stop offset="50%" stopColor="#818CF8" stopOpacity="0.45" />
           <stop offset="100%" stopColor="#38BDF8" stopOpacity="0.2" />
         </linearGradient>
@@ -68,8 +68,8 @@ export function ArxivGraphPattern({ className = '' }) {
         [120, 185, 3],
       ].map(([cx, cy, r], i) => (
         <g key={i}>
-          <circle cx={cx} cy={cy} r={r * 2.2} fill="#00F0FF" fillOpacity="0.12" />
-          <circle cx={cx} cy={cy} r={r} fill="#0E2140" stroke="#00F0FF" strokeWidth="1.5" />
+          <circle cx={cx} cy={cy} r={r * 2.2} fill="#C8963E" fillOpacity="0.12" />
+          <circle cx={cx} cy={cy} r={r} fill="#0E2140" stroke="#C8963E" strokeWidth="1.5" />
           <circle cx={cx} cy={cy} r={r * 0.4} fill="#ffffff" />
         </g>
       ))}

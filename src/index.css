@@ -59,28 +59,32 @@
   --color-sage: var(--c-ok);
   --color-error: var(--c-bad);
 
-  --shadow-card: 0 1px 2px rgb(22 35 63 / 0.06), 0 8px 24px -12px rgb(22 35 63 / 0.18);
-  --shadow-lift: 0 2px 4px rgb(22 35 63 / 0.08), 0 18px 40px -16px rgb(22 35 63 / 0.28);
+  --shadow-card: var(--shadow-card);
+  --shadow-lift: var(--shadow-lift);
 
   --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-:root {
+:root,
+[data-theme="light"] {
   color-scheme: light;
-  --c-bg: #DDE1E8;
-  --c-surface: #EEF0F4;
-  --c-surface-2: #E4E7ED;
-  --c-line: rgb(22 35 63 / 0.12);
-  --c-fg: #16233F;
-  --c-muted: #4F5B74;
-  --c-faint: #6E7891;
+  --c-bg: #F5F5F7;
+  --c-surface: #FFFFFF;
+  --c-surface-2: #F2F3F5;
+  --c-line: rgba(0, 0, 0, 0.04);
+  --c-fg: #1D1D1F;
+  --c-muted: #6E6E73;
+  --c-faint: #86868B;
   --c-accent: #C8963E;
   --c-accent-ink: #8A5F1C;
   --c-ok: #1E7553;
   --c-warn: #A35F0C;
   --c-bad: #B03A32;
   --c-info: #2C5DA6;
-  --c-neutral: #5A6680;
+  --c-neutral: #6E6E73;
+
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --shadow-lift: 0 10px 28px rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="dark"] {
@@ -99,6 +103,9 @@
   --c-bad: #BD4239;
   --c-info: #3D6FB0;
   --c-neutral: #A3ACB7;
+
+  --shadow-card: 0 1px 2px rgb(22 35 63 / 0.06), 0 8px 24px -12px rgb(22 35 63 / 0.18);
+  --shadow-lift: 0 2px 4px rgb(22 35 63 / 0.08), 0 18px 40px -16px rgb(22 35 63 / 0.28);
 }
 
 @layer base {
@@ -133,7 +140,13 @@
     background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   }
 
-  h1, h2, h3 {
+  h1, h2 {
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+
+  h3 {
     text-wrap: balance;
   }
 
@@ -304,6 +317,10 @@
     @apply bg-surface rounded-2xl border border-line transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft);
     box-shadow: var(--shadow-card);
     overflow-wrap: anywhere;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-lift);
   }
 
   .card-panel {

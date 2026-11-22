@@ -301,118 +301,11 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
   return (
     <>
-      {/* ========================================================================= */}
-      {/* 1. HERO BANNER : PRESTIGE USTO & COCKPIT CHERCHEUR                       */}
-      {/* ========================================================================= */}
-      <section className="hero relative overflow-hidden text-white">
-        <img className="hero-photo hero-photo--usto" src={HERO_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
-        <div className="hero-shade" aria-hidden="true" />
-        <div className="hero-glow" aria-hidden="true" />
-        <div className="hero-dots" aria-hidden="true" />
-
-        <div className="relative max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-7 pb-8 sm:pt-9 sm:pb-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            {/* Colonne gauche : Salutation & Ligne contextuelle */}
-            <header className="hero-text space-y-3">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs text-white/90 shadow-sm">
-                <span className="first-letter:uppercase font-medium">{todayLabel}</span>
-                <span className="text-white/40">•</span>
-                <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
-              </div>
-
-              <div>
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
-                  Bonjour{firstName ? `, ${firstName}` : ''}
-                </h1>
-                <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-                  {todos.length > 0 && activeMainTab === 'discover' ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveMainTab('myspace')
-                        const el = document.getElementById('main-content-section')
-                        el?.scrollIntoView({ behavior: 'smooth' })
-                      }}
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/85 backdrop-blur-sm border border-accent/40 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-navy hover:border-accent active:scale-95 transition-all"
-                    >
-                      <span className="w-2 h-2 rounded-full bg-warn" />
-                      <span>
-                        {todos.length} action{todos.length > 1 ? 's' : ''} prioritaire{todos.length > 1 ? 's' : ''} &rarr;
-                      </span>
-                    </button>
-                  ) : (
-                    <p className="text-white/80 text-xs sm:text-sm max-w-[60ch] leading-relaxed">
-                      {!data
-                        ? 'Chargement du portail des conférences…'
-                        : 'Bienvenue sur votre portail académique. Retrouvez ici vos manifestations et vos travaux scientifiques.'}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </header>
-
-            {/* Colonne droite : Action phare Proposer une conférence */}
-            <div className="shrink-0 self-start md:self-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateForm(true)
-                  const el = document.getElementById('main-content-section')
-                  el?.scrollIntoView({ behavior: 'smooth' })
-                }}
-                className="btn-accent btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-              >
-                <PlusIcon size={16} weight="bold" />
-                <span>Proposer une conférence</span>
-              </button>
-            </div>
-          </div>
-        </div>
-        <a
-          href={HERO_PHOTO.page}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="hidden sm:block absolute right-3 bottom-2 text-xs text-white/50 hover:text-white/80 transition-colors"
-        >
-          {HERO_PHOTO.credit}
-        </a>
-      </section>
-
-      {/* ========================================================================= */}
-      {/* 2. LE MASTER HYBRID : CONTENU VIVANT SANS ZÉROS PARASITES                */}
-      {/* ========================================================================= */}
-      <div id="main-content-section" className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-6">
+      <div id="main-content-section" className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 py-6 sm:py-8 space-y-8 sm:space-y-10">
         {error && <div className="alert-error">{error}</div>}
 
-        {/* FORMULAIRE DE CRÉATION DE CONFÉRENCE (DÉPLIABLE EN 1 CLIC) */}
-        {showCreateForm && (
-          <div className="card p-5 sm:p-7 border border-accent/40 bg-surface shadow-xl space-y-4 animate-view-fade">
-            <div className="flex items-center justify-between pb-3 border-b border-line">
-              <div>
-                <h3 className="font-semibold text-base sm:text-lg text-fg">Nouvelle conférence universitaire</h3>
-                <p className="text-xs text-muted mt-0.5">Créez votre manifestation scientifique pour l'université USTO-MB (format brouillon).</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCreateForm(false)}
-                className="btn-ghost btn-sm text-xs flex items-center gap-1 text-muted hover:text-fg"
-              >
-                <XIcon size={16} />
-                <span>Fermer</span>
-              </button>
-            </div>
-            <EventForm
-              submitLabel="Créer la conférence (Brouillon)"
-              busyLabel="Création en cours…"
-              onSubmit={createEvent}
-              onCancel={() => setShowCreateForm(false)}
-              error={createError}
-            />
-          </div>
-        )}
-
         {/* COMMUTATEUR MAÎTRE : DÉCOUVRIR vs MON ESPACE */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1 pb-4 border-b border-line/60">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line/60">
           <div className="inline-flex items-center bg-surface-2/90 dark:bg-surface-2/95 p-1 sm:p-1.5 rounded-2xl border border-line shadow-xs backdrop-blur-md gap-1 max-w-full overflow-x-auto">
             <button
               type="button"
@@ -470,11 +363,112 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
           </div>
         </div>
 
+        {/* FORMULAIRE DE CRÉATION DE CONFÉRENCE (DÉPLIABLE EN 1 CLIC) */}
+        {showCreateForm && (
+          <div className="card p-5 sm:p-7 border border-accent/40 bg-surface shadow-xl space-y-4 animate-view-fade">
+            <div className="flex items-center justify-between pb-3 border-b border-line">
+              <div>
+                <h3 className="font-semibold text-base sm:text-lg text-fg">Nouvelle conférence universitaire</h3>
+                <p className="text-xs text-muted mt-0.5">Créez votre manifestation scientifique pour l'université USTO-MB (format brouillon).</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCreateForm(false)}
+                className="btn-ghost btn-sm text-xs flex items-center gap-1 text-muted hover:text-fg"
+              >
+                <XIcon size={16} />
+                <span>Fermer</span>
+              </button>
+            </div>
+            <EventForm
+              submitLabel="Créer la conférence (Brouillon)"
+              busyLabel="Création en cours…"
+              onSubmit={createEvent}
+              onCancel={() => setShowCreateForm(false)}
+              error={createError}
+            />
+          </div>
+        )}
+
         {/* ========================================================================= */}
         {/* ONGLET 1 : DÉCOUVRIR & CATALOGUE OFFICIEL (OPTION 1 + OPTION 3)          */}
         {/* ========================================================================= */}
         {activeMainTab === 'discover' && (
-          <div className="space-y-7 animate-view-fade">
+          <div className="space-y-8 sm:space-y-10 animate-view-fade">
+            {/* CARTE HERO USTO-MB ARRONDIE DANS LA LARGEUR DU CONTENU */}
+            <div className="hero relative overflow-hidden text-white rounded-3xl shadow-card border border-white/10">
+              <img className="hero-photo hero-photo--usto" src={HERO_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
+              <div className="hero-shade" aria-hidden="true" />
+              <div className="hero-glow" aria-hidden="true" />
+              <div className="hero-dots" aria-hidden="true" />
+
+              <div className="relative px-6 sm:px-10 py-8 sm:py-12">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  {/* Colonne gauche : Salutation & Ligne contextuelle */}
+                  <header className="hero-text space-y-3">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs text-white/90 shadow-sm">
+                      <span className="first-letter:uppercase font-medium">{todayLabel}</span>
+                      <span className="text-white/40">•</span>
+                      <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
+                    </div>
+
+                    <div>
+                      <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-white leading-tight">
+                        Bonjour{firstName ? `, ${firstName}` : ''}
+                      </h1>
+                      <div className="mt-2.5 flex items-center gap-3 flex-wrap">
+                        {todos.length > 0 ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveMainTab('myspace')
+                              const el = document.getElementById('main-content-section')
+                              el?.scrollIntoView({ behavior: 'smooth' })
+                            }}
+                            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/85 backdrop-blur-sm border border-accent/40 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-navy hover:border-accent active:scale-95 transition-all"
+                          >
+                            <span className="w-2 h-2 rounded-full bg-warn" />
+                            <span>
+                              {todos.length} action{todos.length > 1 ? 's' : ''} prioritaire{todos.length > 1 ? 's' : ''} &rarr;
+                            </span>
+                          </button>
+                        ) : (
+                          <p className="text-white/80 text-xs sm:text-sm max-w-[60ch] leading-relaxed">
+                            {!data
+                              ? 'Chargement du portail des conférences…'
+                              : 'Bienvenue sur votre portail académique. Retrouvez ici vos manifestations et vos travaux scientifiques.'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </header>
+
+                  {/* Colonne droite : Action phare Proposer une conférence */}
+                  <div className="shrink-0 self-start md:self-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowCreateForm(true)
+                        const el = document.getElementById('main-content-section')
+                        el?.scrollIntoView({ behavior: 'smooth' })
+                      }}
+                      className="btn-accent btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                    >
+                      <PlusIcon size={16} weight="bold" />
+                      <span>Proposer une conférence</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <a
+                href={HERO_PHOTO.page}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:block absolute right-4 bottom-3 text-xs text-white/50 hover:text-white/80 transition-colors"
+              >
+                {HERO_PHOTO.credit}
+              </a>
+            </div>
             {/* CONFÉRENCE VEDETTE À LA UNE (OPTION 1) */}
             {featuredEvent && (
               <section className="card p-6 sm:p-8 border border-line bg-gradient-to-br from-surface to-surface-2 relative overflow-hidden shadow-card hover:border-accent/40 transition-all duration-300">
@@ -587,54 +581,62 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             )}
 
             {/* BARRE DE SOUS-CONTRÔLE : FILTRES + COMMUTATEUR GRILLE / AGENDA (OPTION 3) */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-2">
-              <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-                {[
-                  { id: 'all', label: `Toutes (${publicEvents.length})` },
-                  ...(publicEvents.some((e) => e.status === 'ongoing')
-                    ? [{ id: 'ongoing', label: `En direct (${publicEvents.filter((e) => e.status === 'ongoing').length})` }]
-                    : []),
-                  { id: 'scientific', label: `Appels ouverts (${publicEvents.filter((e) => e.phase === 'scientific').length})` },
-                  { id: 'active', label: `Programmes actifs (${publicEvents.filter((e) => e.phase !== 'scientific').length})` },
-                  { id: 'usto', label: `Campus USTO (${publicEvents.filter((e) => (e.location || '').toLowerCase().includes('usto')).length})` },
-                ].map((chip) => (
+            <div className="space-y-4 pt-2">
+              <SectionTitle
+                title="Conférences."
+                subtitle="Appels et programmes du campus."
+                count={publicEvents.length}
+              />
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {[
+                    { id: 'all', label: `Toutes (${publicEvents.length})` },
+                    ...(publicEvents.some((e) => e.status === 'ongoing')
+                      ? [{ id: 'ongoing', label: `En direct (${publicEvents.filter((e) => e.status === 'ongoing').length})` }]
+                      : []),
+                    { id: 'scientific', label: `Appels ouverts (${publicEvents.filter((e) => e.phase === 'scientific').length})` },
+                    { id: 'active', label: `Programmes actifs (${publicEvents.filter((e) => e.phase !== 'scientific').length})` },
+                    { id: 'usto', label: `Campus USTO (${publicEvents.filter((e) => (e.location || '').toLowerCase().includes('usto')).length})` },
+                  ].map((chip) => (
+                    <button
+                      key={chip.id}
+                      type="button"
+                      onClick={() => setFilterChip(chip.id)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors ${
+                        filterChip === chip.id
+                          ? 'bg-accent text-on-accent'
+                          : 'bg-surface border border-line text-muted hover:text-fg'
+                      }`}
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Commutateur Grille vs Chrono */}
+                <div className="flex items-center bg-surface-2 p-1 rounded-xl border border-line gap-1 shrink-0 self-end sm:self-auto">
                   <button
-                    key={chip.id}
                     type="button"
-                    onClick={() => setFilterChip(chip.id)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors ${
-                      filterChip === chip.id
-                        ? 'bg-accent text-on-accent'
-                        : 'bg-surface border border-line text-muted hover:text-fg'
+                    onClick={() => setViewMode('grid')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      viewMode === 'grid' ? 'bg-surface text-fg shadow-xs' : 'text-muted hover:text-fg'
                     }`}
                   >
-                    {chip.label}
+                    <SquaresFourIcon size={14} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
+                    <span>Grille Cartes</span>
                   </button>
-                ))}
-              </div>
-
-              {/* Commutateur Grille vs Chrono */}
-              <div className="flex items-center bg-surface-2 p-1 rounded-xl border border-line gap-1 shrink-0 self-end sm:self-auto">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    viewMode === 'grid' ? 'bg-surface text-fg shadow-xs' : 'text-muted hover:text-fg'
-                  }`}
-                >
-                  <SquaresFourIcon size={14} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
-                  <span>Grille Cartes</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('timeline')}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                    viewMode === 'timeline' ? 'bg-surface text-fg shadow-xs' : 'text-muted hover:text-fg'
-                  }`}
-                >
-                  <CalendarBlankIcon size={14} weight={viewMode === 'timeline' ? 'fill' : 'regular'} />
-                  <span>Agenda Chrono</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewMode('timeline')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
+                      viewMode === 'timeline' ? 'bg-surface text-fg shadow-xs' : 'text-muted hover:text-fg'
+                    }`}
+                  >
+                    <CalendarBlankIcon size={14} weight={viewMode === 'timeline' ? 'fill' : 'regular'} />
+                    <span>Agenda Chrono</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -690,9 +692,12 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       </div>
 
                       <div className="px-4 pb-4 pt-2 border-t border-line/60 flex items-center justify-between text-xs text-muted mt-2">
-                        <span className="truncate">
-                          {dateStr}
-                          {ev.location ? ` • ${ev.location}` : ''}
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-xs text-muted truncate max-w-[70%]">
+                          <MapPinIcon size={13} className="shrink-0 text-accent-ink" />
+                          <span className="truncate">
+                            {dateStr}
+                            {ev.location ? ` • ${ev.location}` : ''}
+                          </span>
                         </span>
                         <span className="text-accent-ink font-semibold shrink-0 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
                           {isScientific ? 'Déposer' : 'Consulter'}
@@ -781,18 +786,53 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
         )}
 
         {/* ========================================================================= */}
-        {/* ONGLET 2 : MON ESPACE (PILOTAGE ADAPTÉ AU RÔLE)                          */}
+        {/* ONGLET 2 : MON ESPACE (MODE TRAVAIL DIRECT SANS PHOTO HERO)              */}
         {/* ========================================================================= */}
         {activeMainTab === 'myspace' && (
-          <div className="space-y-6 animate-view-fade">
+          <div className="space-y-8 sm:space-y-10 animate-view-fade">
+            {/* EN-TÊTE SOBRE MODE TRAVAIL */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-line">
+              <div className="space-y-1">
+                <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-surface-2 border border-line text-xs text-muted">
+                  <span className="first-letter:uppercase font-medium">{todayLabel}</span>
+                  <span>•</span>
+                  <span className="text-accent-ink font-semibold">Espace Chercheur</span>
+                </div>
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-fg">
+                  Bonjour{firstName ? `, ${firstName}` : ''}
+                </h1>
+                <p className="text-xs sm:text-sm text-muted">
+                  {todos.length > 0
+                    ? `${todos.length} action${todos.length > 1 ? 's prioritaires requièrent' : ' prioritaire requiert'} votre attention.`
+                    : 'Vos activités et livrables scientifiques sont parfaitement à jour.'}
+                </p>
+              </div>
+
+              <div className="shrink-0 self-start sm:self-center">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateForm(true)
+                    const el = document.getElementById('main-content-section')
+                    el?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                  className="btn-accent btn-sm sm:btn-base px-5 py-2.5 text-xs sm:text-sm font-bold shadow-lift inline-flex items-center gap-2 cursor-pointer transition-all active:scale-95"
+                >
+                  <PlusIcon size={16} weight="bold" />
+                  <span>Proposer une conférence</span>
+                </button>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] gap-8 items-start">
               {/* Colonne gauche : Actions à faire & Mes articles */}
-              <div className="space-y-6">
+              <div className="space-y-8 sm:space-y-10">
                 {/* Priorités & Livrables (affiché uniquement s'il y a des tâches) */}
                 {todos.length > 0 ? (
                   <section className="space-y-3">
                     <SectionTitle
-                      title="Priorités & Livrables"
+                      title="Priorités."
+                      subtitle="Livrables et arbitrages requis."
                       count={todos.length}
                     />
 
@@ -840,7 +880,8 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 {/* Mes articles déposés */}
                 <section className="space-y-3">
                   <SectionTitle
-                    title="Mes articles scientifiques"
+                    title="Articles scientifiques."
+                    subtitle="Suivi de vos communications."
                     count={data ? data.subs.length : null}
                     actions={
                       acceptedCount > 0 ? (
@@ -906,13 +947,16 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               </div>
 
               {/* Colonne droite : Badge d'accès & Conférences suivies */}
-              <div className="space-y-6">
+              <div className="space-y-8 sm:space-y-10">
                 {/* Badge d'accès numérique */}
                 <section className="card p-5 border-line bg-surface/80 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-semibold text-sm text-fg flex items-center gap-2">
-                      <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
-                      Badge d'Accès Numérique
+                    <h3 className="font-bold text-sm sm:text-base text-fg flex items-baseline gap-2">
+                      <span className="text-fg flex items-center gap-1.5">
+                        <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
+                        Badge d'accès.
+                      </span>
+                      <span className="text-muted font-normal text-xs sm:text-sm">Pass numérique amphis.</span>
                     </h3>
                     {validatedParticipation && (
                       <span className="badge badge-ok">Pass Actif</span>
@@ -949,7 +993,8 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               {/* Mes conférences actives */}
               <section className="space-y-3">
                 <SectionTitle
-                  title="Mes conférences"
+                  title="Mes conférences."
+                  subtitle="Manifestations suivies sur le campus."
                   count={data ? data.parts.length : null}
                   actions={
                     <button

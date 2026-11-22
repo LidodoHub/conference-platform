@@ -1,4 +1,4 @@
-import { MapPinIcon, ArrowUpRightIcon, ArrowRightIcon } from '@phosphor-icons/react'
+import { MapPinIcon, ArrowUpRightIcon, ArrowRightIcon, CalendarBlankIcon } from '@phosphor-icons/react'
 import EventCover from '../../components/ui/EventCover'
 import { cleanDescription } from '../../lib/cover'
 import { TYPE_LABELS, STATUS_LABELS, STATUS_BADGE, FORMAT_LABELS, ROLE_LABELS, PHASE_LABELS, formatDateRange } from '../../lib/constants'
@@ -103,13 +103,15 @@ export default function EventCard({ event, role, onOpen, style }) {
         <h3 className="font-semibold text-base sm:text-[17px] leading-snug tracking-tight text-fg group-hover:text-accent-ink transition-colors" style={{ overflowWrap: 'anywhere' }}>
           {event.title}
         </h3>
-        <div className="mt-auto pt-3 flex items-end justify-between gap-3 text-xs text-muted border-t border-line/50">
-          <span className="min-w-0 flex items-center gap-1.5">
-            {event.location && (
+        <div className="mt-auto pt-3 flex items-center justify-between gap-3 text-xs text-muted border-t border-line/50">
+          <span className="min-w-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-muted truncate">
+            {event.location ? (
               <>
                 <MapPinIcon size={14} className="shrink-0 text-accent-ink" aria-hidden="true" />
                 <span className="truncate">{event.location}</span>
               </>
+            ) : (
+              <span>Campus USTO-MB</span>
             )}
           </span>
           {role && <span className="shrink-0 font-semibold text-accent-ink">{ROLE_LABELS[role]}</span>}
@@ -160,13 +162,16 @@ export function FeaturedEventCard({ event, role, onOpen }) {
             </p>
           )}
 
-          <div className="mt-4 space-y-1.5 text-xs text-muted">
-            <p className="num font-medium text-fg">{formatDateRange(event.start_date, event.end_date)}</p>
+          <div className="mt-4 flex flex-wrap items-center gap-2 text-xs text-muted">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-2 text-fg font-medium num">
+              <CalendarBlankIcon size={14} className="text-accent-ink shrink-0" />
+              <span>{formatDateRange(event.start_date, event.end_date)}</span>
+            </span>
             {event.location && (
-              <p className="flex items-center gap-1.5">
-                <MapPinIcon size={14} className="text-accent-ink" aria-hidden="true" />
-                {event.location}
-              </p>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-2 text-muted">
+                <MapPinIcon size={14} className="text-accent-ink shrink-0" aria-hidden="true" />
+                <span>{event.location}</span>
+              </span>
             )}
           </div>
         </div>
