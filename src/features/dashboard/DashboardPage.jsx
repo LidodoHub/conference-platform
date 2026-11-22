@@ -386,18 +386,18 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             {/* CARTE HERO USTO-MB ARRONDIE DANS LA LARGEUR DU CONTENU */}
             <div className="hero relative overflow-hidden text-white rounded-3xl shadow-card border border-white/10">
               <img className="hero-photo hero-photo--usto" src={HERO_PHOTO.src} alt="" aria-hidden="true" decoding="async" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/45 to-transparent pointer-events-none" aria-hidden="true" />
               <div className="hero-glow" aria-hidden="true" />
               <div className="hero-dots" aria-hidden="true" />
+              <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/10 pointer-events-none z-[1]" aria-hidden="true" />
 
-              <div className="relative px-6 sm:px-10 py-8 sm:py-12">
+              <div className="relative z-[2] px-6 sm:px-10 py-8 sm:py-12">
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                   {/* Colonne gauche : Salutation & Ligne contextuelle */}
                   <header className="hero-text space-y-3">
-                    <div className="text-xs sm:text-sm text-white/80 font-medium flex items-center gap-2 drop-shadow-sm">
+                    <div className="text-xs sm:text-sm text-white font-medium flex items-center gap-2 [text-shadow:_0_1px_4px_rgba(0,0,0,0.85)]">
                       <span className="first-letter:uppercase">{todayLabel}</span>
-                      <span className="text-white/40">•</span>
-                      <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
+                      <span className="text-white/60">•</span>
+                      <span className="text-accent font-semibold tracking-wide [text-shadow:_0_1px_4px_rgba(0,0,0,0.95)]">USTO-MB, ORAN</span>
                     </div>
 
                     <div>
@@ -541,10 +541,10 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         className="w-full h-48 sm:h-56 md:h-64 flex flex-col justify-between p-4 sm:p-5"
                       >
                         <div className="flex items-center justify-between gap-2 relative z-10">
-                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs">
+                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs w-fit self-start shrink-0">
                             {TYPE_LABELS[featuredEvent.type] || featuredEvent.type}
                           </span>
-                          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 shadow-xs">
+                          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 shadow-xs w-fit self-start shrink-0">
                             USTO-MB
                           </span>
                         </div>
@@ -643,7 +643,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           seed={ev.id}
                           className="h-28 px-4 py-3 flex items-start justify-between relative overflow-hidden"
                         >
-                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs">
+                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs w-fit self-start shrink-0">
                             {TYPE_LABELS[ev.type] || ev.type}
                           </span>
                           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-xs w-fit self-start shrink-0 ${
