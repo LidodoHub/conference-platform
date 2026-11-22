@@ -306,27 +306,27 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
         {/* COMMUTATEUR MAÎTRE : DÉCOUVRIR vs MON ESPACE */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line/60">
-          <div className="inline-flex items-center bg-[#121B2D] dark:bg-surface-2 p-1 sm:p-1.5 rounded-2xl border border-[#233352] dark:border-line shadow-lg shadow-navy/20 dark:shadow-xs gap-1 max-w-full overflow-x-auto">
+          <div className="inline-flex items-center bg-navy dark:bg-surface-2 p-1 sm:p-1.5 rounded-2xl border border-white/10 dark:border-line shadow-sm backdrop-blur-md gap-1 max-w-full overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveMainTab('discover')}
               aria-selected={activeMainTab === 'discover'}
               className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 select-none ${
                 activeMainTab === 'discover'
-                  ? 'bg-white text-[#121B2D] shadow-md ring-1 ring-white/30 dark:bg-surface dark:text-fg dark:ring-1 dark:ring-accent/30'
-                  : 'text-slate-300 hover:text-white hover:bg-white/10 dark:text-muted dark:hover:text-fg dark:hover:bg-surface/50'
+                  ? 'bg-white text-navy shadow-sm ring-1 ring-white/20 dark:bg-surface dark:text-fg dark:ring-1 dark:ring-accent/30'
+                  : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-muted dark:hover:text-fg dark:hover:bg-surface/50'
               }`}
             >
               <CompassIcon
                 size={18}
                 weight={activeMainTab === 'discover' ? 'duotone' : 'regular'}
-                className={activeMainTab === 'discover' ? 'text-accent-ink' : 'text-slate-400 dark:text-faint'}
+                className={activeMainTab === 'discover' ? 'text-accent-ink' : 'text-white/50 dark:text-faint'}
               />
               <span className="tracking-tight">Découvrir & Conférences</span>
               <span className={`text-xs font-mono font-bold px-2 py-0.5 rounded-full transition-colors ${
                 activeMainTab === 'discover'
                   ? 'bg-accent text-on-accent shadow-xs'
-                  : 'bg-white/10 text-slate-300 border border-white/10 dark:bg-surface dark:border-line dark:text-muted'
+                  : 'bg-white/10 text-white/80 border border-white/10 dark:bg-surface dark:border-line dark:text-muted'
               }`}>
                 {publicEvents.length}
               </span>
@@ -338,14 +338,14 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               aria-selected={activeMainTab === 'myspace'}
               className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 select-none ${
                 activeMainTab === 'myspace'
-                  ? 'bg-white text-[#121B2D] shadow-md ring-1 ring-white/30 dark:bg-surface dark:text-fg dark:ring-1 dark:ring-accent/30'
-                  : 'text-slate-300 hover:text-white hover:bg-white/10 dark:text-muted dark:hover:text-fg dark:hover:bg-surface/50'
+                  ? 'bg-white text-navy shadow-sm ring-1 ring-white/20 dark:bg-surface dark:text-fg dark:ring-1 dark:ring-accent/30'
+                  : 'text-white/70 hover:text-white hover:bg-white/10 dark:text-muted dark:hover:text-fg dark:hover:bg-surface/50'
               }`}
             >
               <UserIcon
                 size={18}
                 weight={activeMainTab === 'myspace' ? 'duotone' : 'regular'}
-                className={activeMainTab === 'myspace' ? 'text-accent-ink' : 'text-slate-400 dark:text-faint'}
+                className={activeMainTab === 'myspace' ? 'text-accent-ink' : 'text-white/50 dark:text-faint'}
               />
               <span className="tracking-tight">Mon Espace</span>
               {todos.length > 0 && (
