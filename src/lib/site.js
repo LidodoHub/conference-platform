@@ -2,7 +2,7 @@
 // À compléter : une valeur vide (null) n'est simplement pas affichée.
 export const SITE = {
   name: 'CONFERA',
-  tagline: 'La plateforme des conférences scientifiques, du dépôt des articles au certificat.',
+  tagline: 'La plateforme académique de gestion des conférences scientifiques, du dépôt des articles aux actes publiés.',
   institution: "Université des Sciences et de la Technologie d'Oran Mohamed-Boudiaf (USTO-MB)",
   city: 'Oran, Algérie',
   project: "Projet de fin d'études, Master 2 Intelligence Artificielle",

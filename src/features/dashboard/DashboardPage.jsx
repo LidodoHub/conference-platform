@@ -3,8 +3,6 @@ import {
   ArticleIcon,
   ArrowRightIcon,
   CalendarBlankIcon,
-  SquaresFourIcon,
-  MapPinIcon,
   CheckCircleIcon,
   QrCodeIcon,
   ShieldCheckIcon,
@@ -562,14 +560,17 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
             {/* BARRE DE SOUS-CONTRÔLE : FILTRES + COMMUTATEUR GRILLE / AGENDA (OPTION 3) */}
             <div className="space-y-4 pt-2">
-              <SectionTitle
-                title="Conférences."
-                subtitle="Appels et programmes du campus."
-                count={publicEvents.length}
-              />
+              <div className="flex flex-wrap items-baseline gap-2 mb-4">
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-fg dark:text-white">
+                  Conférences.
+                </h2>
+                <span className="text-muted dark:text-[#A1A1AA] text-lg sm:text-2xl font-normal">
+                  Appels et programmes du campus.
+                </span>
+              </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                <div className="flex items-center gap-2 overflow-x-auto pb-1">
                   {[
                     { id: 'all', label: `Toutes (${publicEvents.length})` },
                     ...(publicEvents.some((e) => e.status === 'ongoing')
@@ -577,16 +578,15 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       : []),
                     { id: 'scientific', label: `Appels ouverts (${publicEvents.filter((e) => e.phase === 'scientific').length})` },
                     { id: 'active', label: `Programmes actifs (${publicEvents.filter((e) => e.phase !== 'scientific').length})` },
-                    { id: 'usto', label: `Campus USTO (${publicEvents.filter((e) => (e.location || '').toLowerCase().includes('usto')).length})` },
                   ].map((chip) => (
                     <button
                       key={chip.id}
                       type="button"
                       onClick={() => setFilterChip(chip.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors ${
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold shrink-0 transition-colors ${
                         filterChip === chip.id
-                          ? 'bg-[#1D1D1F] text-white dark:bg-white dark:text-[#1D1D1F]'
-                          : 'bg-surface border border-line text-muted hover:text-fg'
+                          ? 'bg-black text-white dark:bg-white dark:text-black shadow-xs'
+                          : 'bg-surface-2 dark:bg-[#18181B] border border-line dark:border-white/5 text-muted dark:text-[#A1A1AA] hover:text-fg dark:hover:text-white'
                       }`}
                     >
                       {chip.label}
@@ -595,26 +595,28 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 </div>
 
                 {/* Commutateur Grille vs Chrono */}
-                <div className="flex items-center bg-surface-2 p-1 rounded-xl border border-line gap-1 shrink-0 self-end sm:self-auto">
+                <div className="flex items-center bg-surface-2 dark:bg-[#18181B] p-1 rounded-xl border border-line dark:border-white/10 gap-1 shrink-0 self-end sm:self-auto">
                   <button
                     type="button"
                     onClick={() => setViewMode('grid')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                      viewMode === 'grid' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                      viewMode === 'grid'
+                        ? 'bg-surface dark:bg-[#27272A] text-fg dark:text-white shadow-xs'
+                        : 'text-muted dark:text-[#71717A] hover:text-fg dark:hover:text-white'
                     }`}
                   >
-                    <SquaresFourIcon size={14} weight={viewMode === 'grid' ? 'fill' : 'regular'} />
-                    <span>Grille Cartes</span>
+                    Grille
                   </button>
                   <button
                     type="button"
                     onClick={() => setViewMode('timeline')}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
-                      viewMode === 'timeline' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
+                    className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                      viewMode === 'timeline'
+                        ? 'bg-surface dark:bg-[#27272A] text-fg dark:text-white shadow-xs'
+                        : 'text-muted dark:text-[#71717A] hover:text-fg dark:hover:text-white'
                     }`}
                   >
-                    <CalendarBlankIcon size={14} weight={viewMode === 'timeline' ? 'fill' : 'regular'} />
-                    <span>Agenda Chrono</span>
+                    Agenda
                   </button>
                 </div>
               </div>
@@ -622,12 +624,17 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
             {/* VUE 1 : GRILLE VISUELLE */}
             {viewMode === 'grid' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredEvents.map((ev) => {
                   const isOngoing = ev.status === 'ongoing'
                   const isClosed = ['closed', 'archived'].includes(ev.status)
                   const isScientific = ev.phase === 'scientific' && !isOngoing && !isClosed
                   const dateStr = formatDate(ev.start_date, { day: 'numeric', month: 'short' })
+                  const cityName = ev.location
+                    ? ev.location.split(',').pop().trim().replace(/^Campus\s+/i, '') || 'Oran'
+                    : 'Oran'
+                  const cardTheme = isOngoing ? 'radar' : isScientific ? 'slate' : 'sand'
+
                   return (
                     <div
                       key={ev.id}
@@ -635,53 +642,53 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card overflow-hidden border-line bg-surface hover:border-black/20 dark:hover:border-white/[0.12] transition-all duration-300 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
+                      className="group card rounded-2xl overflow-hidden border border-line dark:border-white/10 bg-surface dark:bg-[#141416] hover:border-black/20 dark:hover:border-white/20 transition-all duration-200 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
                     >
                       <div>
                         <EventCover
                           event={ev}
                           seed={ev.id}
-                          className="h-28 px-4 py-3 flex items-start justify-between relative overflow-hidden"
+                          themeKey={cardTheme}
+                          className="h-36 sm:h-40 px-4 py-3 flex flex-col justify-end relative overflow-hidden"
                         >
-                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-[#222226] text-fg dark:text-white border border-line/60 backdrop-blur-xs w-fit self-start shrink-0">
-                            {TYPE_LABELS[ev.type] || ev.type}
-                          </span>
-                          <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-xs w-fit self-start shrink-0 ${
-                            isOngoing
-                              ? 'bg-ok text-white'
-                              : isClosed
-                              ? 'bg-surface-2 text-muted border border-line'
-                              : isScientific
-                              ? 'bg-accent text-on-accent'
-                              : 'bg-surface-2 text-fg border border-line'
-                          }`}>
-                            {isOngoing ? 'En cours' : isClosed ? 'Clôturé' : isScientific ? 'Appel ouvert' : 'Programme actif'}
-                          </span>
+                          {isOngoing ? (
+                            <span className="bg-black/60 backdrop-blur-xs text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5 shadow-xs w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              En cours
+                            </span>
+                          ) : isScientific ? (
+                            <span className="bg-[#FFFDF5] text-[#9A6B1F] border border-[#F0E6D2] px-3.5 py-1 rounded-full text-xs font-medium shadow-xs w-fit">
+                              Appel ouvert
+                            </span>
+                          ) : isClosed ? (
+                            <span className="bg-white/80 dark:bg-black/60 text-muted px-3.5 py-1 rounded-full text-xs font-medium shadow-xs w-fit">
+                              Clôturé
+                            </span>
+                          ) : (
+                            <span className="bg-white/95 text-neutral-800 border border-black/10 px-3.5 py-1 rounded-full text-xs font-medium shadow-xs w-fit">
+                              Programme actif
+                            </span>
+                          )}
                         </EventCover>
 
-                        <div className="p-4 space-y-2">
-                          <h3 className="font-semibold text-fg text-sm sm:text-base leading-snug line-clamp-2 group-hover:text-fg dark:group-hover:text-white transition-colors">
+                        <div className="p-5 space-y-2">
+                          <h3 className="font-bold text-fg dark:text-white text-base sm:text-[17px] leading-snug line-clamp-2">
                             {ev.title}
                           </h3>
                           {ev.description && (
-                            <p className="text-xs text-muted line-clamp-2 leading-relaxed">
+                            <p className="text-xs text-muted dark:text-[#A1A1AA] line-clamp-2 leading-relaxed mt-2">
                               {cleanDescription(ev.description)}
                             </p>
                           )}
                         </div>
                       </div>
 
-                      <div className="px-4 pb-4 pt-2 border-t border-line/60 flex items-center justify-between text-xs text-muted mt-2">
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 text-xs text-muted truncate max-w-[70%]">
-                          <MapPinIcon size={13} className="shrink-0 text-muted" />
-                          <span className="truncate">
-                            {dateStr}
-                            {ev.location ? ` • ${ev.location}` : ''}
-                          </span>
+                      <div className="px-5 pb-5 pt-3 border-t border-line dark:border-white/5 flex items-center justify-between text-xs text-muted mt-2">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full bg-surface-2 dark:bg-[#202024] text-xs font-medium text-muted dark:text-[#A1A1AA]">
+                          {dateStr} • {cityName}
                         </span>
-                        <span className="text-accent-ink font-semibold shrink-0 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
-                          {isScientific ? 'Déposer' : 'Consulter'}
-                          <ArrowRightIcon size={12} weight="bold" />
+                        <span className="text-[#D4A017] hover:text-[#E5B53B] font-semibold text-xs shrink-0 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1 cursor-pointer">
+                          {isScientific ? 'Déposer →' : 'Consulter →'}
                         </span>
                       </div>
                     </div>
