@@ -1,4 +1,5 @@
 import { useState, useEffect, useId } from 'react'
+import { createPortal } from 'react-dom'
 import {
   XIcon,
   CheckCircleIcon,
@@ -128,6 +129,20 @@ export default function IdeasReviewModal({
       .order('title', { ascending: true })
       .then(({ data }) => setSessions(data || []))
   }, [eventId])
+
+  // Verrouiller le scroll d'arrière-plan et écouter la touche Échap
+  useEffect(() => {
+    const origOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose?.()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = origOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [onClose])
 
   // Charger les notes confidentielles chaires si une évaluation existe déjà
   useEffect(() => {
@@ -284,12 +299,17 @@ export default function IdeasReviewModal({
     onReviewed?.()
   }
 
-  return (
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby={`${formId}-title`}
-      className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden animate-fade-in"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose?.()
+      }}
+      className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6 overflow-hidden animate-fade-in"
     >
       <div className="w-full max-w-4xl max-h-[94vh] bg-surface border border-line rounded-2xl shadow-2xl flex flex-col overflow-hidden">
         {/* Sticky Header */}
@@ -1042,6 +1062,7 @@ export default function IdeasReviewModal({
           </div>
         </footer>
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }
