@@ -70,21 +70,21 @@
   color-scheme: light;
   --c-bg: #F5F5F7;
   --c-surface: #FFFFFF;
-  --c-surface-2: #F2F3F5;
-  --c-line: rgba(0, 0, 0, 0.04);
+  --c-surface-2: #E8EAEE;
+  --c-line: rgba(22, 35, 63, 0.08);
   --c-fg: #1D1D1F;
-  --c-muted: #6E6E73;
-  --c-faint: #86868B;
+  --c-muted: #5C6479;
+  --c-faint: #7C869D;
   --c-accent: #C8963E;
   --c-accent-ink: #8A5F1C;
   --c-ok: #1E7553;
   --c-warn: #A35F0C;
   --c-bad: #B03A32;
   --c-info: #2C5DA6;
-  --c-neutral: #6E6E73;
+  --c-neutral: #5C6479;
 
-  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05);
-  --shadow-lift: 0 10px 28px rgba(0, 0, 0, 0.08);
+  --shadow-card: 0 4px 20px rgba(22, 35, 63, 0.06);
+  --shadow-lift: 0 10px 28px rgba(22, 35, 63, 0.10);
 }
 
 [data-theme="dark"] {
