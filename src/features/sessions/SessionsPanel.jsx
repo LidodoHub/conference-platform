@@ -248,7 +248,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
                         </p>
                         <p className="text-xs text-muted mt-0.5">
                           {s.profiles?.full_name}
-                          {suggestion && <span className="text-accent-ink"> &bull; Recommandé : {sessionTitle(suggestion) || 'session'}</span>}
+                          {suggestion && <span className="text-accent-ink"> • Recommandé : {sessionTitle(suggestion) || 'session'}</span>}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">

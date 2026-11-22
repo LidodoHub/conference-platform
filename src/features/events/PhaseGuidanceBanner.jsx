@@ -44,7 +44,7 @@ export default function PhaseGuidanceBanner({
   if (canManage) {
     if (isScientific) {
       if (pendingCount > 0) {
-        priorityTitle = `${pendingCount} communication(s) en attente d'arbitrage`
+        priorityTitle = `${pendingCount} communication${pendingCount > 1 ? 's' : ''} en attente d'arbitrage`
         priorityDetail = 'Les avis des pairs sont déposés. Prononcez les acceptations ou demandes de révision.'
         actionLabel = 'Examiner les articles'
         targetTab = 'scientific'
@@ -53,7 +53,7 @@ export default function PhaseGuidanceBanner({
         badgeTone = 'accent'
       } else if (submissions.length > 0) {
         priorityTitle = 'Sélection scientifique finalisée'
-        priorityDetail = `${acceptedCount} article(s) retenu(s). Vous pouvez basculer l’événement en phase organisationnelle pour ouvrir les inscriptions.`
+        priorityDetail = `${acceptedCount} article${acceptedCount > 1 ? 's' : ''} retenu${acceptedCount > 1 ? 's' : ''}. Vous pouvez basculer l’événement en phase organisationnelle pour ouvrir les inscriptions.`
         actionLabel = 'Paramètres de phase'
         targetTab = 'org-settings'
         Icon = CheckCircleIcon
@@ -71,7 +71,7 @@ export default function PhaseGuidanceBanner({
     } else {
       // Phase Organisationnelle
       if (paymentsToValidate > 0) {
-        priorityTitle = `${paymentsToValidate} règlement(s) à valider`
+        priorityTitle = `${paymentsToValidate} règlement${paymentsToValidate > 1 ? 's' : ''} à valider`
         priorityDetail = 'Des participants ont déclaré leur paiement par virement ou bon de commande.'
         actionLabel = 'Vérifier les inscriptions'
         targetTab = 'org-registrations'
@@ -80,7 +80,7 @@ export default function PhaseGuidanceBanner({
         badgeTone = 'warn'
       } else {
         priorityTitle = 'Préparation logistique & Programme'
-        priorityDetail = `${validatedCount} participant(s) validé(s). Répartissez les communications dans les sessions et amphis.`
+        priorityDetail = `${validatedCount} participant${validatedCount > 1 ? 's' : ''} validé${validatedCount > 1 ? 's' : ''}. Répartissez les communications dans les sessions et amphis.`
         actionLabel = 'Gérer le programme'
         targetTab = 'program'
         Icon = PresentationChartIcon
@@ -91,7 +91,7 @@ export default function PhaseGuidanceBanner({
   } else if (isReviewer) {
     if (isScientific) {
       if (reviewsToCount > 0) {
-        priorityTitle = `${reviewsToCount} article(s) assigné(s) à relire`
+        priorityTitle = `${reviewsToCount} article${reviewsToCount > 1 ? 's' : ''} assigné${reviewsToCount > 1 ? 's' : ''} à relire`
         priorityDetail = 'Votre expertise est sollicitée par le comité scientifique pour noter ces communications.'
         actionLabel = 'Accéder aux relectures'
         targetTab = 'scientific'

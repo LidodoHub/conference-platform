@@ -129,7 +129,7 @@ function SubmissionCard({ s, isMine, showReviews, todo, doubleBlind, onSelect })
       <div className="pt-4 mt-5 border-t border-line flex items-center justify-between gap-3 text-xs text-muted">
         <div className="truncate">
           <span className="font-medium text-fg">{doubleBlind && !isMine ? 'Auteur anonymisé (Double aveugle)' : isMine ? 'Mon article' : s.profiles?.full_name || 'Auteur anonyme'}</span>
-          <span className="text-faint num"> &bull; {formatDate(s.submitted_at, { day: 'numeric', month: 'short' })}</span>
+          <span className="text-faint num"> • {formatDate(s.submitted_at, { day: 'numeric', month: 'short' })}</span>
         </div>
 
         {showReviews && (

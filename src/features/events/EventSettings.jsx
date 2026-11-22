@@ -102,7 +102,7 @@ export default function EventSettings({ event, pendingCount, onChanged, onDelete
           {isClosed ? (
             <span className="text-xs font-semibold text-muted inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-2 border border-line shrink-0">
               <LockSimpleIcon size={14} weight="bold" className="text-muted" aria-hidden="true" />
-              Événement clôturé &bull; Verrouillé
+              Événement clôturé • Verrouillé
             </span>
           ) : !editing ? (
             <button type="button" className="btn-outline btn-sm" onClick={() => setEditing(true)}>

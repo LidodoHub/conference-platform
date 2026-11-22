@@ -10,7 +10,6 @@ import {
   GearSixIcon,
   ChartBarIcon,
   CheckCircleIcon,
-  ArrowRightIcon,
   ClockIcon,
   UsersIcon,
   TicketIcon,
@@ -333,7 +332,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
   const navScientific = [
     {
       id: 'scientific',
-      label: 'Articles & Relectures',
+      label: 'Articles',
       icon: ArticleIcon,
       badge: isScientificPhase
         ? (canManage && pendingCount > 0 ? `${pendingCount} à trancher` : 'Sélection')
@@ -583,7 +582,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-accent-ink px-2.5 py-1 rounded-full bg-accent/15 tracking-wide uppercase text-[11px]">
-                      {TYPE_LABELS[event.type] || event.type} &bull; {(FORMAT_LABELS[event.format] || event.format || '').toLowerCase()}
+                      {TYPE_LABELS[event.type] || event.type} • {(FORMAT_LABELS[event.format] || event.format || '').toLowerCase()}
                     </span>
                     <span className="text-muted text-[11px] font-medium hidden sm:inline">
                       {event.phase === 'scientific' ? 'Phase scientifique' : 'Phase organisation'}
@@ -687,9 +686,9 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
               </div>
 
               {/* ========================================================================= */}
-              {/* 3. GRILLE DE CONTENU PRINCIPALE (2 COLONNES)                             */}
+              {/* 3. GRILLE DE CONTENU PRINCIPALE                                          */}
               {/* ========================================================================= */}
-              <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_340px] gap-6 sm:gap-8 items-start">
+              <div className={`grid grid-cols-1 ${!canManage ? 'xl:grid-cols-[minmax(0,1fr)_340px]' : ''} gap-6 sm:gap-8 items-start`}>
                 {/* Colonne de gauche : Contenu & Déroulement */}
                 <div className="space-y-6 min-w-0">
                   {/* Description / À propos */}
@@ -732,96 +731,9 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   <SponsorsPanel eventId={eventId} isOrganizer={false} compact />
                 </div>
 
-                {/* Colonne de droite : Pilotage ou Pass */}
-                <aside className="space-y-4 xl:sticky xl:top-24">
-                  {canManage ? (
-                    /* --- ENCART PILOTAGE ORGANISATEUR --- */
-                    <section className="card p-5 border-line bg-surface/90 space-y-4 shadow-xs">
-                      <div className="flex items-center justify-between pb-3 border-b border-line">
-                        <h3 className="font-semibold text-fg text-sm">
-                          Pilotage de la conférence
-                        </h3>
-                        <span className="text-[11px] font-semibold uppercase tracking-wider text-accent-ink bg-accent/15 px-2 py-0.5 rounded-full">
-                          Admin
-                        </span>
-                      </div>
-
-                      <div className="space-y-1 text-xs">
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('scientific')}
-                          className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-fg/5 text-muted hover:text-fg transition-colors text-left"
-                        >
-                          <span className="flex items-center gap-2 font-medium">
-                            <ArticleIcon size={16} className="text-accent-ink" />
-                            Articles & Relectures
-                          </span>
-                          {pendingCount > 0 ? (
-                            <span className="px-2 py-0.5 rounded-full bg-accent/20 text-accent-ink text-[11px] font-bold">
-                              {pendingCount}
-                            </span>
-                          ) : (
-                            <ArrowRightIcon size={13} className="text-faint" />
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('org-registrations')}
-                          className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-fg/5 text-muted hover:text-fg transition-colors text-left"
-                        >
-                          <span className="flex items-center gap-2 font-medium">
-                            <TicketIcon size={16} className="text-accent-ink" />
-                            Inscriptions & Frais
-                          </span>
-                          {paymentsToValidate > 0 ? (
-                            <span className="px-2 py-0.5 rounded-full bg-warn/20 text-warn text-[11px] font-bold">
-                              {paymentsToValidate} à valider
-                            </span>
-                          ) : (
-                            <ArrowRightIcon size={13} className="text-faint" />
-                          )}
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('program')}
-                          className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-fg/5 text-muted hover:text-fg transition-colors text-left"
-                        >
-                          <span className="flex items-center gap-2 font-medium">
-                            <PresentationChartIcon size={16} className="text-accent-ink" />
-                            Programme & Sessions
-                          </span>
-                          <ArrowRightIcon size={13} className="text-faint" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('org-participants')}
-                          className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-fg/5 text-muted hover:text-fg transition-colors text-left"
-                        >
-                          <span className="flex items-center gap-2 font-medium">
-                            <UsersIcon size={16} className="text-accent-ink" />
-                            Membres & Rôles
-                          </span>
-                          <span className="num text-faint font-medium">{participants.length}</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setActiveTab('org-settings')}
-                          className="w-full flex items-center justify-between p-2.5 rounded-xl hover:bg-fg/5 text-muted hover:text-fg transition-colors text-left"
-                        >
-                          <span className="flex items-center gap-2 font-medium">
-                            <GearSixIcon size={16} className="text-accent-ink" />
-                            Paramètres de l'événement
-                          </span>
-                          <ArrowRightIcon size={13} className="text-faint" />
-                        </button>
-                      </div>
-                    </section>
-                  ) : (
-                    /* --- ENCART MA PARTICIPATION (AUTEUR / REVIEWER / VISITEUR) --- */
+                {/* Colonne de droite : Pass Participant (uniquement pour les participants/auteurs) */}
+                {!canManage && (
+                  <aside className="space-y-4 xl:sticky xl:top-24">
                     <section className="card-ticket-static">
                       <div className="ticket-stripe" />
                       <div className="ticket-perforation" />
@@ -830,29 +742,8 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                         <RegistrationCard event={event} participants={participants} onRefresh={fetchEventData} />
                       </div>
                     </section>
-                  )}
-
-                  {/* Carte Contact Organisateur */}
-                  <div className="p-4 rounded-xl border border-line bg-surface/50 text-xs space-y-2">
-                    <span className="font-semibold uppercase tracking-wider text-[11px] block text-faint">
-                      Organisateur de la conférence
-                    </span>
-                    <div className="flex items-center gap-2.5">
-                      <Avatar name={organizerName} size={32} />
-                      <div className="min-w-0">
-                        <span className="block font-medium text-fg truncate">{organizerName}</span>
-                        {event.profiles?.email && (
-                          <a
-                            href={`mailto:${event.profiles.email}`}
-                            className="text-muted hover:text-accent-ink truncate block text-[11px]"
-                          >
-                            {event.profiles.email}
-                          </a>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </aside>
+                  </aside>
+                )}
               </div>
             </div>
           ) : (

@@ -319,7 +319,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             <header className="hero-text space-y-4">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/75 backdrop-blur-sm border border-white/15 text-xs text-white/90 shadow-sm">
                 <span className="first-letter:uppercase font-medium">{todayLabel}</span>
-                <span className="text-white/40">&bull;</span>
+                <span className="text-white/40">•</span>
                 <span className="text-accent font-semibold tracking-wide">USTO-MB, ORAN</span>
               </div>
 
@@ -355,7 +355,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               ) : (
                 <div className="pt-1 flex items-center gap-2 text-xs text-white/70">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-                  <span>Portail officiel des manifestations académiques &bull; Campus USTO-MB Oran</span>
+                  <span>Portail officiel des manifestations académiques • Campus USTO-MB Oran</span>
                 </div>
               )}
             </header>
@@ -393,7 +393,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     <p className="text-xs text-muted truncate flex items-center gap-1.5">
                       <CalendarBlankIcon size={13} className="text-accent-ink shrink-0" aria-hidden="true" />
                       <span>{formatDate(nextEvent.events.start_date)}</span>
-                      {nextEvent.events.location && <span>&bull; {nextEvent.events.location}</span>}
+                      {nextEvent.events.location && <span>• {nextEvent.events.location}</span>}
                     </p>
                   </div>
                 </button>
@@ -478,7 +478,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 </span>
                 {todos[0].detail && (
                   <span className="text-xs text-muted block truncate">
-                    {todos[0].category} &bull; {todos[0].detail}
+                    {todos[0].category} • {todos[0].detail}
                   </span>
                 )}
               </div>
@@ -558,7 +558,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
           <div className="flex items-center gap-2 text-xs text-muted">
             <span className="font-semibold text-fg">Campus USTO-MB</span>
-            <span>&bull;</span>
+            <span>•</span>
             <span className="text-accent-ink font-medium">Année Académique 2026/2027</span>
           </div>
         </div>
@@ -774,7 +774,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       <div className="px-4 pb-4 pt-2 border-t border-line/60 flex items-center justify-between text-xs text-muted mt-2">
                         <span className="truncate">
                           {formatDate(ev.start_date, { day: 'numeric', month: 'short' })}
-                          {ev.location ? ` &bull; ${ev.location}` : ''}
+                          {ev.location ? ` • ${ev.location}` : ''}
                         </span>
                         <span className="text-accent-ink font-semibold shrink-0 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
                           {isScientific ? 'Déposer' : 'Consulter'}
@@ -860,7 +860,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                   <span className="text-xs font-mono font-bold uppercase tracking-wider text-accent-ink">
                     Espace Personnel & Comités
                   </span>
-                  <span className="text-xs text-muted">&bull;</span>
+                  <span className="text-xs text-muted">•</span>
                   <span className="text-xs text-muted">Campus USTO-MB</span>
                 </div>
                 <h2 className="text-base sm:text-lg font-bold text-fg">
@@ -927,7 +927,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                               </span>
                               {detail && (
                                 <span className="text-xs font-medium text-muted truncate">
-                                  &bull; {detail}
+                                  • {detail}
                                 </span>
                               )}
                             </div>
