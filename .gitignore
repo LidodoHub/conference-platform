@@ -24,3 +24,7 @@ dist-ssr
 *.sw?
 
 .env
+
+# AI codebase exports
+confera-codebase.txt
+repomix-output.*

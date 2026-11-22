@@ -27,18 +27,6 @@ const FACULTIES = [
   { id: 'archi', label: 'Génie Civil & Architecture' },
 ]
 
-// Mots-clés de spécialités fréquentes à l'USTO
-const DEFAULT_TOPICS = [
-  'Intelligence Artificielle',
-  'Vision par Ordinateur',
-  'Systèmes Distribués',
-  'Cybersécurité',
-  'Énergies Renouvelables',
-  'Mécatronique',
-  'Science des Matériaux',
-  'Génie Logiciel',
-]
-
 let cachedResearchers = null
 
 export default function ResearchersPage({ onOpenEvent }) {
@@ -110,7 +98,7 @@ export default function ResearchersPage({ onOpenEvent }) {
         // Extraction des tags de recherche
         const tags = p.expertise
           ? p.expertise.split(',').map((t) => t.trim()).filter(Boolean)
-          : [DEFAULT_TOPICS[Math.abs(p.id.charCodeAt(0)) % DEFAULT_TOPICS.length]]
+          : []
 
         return {
           ...p,
@@ -324,18 +312,24 @@ export default function ResearchersPage({ onOpenEvent }) {
 
                   {/* Tags d'expertise */}
                   <div className="flex flex-wrap gap-1.5 pt-1">
-                    {res.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="text-[10.5px] px-2 py-0.5 rounded-md bg-surface-2 border border-line text-muted"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {res.tags.length > 3 && (
-                      <span className="text-[10px] text-muted self-center font-mono">
-                        +{res.tags.length - 3}
-                      </span>
+                    {res.tags.length > 0 ? (
+                      <>
+                        {res.tags.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="text-[10.5px] px-2 py-0.5 rounded-md bg-surface-2 border border-line text-muted"
+                          >
+                            {tag}
+                          </span>
+                        ))}
+                        {res.tags.length > 3 && (
+                          <span className="text-[10px] text-muted self-center font-mono">
+                            +{res.tags.length - 3}
+                          </span>
+                        )}
+                      </>
+                    ) : (
+                      <span className="text-[11px] text-muted italic">Expertise non renseignée</span>
                     )}
                   </div>
                 </div>
@@ -441,14 +435,18 @@ export default function ResearchersPage({ onOpenEvent }) {
                 Domaines de spécialité & Mots-clés de recherche
               </h4>
               <div className="flex flex-wrap gap-2">
-                {activeProfile.tags.map((tag) => (
-                  <span
-                    key={tag}
-                    className="text-xs font-medium px-2.5 py-1 rounded-lg bg-surface-sunken border border-line text-fg"
-                  >
-                    {tag}
-                  </span>
-                ))}
+                {activeProfile.tags.length > 0 ? (
+                  activeProfile.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="text-xs font-medium px-2.5 py-1 rounded-lg bg-surface-sunken border border-line text-fg"
+                    >
+                      {tag}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-xs text-muted italic">Expertise non renseignée</span>
+                )}
               </div>
             </div>
 

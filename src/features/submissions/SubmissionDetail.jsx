@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -51,10 +51,11 @@ export function Stars({ value, size = 14 }) {
   )
 }
 
-function ReviewItem({ name, review, sessionTitle, canManage, myId }) {
+function ReviewItem({ name, review, sessionTitle, canManage, myId, chairNote }) {
   const [detailsOpen, setDetailsOpen] = useState(false)
   const ideas = parseReviewFromComments(review.comments)
   const canSeeConfidential = canManage || review.reviewer_id === myId
+  const confidentialText = chairNote || ideas?.e4
   const color = RECOMMENDATION_COLOR[review.recommendation] || 'var(--color-st-muted)'
 
   if (ideas) {
@@ -158,14 +159,14 @@ function ReviewItem({ name, review, sessionTitle, canManage, myId }) {
           )}
 
           {/* Section E4 Confidentiel pour le comite */}
-          {canSeeConfidential && ideas.e4 && (
+          {canSeeConfidential && confidentialText && (
             <div className="p-3 rounded-xl border border-warn/40 bg-warn/8 text-xs space-y-1">
               <div className="flex items-center gap-1.5 font-bold text-warn uppercase tracking-wider text-[10px]">
                 <EyeSlashIcon size={14} />
                 <span>Remarques confidentielles pour les chaires (E4)</span>
               </div>
               <p className="text-fg/90 whitespace-pre-line pl-1 leading-relaxed">
-                {ideas.e4}
+                {confidentialText}
               </p>
             </div>
           )}
@@ -268,6 +269,27 @@ export default function SubmissionDetail({
   const isMine = s.author_id === myId
   const mine = reviews.filter((r) => r.reviewer_id === myId)
   const decideHere = canDecide && s.status === 'submitted'
+
+  const [chairNotes, setChairNotes] = useState({})
+
+  useEffect(() => {
+    if (!canManage && mine.length === 0) return
+    const ids = reviews.map((r) => r.id).filter(Boolean)
+    if (ids.length === 0) return
+    supabase
+      .from('review_chair_notes')
+      .select('review_id, notes')
+      .in('review_id', ids)
+      .then(({ data }) => {
+        if (data) {
+          const map = {}
+          data.forEach((item) => {
+            map[item.review_id] = item.notes
+          })
+          setChairNotes(map)
+        }
+      })
+  }, [s.id, canManage, reviews, mine.length])
 
   const decide = async (status, revisionType = null) => {
     const label =
@@ -490,7 +512,15 @@ export default function SubmissionDetail({
             ) : (
               <ul className="space-y-2.5">
                 {(canManage ? reviews : mine).map((r) => (
-                  <ReviewItem key={r.id} name={canManage ? reviewerName(r.reviewer_id) : 'Mon avis'} review={r} sessionTitle={sessionTitle} canManage={canManage} myId={myId} />
+                  <ReviewItem
+                    key={r.id}
+                    name={canManage ? reviewerName(r.reviewer_id) : 'Mon avis'}
+                    review={r}
+                    sessionTitle={sessionTitle}
+                    canManage={canManage}
+                    myId={myId}
+                    chairNote={chairNotes[r.id]}
+                  />
                 ))}
               </ul>
             )}
@@ -508,7 +538,15 @@ export default function SubmissionDetail({
             {reviews.filter(realComment).length > 0 && (
               <ul className="space-y-2.5 mt-4">
                 {reviews.filter(realComment).map((r, i) => (
-                  <ReviewItem key={r.id} name={`Reviewer ${i + 1}`} review={r} sessionTitle={sessionTitle} canManage={canManage} myId={myId} />
+                  <ReviewItem
+                    key={r.id}
+                    name={`Reviewer ${i + 1}`}
+                    review={r}
+                    sessionTitle={sessionTitle}
+                    canManage={canManage}
+                    myId={myId}
+                    chairNote={chairNotes[r.id]}
+                  />
                 ))}
               </ul>
             )}
@@ -580,7 +618,14 @@ export default function SubmissionDetail({
               <IdeasReviewModal
                 submission={s}
                 eventId={eventId}
-                initialData={parseReviewFromComments(mine[0]?.comments)}
+                initialData={
+                  mine[0]
+                    ? {
+                        ...parseReviewFromComments(mine[0]?.comments),
+                        e4: chairNotes[mine[0]?.id] || '',
+                      }
+                    : null
+                }
                 onClose={() => setReviewing(false)}
                 onReviewed={() => {
                   setReviewing(false)

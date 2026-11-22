@@ -14,7 +14,7 @@ import {
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
-import { frError } from '../../lib/errors'
+import { writeError } from '../../lib/errors'
 import {
   FORM_STORAGE_KEY_PREFIX,
   A1_OPTIONS,
@@ -129,6 +129,31 @@ export default function IdeasReviewModal({
       .then(({ data }) => setSessions(data || []))
   }, [eventId])
 
+  // Charger les notes confidentielles chaires si une évaluation existe déjà
+  useEffect(() => {
+    if (!user?.id || !submission?.id) return
+    supabase
+      .from('reviews')
+      .select('id')
+      .eq('submission_id', submission.id)
+      .eq('reviewer_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.id) {
+          supabase
+            .from('review_chair_notes')
+            .select('notes')
+            .eq('review_id', data.id)
+            .maybeSingle()
+            .then(({ data: noteData }) => {
+              if (noteData?.notes) {
+                setFormData((prev) => ({ ...prev, e4: noteData.notes }))
+              }
+            })
+        }
+      })
+  }, [submission?.id, user?.id])
+
   useEffect(() => {
     try {
       localStorage.setItem(storageKey, JSON.stringify(formData))
@@ -182,8 +207,10 @@ export default function IdeasReviewModal({
       .maybeSingle()
 
     let submitError
+    let targetReviewId = existing?.id
+
     if (existing?.id) {
-      const { error: updateErr } = await supabase
+      const updateRes = await supabase
         .from('reviews')
         .update({
           score: score5,
@@ -192,24 +219,55 @@ export default function IdeasReviewModal({
           recommended_session_id: dbRecommendation === 'accept' && formData.sessionId ? formData.sessionId : null,
         })
         .eq('id', existing.id)
-      submitError = updateErr
+        .select('id')
+      submitError = writeError(updateRes, 'Enregistrement de l’évaluation refusé.')
     } else {
-      const { error: insertErr } = await supabase.from('reviews').insert({
-        submission_id: submission.id,
-        reviewer_id: user.id,
-        score: score5,
-        comments: fullComments,
-        recommendation: dbRecommendation,
-        recommended_session_id: dbRecommendation === 'accept' && formData.sessionId ? formData.sessionId : null,
-      })
-      submitError = insertErr
+      const insertRes = await supabase
+        .from('reviews')
+        .insert({
+          submission_id: submission.id,
+          reviewer_id: user.id,
+          score: score5,
+          comments: fullComments,
+          recommendation: dbRecommendation,
+          recommended_session_id: dbRecommendation === 'accept' && formData.sessionId ? formData.sessionId : null,
+        })
+        .select('id')
+      submitError = writeError(insertRes, 'Enregistrement de l’évaluation refusé.')
+      if (!submitError && insertRes.data?.[0]?.id) {
+        targetReviewId = insertRes.data[0].id
+      }
+    }
+
+    if (submitError) {
+      setSubmitting(false)
+      setError(submitError)
+      return
+    }
+
+    // Enregistrement des remarques confidentielles dans la table dédiée sécurisée
+    if (targetReviewId) {
+      const cleanE4 = formData.e4?.trim()
+      if (cleanE4) {
+        const { error: notesErr } = await supabase
+          .from('review_chair_notes')
+          .upsert({
+            review_id: targetReviewId,
+            notes: cleanE4,
+            updated_at: new Date().toISOString(),
+          })
+        if (notesErr) {
+          console.error('Erreur sauvegarde notes confidentielles:', notesErr)
+        }
+      } else {
+        await supabase
+          .from('review_chair_notes')
+          .delete()
+          .eq('review_id', targetReviewId)
+      }
     }
 
     setSubmitting(false)
-    if (submitError) {
-      setError(frError(submitError))
-      return
-    }
 
     try {
       localStorage.removeItem(storageKey)

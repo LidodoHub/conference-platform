@@ -16,7 +16,6 @@ import {
   EyeIcon,
   ArrowsOutIcon,
   XIcon,
-  SparkleIcon,
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { TYPE_LABELS, FORMAT_LABELS, formatDateRange } from '../../lib/constants'
@@ -79,7 +78,7 @@ export default function ArchivesPage({ onOpenEvent }) {
       const eventIds = eventList.map((e) => e.id)
       const { data: subsData } = await supabase
         .from('submissions')
-        .select('id, title, abstract, status, event_id, profiles(full_name, email)')
+        .select('id, title, abstract, status, event_id, profiles(full_name, email, affiliation)')
         .in('event_id', eventIds)
         .eq('status', 'accepted')
 
@@ -648,13 +647,15 @@ export default function ArchivesPage({ onOpenEvent }) {
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-line">
               <div>
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-accent-ink px-2.5 py-0.5 rounded bg-accent/15 border border-accent/30 inline-block mb-1.5">
-                  USTO-MB &bull; Planche Scientifique A0
+                  Poster Académique Validé
                 </span>
                 <h3 className="text-base sm:text-xl font-bold text-fg leading-snug">
                   {previewPoster.title}
                 </h3>
                 <p className="text-xs sm:text-sm text-muted mt-1">
-                  Par <strong>{previewPoster.profiles?.full_name || 'Chercheur affilié USTO-MB'}</strong> &bull; {previewPoster.event?.title}
+                  Par <strong>{previewPoster.profiles?.full_name || 'Auteur non renseigné'}</strong>
+                  {previewPoster.profiles?.affiliation ? ` (${previewPoster.profiles.affiliation})` : ''}
+                  {previewPoster.event?.title ? ` • ${previewPoster.event.title}` : ''}
                 </p>
               </div>
 
@@ -668,60 +669,64 @@ export default function ArchivesPage({ onOpenEvent }) {
               </button>
             </div>
 
-            {/* Planche de Poster Grand Format (Simulateur de rendu poster académique) */}
-            <div className="rounded-xl border-2 border-line bg-gradient-to-b from-surface via-surface-2 to-surface-sunken p-6 sm:p-8 space-y-6 shadow-inner">
-              {/* En-tête du poster avec identité université */}
-              <div className="text-center pb-4 border-b-2 border-accent/30 space-y-2">
-                <span className="text-xs uppercase font-mono tracking-widest text-accent-ink font-bold block">
-                  Université des Sciences et de la Technologie d'Oran Mohamed-Boudiaf
-                </span>
+            {/* Planche de communication scientifique */}
+            <div className="rounded-xl border border-line bg-surface-2/40 p-6 sm:p-8 space-y-6">
+              {/* En-tête avec métadonnées réelles */}
+              <div className="text-center pb-4 border-b border-line space-y-2">
+                {previewPoster.event?.title && (
+                  <span className="text-xs uppercase font-mono tracking-widest text-accent-ink font-bold block">
+                    {previewPoster.event.title}
+                  </span>
+                )}
                 <h2 className="text-xl sm:text-2xl font-bold text-fg max-w-2xl mx-auto leading-tight">
                   {previewPoster.title}
                 </h2>
-                <div className="text-xs text-muted flex items-center justify-center gap-2">
-                  <span className="font-semibold text-fg">{previewPoster.profiles?.full_name}</span>
-                  <span>&bull;</span>
-                  <span>Faculté d'Informatique & Mathématiques</span>
+                <div className="text-xs text-muted flex flex-wrap items-center justify-center gap-2">
+                  <span className="font-semibold text-fg">
+                    {previewPoster.profiles?.full_name || 'Auteur non renseigné'}
+                  </span>
+                  {previewPoster.profiles?.affiliation && (
+                    <>
+                      <span>&bull;</span>
+                      <span>{previewPoster.profiles.affiliation}</span>
+                    </>
+                  )}
+                  {previewPoster.event?.start_date && (
+                    <>
+                      <span>&bull;</span>
+                      <span>{new Date(previewPoster.event.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
-              {/* Contenu scientifique en 3 colonnes académiques */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 text-xs">
-                {/* Colonne 1 : Introduction & Problématique */}
-                <div className="card p-4 border-line bg-surface/90 space-y-2">
-                  <h4 className="font-bold text-accent-ink uppercase tracking-wide text-[11px] pb-1 border-b border-line">
-                    1. Résumé & Problématique
-                  </h4>
-                  <p className="text-muted leading-relaxed text-[11.5px]">
-                    {previewPoster.abstract || "Présentation des concepts théoriques et des objectifs scientifiques majeurs de cette communication validée par le comité d'évaluation."}
-                  </p>
-                </div>
+              {/* Résumé officiel de la soumission */}
+              <div className="card p-5 border-line bg-surface space-y-2">
+                <h4 className="font-bold text-accent-ink uppercase tracking-wide text-xs pb-1 border-b border-line">
+                  Résumé scientifique (Abstract)
+                </h4>
+                <p className="text-fg/85 leading-relaxed text-sm whitespace-pre-line">
+                  {previewPoster.abstract || "Aucun résumé n'a été fourni pour cet article."}
+                </p>
+              </div>
 
-                {/* Colonne 2 : Méthodologie & Expérimentations */}
-                <div className="card p-4 border-line bg-surface/90 space-y-2">
-                  <h4 className="font-bold text-accent-ink uppercase tracking-wide text-[11px] pb-1 border-b border-line">
-                    2. Méthodologie & Architecture
-                  </h4>
-                  <p className="text-muted leading-relaxed text-[11.5px]">
-                    Protocole expérimental rigoureux mis en œuvre sur les plateformes de calcul de l'USTO-MB. Analyse quantitative et benchmarking comparatif.
-                  </p>
-                  <div className="p-2.5 rounded-lg bg-surface-2 border border-line text-[10px] font-mono text-center text-accent-ink font-semibold">
-                    Simulations validées &bull; Efficacité +28.4%
-                  </div>
+              {/* Métadonnées réelles de l'événement et de la publication */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="card p-4 border-line bg-surface space-y-1">
+                  <span className="text-muted block text-[11px] font-semibold uppercase">Conférence organisatrice</span>
+                  <span className="text-fg font-medium">{previewPoster.event?.title || 'Conférence archivée'}</span>
+                  {previewPoster.event?.location && (
+                    <span className="text-muted text-[11px] block">{previewPoster.event.location}</span>
+                  )}
                 </div>
-
-                {/* Colonne 3 : Résultats & Conclusion */}
-                <div className="card p-4 border-line bg-surface/90 space-y-2">
-                  <h4 className="font-bold text-accent-ink uppercase tracking-wide text-[11px] pb-1 border-b border-line">
-                    3. Résultats & Perspectives
-                  </h4>
-                  <p className="text-muted leading-relaxed text-[11.5px]">
-                    Les résultats démontrent la pertinence des contributions proposées pour les applications industrielles et scientifiques futures du laboratoire.
-                  </p>
-                  <div className="pt-2 flex items-center gap-1.5 text-[10.5px] text-ok font-semibold">
-                    <SparkleIcon size={14} weight="bold" />
-                    <span>Recommandé pour citation officielle</span>
-                  </div>
+                <div className="card p-4 border-line bg-surface space-y-1">
+                  <span className="text-muted block text-[11px] font-semibold uppercase">Statut & Présentation</span>
+                  <span className="text-fg font-medium">Communication acceptée par les pairs</span>
+                  <span className="text-muted text-[11px] block">
+                    {previewPoster.event?.start_date
+                      ? `Présenté le ${new Date(previewPoster.event.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                      : 'Actes officiels archivés'}
+                  </span>
                 </div>
               </div>
             </div>

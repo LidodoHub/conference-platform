@@ -46,7 +46,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
         supabase
           .from('submissions')
           .select('id, event_id, title, status')
-          .order('created_at', { ascending: false })
+          .order('submitted_at', { ascending: false })
           .limit(10),
         supabase
           .from('sessions')

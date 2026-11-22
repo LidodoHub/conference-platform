@@ -86,7 +86,10 @@ export function getIdeasLabel(list, val) {
 }
 
 export function serializeReviewToComments(data) {
-  const jsonString = JSON.stringify(data)
+  // Supprime strictement e4 (remarques confidentielles pour les chaires) du payload public
+  // eslint-disable-next-line no-unused-vars
+  const { e4, ...publicData } = data
+  const jsonString = JSON.stringify(publicData)
   const report = [
     `# GRILLE D'ÉVALUATION OFFICIELLE IDEAS'2027`,
     `\n## Section A: Reviewer profile`,
@@ -110,7 +113,6 @@ export function serializeReviewToComments(data) {
     `### E1. Strengths:\n${data.e1?.trim() || 'Aucun point fort mentionné.'}`,
     `\n### E2. Weaknesses:\n${data.e2?.trim() || 'Aucune faiblesse majeure mentionnée.'}`,
     `\n### E3. Actionable suggestions:\n${data.e3?.trim() || 'Aucune suggestion mentionnée.'}`,
-    data.e4?.trim() ? `\n## Section E4: Confidential Comments to Chairs\n${data.e4.trim()}` : '',
     `\n## Section F: Recommendation`,
     `- F1. Decision: ${data.f1 || 'Non renseigné'}`,
     `- F2. Presentation format: ${data.f2 || 'Non renseigné'}`,

@@ -57,10 +57,15 @@ export default function EventForm({
     // Construction de la description avec métadonnée de couverture si sélectionnée
     let desc = cleanDescription(form.description).trim()
     if (themeMode === 'custom' && customCoverUrl.trim()) {
-      desc = desc ? `${desc}\n\n<!-- cover:${customCoverUrl.trim()} -->` : `<!-- cover:${customCoverUrl.trim()} -->`
+      const trimmedUrl = customCoverUrl.trim()
+      if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+        setLocalError("L'URL de l'affiche personnalisée doit débuter par http:// ou https://")
+        return
+      }
+      desc = desc ? `${desc}\n\n<!-- cover:${trimmedUrl} -->` : `<!-- cover:${trimmedUrl} -->`
       if (initial.id) {
         try {
-          localStorage.setItem(`confera_cover_${initial.id}`, customCoverUrl.trim())
+          localStorage.setItem(`confera_cover_${initial.id}`, trimmedUrl)
         } catch {
           // ignore
         }
@@ -98,7 +103,7 @@ export default function EventForm({
     type: form.type || 'conference',
     format: form.format || 'onsite',
     status: initial.status || 'draft',
-    phase: initial.phase || 'submission',
+    phase: initial.phase || 'scientific',
     start_date: form.start_date || new Date().toISOString().slice(0, 10),
     end_date: form.end_date || form.start_date || new Date().toISOString().slice(0, 10),
     location: form.location.trim() || 'Campus USTO-MB, Oran',
@@ -154,7 +159,7 @@ export default function EventForm({
             }`}
           >
             <div className="flex items-center gap-2.5">
-              <span className="text-base">✨</span>
+              <SparkleIcon size={16} className="text-accent-ink shrink-0" weight="bold" />
               <div>
                 <span className="text-xs font-semibold text-fg block">Automatique intelligent</span>
                 <span className="text-[10.5px] text-muted block">
