@@ -90,15 +90,15 @@
   --c-surface-2: #21262D;
   --c-line: #30363D;
   --c-fg: #E6EDF3;
-  --c-muted: #8B949E;
-  --c-faint: #6E7681;
+  --c-muted: #A3ACB7;
+  --c-faint: #858E99;
   --c-accent: #D2A24E;
   --c-accent-ink: #D4A759;
   --c-ok: #2A8E66;
   --c-warn: #BD7C24;
   --c-bad: #BD4239;
   --c-info: #3D6FB0;
-  --c-neutral: #8B949E;
+  --c-neutral: #A3ACB7;
 }
 
 @layer base {
@@ -170,7 +170,7 @@
   }
 
   .section-label {
-    @apply font-mono text-[11px] uppercase tracking-[0.12em] text-muted;
+    @apply font-mono text-xs uppercase tracking-[0.12em] text-muted;
   }
 
   .num {

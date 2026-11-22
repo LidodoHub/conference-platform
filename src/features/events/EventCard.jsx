@@ -31,7 +31,7 @@ function CoverDate({ date, large = false }) {
   return (
     <div className="flex items-center gap-2.5">
       <div className="bg-white/18 backdrop-blur-md border border-white/25 rounded-xl px-2.5 py-1.5 text-center text-white min-w-[48px] shadow-xs">
-        <span className="block text-[10px] font-bold uppercase tracking-wider text-accent leading-none">
+        <span className="block text-xs font-bold uppercase tracking-wider text-accent leading-none">
           {date.month}
         </span>
         <span className={`num block font-bold leading-none mt-1 ${large ? 'text-3xl' : 'text-2xl'}`}>
@@ -42,7 +42,7 @@ function CoverDate({ date, large = false }) {
         <span className="block text-xs font-semibold text-white/95 leading-tight">
           {date.year}
         </span>
-        <span className="block text-[11px] text-white/65 leading-tight mt-0.5">
+        <span className="block text-xs text-white/70 leading-tight mt-0.5">
           Calendrier officiel
         </span>
       </div>
@@ -80,7 +80,7 @@ export default function EventCard({ event, role, onOpen, style }) {
             {event.format && event.format !== 'onsite' && <span className="text-white/70"> • {FORMAT_LABELS[event.format].toLowerCase()}</span>}
           </span>
           {timer && (
-            <span className={`text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs ${timer.cls}`}>
+            <span className={`text-xs uppercase tracking-wider px-2 py-0.5 rounded-full shadow-xs ${timer.cls}`}>
               {timer.label}
             </span>
           )}

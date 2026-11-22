@@ -325,7 +325,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                   Bonjour{firstName ? `, ${firstName}` : ''}
                 </h1>
                 <div className="mt-2.5 flex items-center gap-3 flex-wrap">
-                  {todos.length > 0 ? (
+                  {todos.length > 0 && activeMainTab === 'discover' ? (
                     <button
                       type="button"
                       onClick={() => {
@@ -335,7 +335,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       }}
                       className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-navy/85 backdrop-blur-sm border border-accent/40 text-xs sm:text-sm font-semibold text-white shadow-md hover:bg-navy hover:border-accent active:scale-95 transition-all"
                     >
-                      <span className="w-2 h-2 rounded-full bg-warn animate-pulse" />
+                      <span className="w-2 h-2 rounded-full bg-warn" />
                       <span>
                         {todos.length} action{todos.length > 1 ? 's' : ''} prioritaire{todos.length > 1 ? 's' : ''} &rarr;
                       </span>
@@ -372,7 +372,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
           href={HERO_PHOTO.page}
           target="_blank"
           rel="noopener noreferrer"
-          className="hidden sm:block absolute right-3 bottom-2 text-[10px] text-white/45 hover:text-white/80 transition-colors"
+          className="hidden sm:block absolute right-3 bottom-2 text-xs text-white/50 hover:text-white/80 transition-colors"
         >
           {HERO_PHOTO.credit}
         </a>
@@ -456,7 +456,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               />
               <span className="tracking-tight">Mon Espace</span>
               {todos.length > 0 && (
-                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-warn text-white shadow-xs animate-pulse">
+                <span className="text-xs font-mono font-bold px-2 py-0.5 rounded-full bg-warn text-white shadow-xs">
                   {todos.length} à traiter
                 </span>
               )}
@@ -481,12 +481,12 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-center relative z-10">
                   <div className="space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className={`text-[11px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md inline-flex items-center gap-1.5 ${
+                      <span className={`text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md inline-flex items-center gap-1.5 ${
                         featuredEvent.status === 'ongoing'
                           ? 'bg-ok/20 text-ok border border-ok/40'
                           : 'bg-accent/15 text-accent-ink border border-accent/30'
                       }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${
+                        <span className={`w-1.5 h-1.5 rounded-full ${
                           featuredEvent.status === 'ongoing' ? 'bg-ok' : 'bg-accent'
                         }`} />
                         {featuredEvent.status === 'ongoing'
@@ -563,7 +563,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
                   {/* Carte latérale de deadline */}
                   <div className="p-5 rounded-2xl border border-line bg-surface/90 text-center space-y-2 shadow-sm">
-                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted block">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted block">
                       {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
                         ? "Statut de l'événement"
                         : 'Date limite de soumission'}
@@ -642,7 +642,10 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
             {viewMode === 'grid' ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {filteredEvents.map((ev) => {
-                  const isScientific = ev.phase === 'scientific'
+                  const isOngoing = ev.status === 'ongoing'
+                  const isClosed = ['closed', 'archived'].includes(ev.status)
+                  const isScientific = ev.phase === 'scientific' && !isOngoing && !isClosed
+                  const dateStr = formatDate(ev.start_date, { day: 'numeric', month: 'short' })
                   return (
                     <div
                       key={ev.id}
@@ -658,11 +661,19 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           seed={ev.id}
                           className="h-28 px-4 py-3 flex items-start justify-between relative overflow-hidden"
                         >
-                          <span className="text-[11px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-black/40 text-white backdrop-blur-xs">
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-black/40 text-white backdrop-blur-xs">
                             {TYPE_LABELS[ev.type] || ev.type}
                           </span>
-                          <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-accent text-on-accent shadow-xs">
-                            {isScientific ? 'Appel ouvert' : 'Programme actif'}
+                          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full shadow-xs ${
+                            isOngoing
+                              ? 'bg-ok text-white'
+                              : isClosed
+                              ? 'bg-surface/90 text-muted border border-line'
+                              : isScientific
+                              ? 'bg-accent text-on-accent'
+                              : 'bg-surface-2 text-fg border border-line'
+                          }`}>
+                            {isOngoing ? 'En cours' : isClosed ? 'Clôturé' : isScientific ? 'Appel ouvert' : 'Programme actif'}
                           </span>
                         </EventCover>
 
@@ -680,7 +691,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
                       <div className="px-4 pb-4 pt-2 border-t border-line/60 flex items-center justify-between text-xs text-muted mt-2">
                         <span className="truncate">
-                          {formatDate(ev.start_date, { day: 'numeric', month: 'short' })}
+                          {dateStr}
                           {ev.location ? ` • ${ev.location}` : ''}
                         </span>
                         <span className="text-accent-ink font-semibold shrink-0 group-hover:translate-x-0.5 transition-transform inline-flex items-center gap-1">
@@ -696,10 +707,12 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               /* VUE 2 : AGENDA CHRONO (TIMELINE FOTMOB / RADAR) */
               <div className="space-y-3">
                 {filteredEvents.map((ev) => {
-                  const isScientific = ev.phase === 'scientific'
+                  const isOngoing = ev.status === 'ongoing'
+                  const isClosed = ['closed', 'archived'].includes(ev.status)
+                  const isScientific = ev.phase === 'scientific' && !isOngoing && !isClosed
                   const d = new Date(ev.start_date)
                   const dayNum = d.getDate()
-                  const monthName = d.toLocaleString('fr-FR', { month: 'short' }).toUpperCase()
+                  const monthName = d.toLocaleString('fr-FR', { month: 'short' })
                   return (
                     <div
                       key={ev.id}
@@ -713,15 +726,27 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         {/* Bloc date jour */}
                         <div className="w-14 h-14 rounded-xl bg-surface-2 border border-line flex flex-col items-center justify-center shrink-0">
                           <span className="num text-lg font-bold text-fg leading-none font-mono">{dayNum}</span>
-                          <span className="text-[10px] font-bold text-accent-ink uppercase leading-tight mt-0.5">{monthName}</span>
+                          <span className="text-xs font-semibold text-accent-ink leading-tight mt-0.5 capitalize">{monthName}</span>
                         </div>
 
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.2 rounded-full ${
-                              isScientific ? 'bg-accent/15 text-accent-ink border border-accent/30' : 'bg-ok/15 text-ok border border-ok/30'
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+                              isOngoing
+                                ? 'bg-ok/15 text-ok border border-ok/30'
+                                : isClosed
+                                ? 'bg-surface-2 text-muted border border-line'
+                                : isScientific
+                                ? 'bg-accent/15 text-accent-ink border border-accent/30'
+                                : 'bg-info/15 text-info border border-info/30'
                             }`}>
-                              {isScientific ? 'Appel à communications' : 'Programme actif'}
+                              {isOngoing
+                                ? 'En cours'
+                                : isClosed
+                                ? 'Clôturé'
+                                : isScientific
+                                ? 'Appel à communications'
+                                : 'Programme actif'}
                             </span>
                             <span className="text-xs text-muted font-medium">
                               {TYPE_LABELS[ev.type] || ev.type}
@@ -743,7 +768,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         <span className={`${
                           isScientific ? 'btn-info' : 'btn-success'
                         } btn-sm text-xs font-semibold inline-flex items-center gap-1`}>
-                          <span>{isScientific ? 'Soumettre' : 'Programme'}</span>
+                          <span>{isScientific ? 'Soumettre' : 'Consulter'}</span>
                           <ArrowRightIcon size={12} weight="bold" />
                         </span>
                       </div>
@@ -781,7 +806,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           >
                             <div className="space-y-1 min-w-0 flex-1">
                               <div className="flex items-center gap-2">
-                                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${badgeClass}`}>
+                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeClass}`}>
                                   {category}
                                 </span>
                                 {detail && (
@@ -898,7 +923,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     <div className="p-4 rounded-xl border border-accent/40 bg-gradient-to-br from-accent/10 to-surface-2 space-y-2">
                       <div className="flex items-center justify-between gap-3">
                         <div>
-                          <span className="text-[11px] font-bold text-accent-ink uppercase">Participant Validé</span>
+                          <span className="text-xs font-medium text-accent-ink">Participant validé</span>
                           <p className="font-bold text-sm text-fg mt-0.5">{validatedParticipation.events?.title}</p>
                           <p className="text-xs text-muted">{validatedParticipation.events?.location || 'Campus USTO-MB'}</p>
                         </div>
@@ -977,7 +1002,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                               </span>
                             </span>
                             <span className="flex flex-col items-end gap-1 shrink-0">
-                              <span className="text-[11px] font-semibold text-accent-ink">{ROLE_LABELS[p.role_in_event]}</span>
+                              <span className="text-xs font-medium text-accent-ink">{ROLE_LABELS[p.role_in_event]}</span>
                               <span className={STATUS_BADGE[p.events.status] || 'badge-draft'}>
                                 {STATUS_LABELS[p.events.status]}
                               </span>

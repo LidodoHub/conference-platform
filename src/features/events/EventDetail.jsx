@@ -74,12 +74,12 @@ function NavItem({ item, active, onClick }) {
         <span className="truncate">{item.label}</span>
       </span>
       {item.badge != null && (
-        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0 ${item.badgeColor || 'bg-fg/8 text-fg'}`}>
+        <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full shrink-0 ${item.badgeColor || 'bg-fg/8 text-fg'}`}>
           {item.badge}
         </span>
       )}
       {item.count != null && !item.badge && (
-        <span className="text-[11px] font-mono text-faint shrink-0">
+        <span className="text-xs font-mono text-faint shrink-0">
           {item.count}
         </span>
       )}
@@ -121,7 +121,7 @@ function AIBetaPlaceholder({ title, icon: Icon, badge, model, description, scrip
             <span className="w-2 h-2 rounded-full bg-ok animate-pulse" />
             <span className="text-xs font-semibold text-fg">Simulation algorithmique (Dataset USTO-MB)</span>
           </div>
-          <span className="text-[11px] font-mono text-accent-ink bg-accent/12 px-2 py-0.5 rounded font-semibold">Précision : 94.8%</span>
+          <span className="text-xs font-mono text-accent-ink bg-accent/12 px-2 py-0.5 rounded font-semibold">Précision : 94.8%</span>
         </div>
 
         {scriptRef.includes('matching') && (
@@ -136,11 +136,11 @@ function AIBetaPlaceholder({ title, icon: Icon, badge, model, description, scrip
                 <div key={m.name} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2/50 border border-line/50">
                   <div className="min-w-0">
                     <span className="font-semibold text-fg block">{m.name}</span>
-                    <span className="text-[11px] text-muted">{m.lab} • {m.tags.join(', ')}</span>
+                    <span className="text-xs text-muted">{m.lab} • {m.tags.join(', ')}</span>
                   </div>
                   <div className="text-right shrink-0">
                     <span className="num font-bold text-accent-ink text-sm block">{m.score}%</span>
-                    <span className="text-[10px] text-ok font-medium">Recommandé</span>
+                    <span className="text-xs text-ok font-medium">Recommandé</span>
                   </div>
                 </div>
               ))}
@@ -158,7 +158,7 @@ function AIBetaPlaceholder({ title, icon: Icon, badge, model, description, scrip
               <div key={c.theme} className={`p-3 rounded-xl bg-surface-2/50 border border-line/60 border-l-4 ${c.color} space-y-1`}>
                 <span className="font-semibold text-fg block">{c.theme}</span>
                 <span className="text-muted block">{c.count}</span>
-                <span className="text-[10px] font-mono text-faint block">{c.score}</span>
+                <span className="text-xs font-mono text-faint block">{c.score}</span>
               </div>
             ))}
           </div>
@@ -168,7 +168,7 @@ function AIBetaPlaceholder({ title, icon: Icon, badge, model, description, scrip
           <div className="p-3.5 rounded-xl bg-surface-2/50 border border-line/60 flex flex-wrap items-center justify-between gap-4 text-xs">
             <div>
               <span className="font-semibold text-fg block">Résolution Hamiltonienne Ising / QUBO</span>
-              <span className="text-muted text-[11px]">Énergie minimale trouvée après 100 itérations QAOA</span>
+              <span className="text-muted text-xs">Énergie minimale trouvée après 100 itérations QAOA</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="text-center px-3 py-1 rounded-lg bg-ok/15 text-ok font-bold">
@@ -185,7 +185,7 @@ function AIBetaPlaceholder({ title, icon: Icon, badge, model, description, scrip
           <div className="p-3.5 rounded-xl bg-surface-2/50 border border-line/60 flex flex-wrap items-center justify-between gap-4 text-xs">
             <div>
               <span className="font-semibold text-fg block">Distribution de Singularité Textuelle</span>
-              <span className="text-muted text-[11px]">Similarité maximale observée entre 2 soumissions : 14.2%</span>
+              <span className="text-muted text-xs">Similarité maximale observée entre 2 soumissions : 14.2%</span>
             </div>
             <div className="px-3 py-1.5 rounded-lg bg-ok/15 text-ok font-bold">
               ✓ Intégrité Scientifique Validée
@@ -478,7 +478,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
               >
                 <span>{item.label}</span>
                 {item.badge != null && (
-                  <span className="w-4 h-4 rounded-full bg-white/25 text-current inline-flex items-center justify-center text-[10px] font-bold">
+                  <span className="w-4 h-4 rounded-full bg-white/25 text-current inline-flex items-center justify-center text-xs font-bold">
                     {item.badge}
                   </span>
                 )}
@@ -535,7 +535,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                 {event.profiles?.email && (
                   <a
                     href={`mailto:${event.profiles.email}`}
-                    className="text-[11px] text-muted hover:text-accent-ink truncate block"
+                    className="text-xs text-muted hover:text-accent-ink truncate block"
                   >
                     {event.profiles.email}
                   </a>
@@ -581,10 +581,10 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                 {/* Badges de statut et format */}
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-accent-ink px-2.5 py-1 rounded-full bg-accent/15 tracking-wide uppercase text-[11px]">
+                    <span className="font-semibold text-accent-ink px-2.5 py-1 rounded-full bg-accent/15 tracking-wide uppercase text-xs">
                       {TYPE_LABELS[event.type] || event.type} • {(FORMAT_LABELS[event.format] || event.format || '').toLowerCase()}
                     </span>
-                    <span className="text-muted text-[11px] font-medium hidden sm:inline">
+                    <span className="text-muted text-xs font-medium hidden sm:inline">
                       {event.phase === 'scientific' ? 'Phase scientifique' : 'Phase organisation'}
                     </span>
                   </div>
@@ -770,7 +770,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
                     {STATUS_LABELS[event.status] || event.status}
                   </span>
-                  <span className="text-faint text-[11px] font-medium hidden sm:inline">
+                  <span className="text-faint text-xs font-medium hidden sm:inline">
                     {event.phase === 'scientific' ? 'Phase scientifique' : 'Phase organisation'}
                   </span>
                 </div>
