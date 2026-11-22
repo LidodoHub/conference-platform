@@ -10,7 +10,6 @@ import {
   CheckCircleIcon,
   QrCodeIcon,
   ShieldCheckIcon,
-  SparkleIcon,
   PlusIcon,
   XIcon,
 } from '@phosphor-icons/react'
@@ -469,113 +468,75 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 {HERO_PHOTO.credit}
               </a>
             </div>
-            {/* CONFÉRENCE VEDETTE À LA UNE (OPTION 1) */}
+            {/* CONFÉRENCE VEDETTE À LA UNE */}
             {featuredEvent && (
-              <section className="card p-6 sm:p-8 border border-line bg-gradient-to-br from-surface to-surface-2 relative overflow-hidden shadow-card hover:border-accent/40 transition-all duration-300">
-                <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-center relative z-10">
-                  <div className="space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`text-xs font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-md inline-flex items-center gap-1.5 ${
-                        featuredEvent.status === 'ongoing'
-                          ? 'bg-ok/20 text-ok border border-ok/40'
-                          : 'bg-accent/15 text-accent-ink border border-accent/30'
-                      }`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${
-                          featuredEvent.status === 'ongoing' ? 'bg-ok' : 'bg-accent'
-                        }`} />
-                        {featuredEvent.status === 'ongoing'
-                          ? 'Conférence en cours • Jour J'
-                          : featuredEvent.phase === 'scientific'
-                            ? 'Appel à communications ouvert • USTO-MB'
-                            : 'Programme officiel actif'}
-                      </span>
-                      <span className="text-xs font-semibold text-muted">
-                        {TYPE_LABELS[featuredEvent.type] || featuredEvent.type}
-                      </span>
-                    </div>
+              <section className="card p-6 sm:p-8 border border-line bg-surface relative overflow-hidden shadow-card hover:border-accent/40 transition-all duration-300 space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${
+                    featuredEvent.status === 'ongoing'
+                      ? 'bg-ok/15 text-ok border border-ok/30'
+                      : 'bg-accent/15 text-accent-ink border border-accent/30'
+                  }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${
+                      featuredEvent.status === 'ongoing' ? 'bg-ok' : 'bg-accent'
+                    }`} />
+                    <span>{featuredEvent.status === 'ongoing' ? 'En cours' : 'Appel ouvert'}</span>
+                  </span>
+                </div>
 
-                    <h2 className="text-xl sm:text-3xl font-bold tracking-tight text-fg leading-tight">
-                      {featuredEvent.title}
-                    </h2>
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-fg leading-tight">
+                  {featuredEvent.title}
+                </h2>
 
-                    {featuredEvent.description && (
-                      <p className="text-xs sm:text-sm text-muted line-clamp-3 leading-relaxed max-w-[68ch]">
-                        {cleanDescription(featuredEvent.description)}
-                      </p>
-                    )}
+                {featuredEvent.description && (
+                  <p className="text-xs sm:text-sm text-muted line-clamp-2 leading-relaxed max-w-[75ch]">
+                    {cleanDescription(featuredEvent.description)}
+                  </p>
+                )}
 
-                    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted pt-1">
-                      <span className="flex items-center gap-1.5">
-                        <CalendarBlankIcon size={14} className="text-accent-ink shrink-0" />
-                        <strong className="text-fg">{formatDate(featuredEvent.start_date)}</strong>
-                      </span>
-                      {featuredEvent.location && (
-                        <span className="flex items-center gap-1.5">
-                          <MapPinIcon size={14} className="text-accent-ink shrink-0" />
-                          <span>{featuredEvent.location}</span>
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1.5">
-                        <SparkleIcon size={14} className="text-accent-ink shrink-0" />
-                        <span>Actes & Recueil PDF</span>
-                      </span>
-                    </div>
+                <div className="flex items-center gap-2 text-xs text-muted">
+                  <span className="num font-medium text-fg">
+                    {formatDate(featuredEvent.start_date, { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </span>
+                  {featuredEvent.location && (
+                    <>
+                      <span>•</span>
+                      <span>{featuredEvent.location}</span>
+                    </>
+                  )}
+                </div>
 
-                    <div className="flex flex-wrap items-center gap-3 pt-3">
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onOpenEvent(featuredEvent.id, {
-                            tab:
-                              featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                                ? 'program'
-                                : 'scientific',
-                          })
-                        }
-                        className={`${
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onOpenEvent(featuredEvent.id, {
+                        tab:
                           featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                            ? 'btn-success'
-                            : 'btn-info'
-                        } btn-sm text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 active:scale-95 transition-all`}
-                      >
-                        <span>
-                          {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                            ? 'Accéder au programme'
-                            : 'Déposer une communication'}
-                        </span>
-                        <ArrowRightIcon size={14} weight="bold" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onOpenEvent(featuredEvent.id)}
-                        className="btn-outline btn-sm text-xs sm:text-sm"
-                      >
-                        Détails & Plan d'accès
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Carte latérale de deadline */}
-                  <div className="p-5 rounded-2xl border border-line bg-surface/90 text-center space-y-2 shadow-sm">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-muted block">
+                            ? 'program'
+                            : 'scientific',
+                      })
+                    }
+                    className={`${
+                      featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
+                        ? 'btn-success'
+                        : 'btn-info'
+                    } btn-sm text-xs sm:text-sm font-semibold shadow-xs flex items-center gap-2 active:scale-95 transition-all`}
+                  >
+                    <span>
                       {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                        ? "Statut de l'événement"
-                        : 'Date limite de soumission'}
+                        ? 'Accéder au programme'
+                        : 'Déposer une communication'}
                     </span>
-                    <div className="num text-4xl sm:text-5xl font-extrabold text-accent-ink tracking-tight font-mono">
-                      {countdown(featuredEvent)}
-                    </div>
-                    <p className="text-xs text-muted">
-                      {featuredEvent.status === 'ongoing' || featuredEvent.phase !== 'scientific'
-                        ? 'Accès aux amphis sur badge QR'
-                        : 'Arbitrage par les pairs en double aveugle'}
-                    </p>
-                    <div className="pt-2">
-                      <span className="badge badge-accent w-full justify-center py-1">
-                        {STATUS_LABELS[featuredEvent.status] || 'Publiée'}
-                      </span>
-                    </div>
-                  </div>
+                    <ArrowRightIcon size={14} weight="bold" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onOpenEvent(featuredEvent.id)}
+                    className="btn-ghost btn-sm text-xs sm:text-sm text-muted hover:text-fg"
+                  >
+                    Détails
+                  </button>
                 </div>
               </section>
             )}
@@ -801,11 +762,6 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-fg">
                   Bonjour{firstName ? `, ${firstName}` : ''}
                 </h1>
-                <p className="text-xs sm:text-sm text-muted">
-                  {todos.length > 0
-                    ? `${todos.length} action${todos.length > 1 ? 's prioritaires requièrent' : ' prioritaire requiert'} votre attention.`
-                    : 'Vos activités et livrables scientifiques sont parfaitement à jour.'}
-                </p>
               </div>
 
               <div className="shrink-0 self-start sm:self-center">
@@ -831,44 +787,37 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 {todos.length > 0 ? (
                   <section className="space-y-3">
                     <SectionTitle
-                      title="Priorités."
-                      subtitle="Livrables et arbitrages requis."
+                      title="Priorités"
                       count={todos.length}
                     />
 
-                    <ul className="space-y-2.5">
-                      {todos.map(({ key, category, borderClass, badgeClass, title, detail, target }, i) => (
-                        <li key={key} className="rise" style={{ '--i': i }}>
-                          <button
-                            type="button"
-                            onClick={() => open(target)}
-                            className={`group w-full text-left card p-4 border-line bg-surface/80 hover:bg-surface hover:shadow-md transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-l-4 ${borderClass}`}
-                          >
-                            <div className="space-y-1 min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${badgeClass}`}>
-                                  {category}
-                                </span>
-                                {detail && (
-                                  <span className="text-xs font-medium text-muted truncate">
-                                    • {detail}
-                                  </span>
-                                )}
+                    <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface shadow-xs">
+                      {todos.map(({ key, category, detail, title, target }) => (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => open(target)}
+                          className="group w-full text-left py-3.5 px-5 flex items-center justify-between gap-4 hover:bg-surface-2/60 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1 flex items-start gap-3">
+                            <span className="w-2 h-2 rounded-full bg-accent shrink-0 mt-1.5" aria-hidden="true" />
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              <div className="flex items-center gap-2 text-xs text-muted">
+                                <span className="font-semibold text-accent-ink">{category}</span>
+                                {detail && <span>• {detail}</span>}
                               </div>
-                              <p className="font-semibold text-fg text-sm leading-snug">
+                              <p className="font-semibold text-fg text-sm leading-snug truncate group-hover:text-accent-ink transition-colors">
                                 {title}
                               </p>
                             </div>
-                            <div className="shrink-0 self-end sm:self-center pt-2 sm:pt-0">
-                              <span className="btn-warning btn-sm text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs">
-                                <span>Traiter</span>
-                                <ArrowRightIcon size={12} weight="bold" />
-                              </span>
-                            </div>
-                          </button>
-                        </li>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-1 text-xs font-medium text-muted group-hover:text-accent-ink transition-colors">
+                            <span>Traiter</span>
+                            <ArrowRightIcon size={13} weight="bold" className="transition-transform group-hover:translate-x-0.5" />
+                          </div>
+                        </button>
                       ))}
-                    </ul>
+                    </div>
                   </section>
                 ) : (
                   <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-surface/60 border border-line/60 text-xs text-muted">
@@ -880,8 +829,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 {/* Mes articles déposés */}
                 <section className="space-y-3">
                   <SectionTitle
-                    title="Articles scientifiques."
-                    subtitle="Suivi de vos communications."
+                    title="Articles scientifiques"
                     count={data ? data.subs.length : null}
                     actions={
                       acceptedCount > 0 ? (
@@ -911,18 +859,18 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       }
                     />
                   ) : (
-                    <ul className="space-y-2.5">
+                    <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface shadow-xs">
                       {data.subs.map((s) => (
-                        <li key={s.id}>
-                          <button
-                            type="button"
-                            onClick={() => onOpenEvent(s.event_id, { tab: 'scientific' })}
-                            className="entity w-full text-left hover:border-accent/60 transition-all p-3.5 shadow-xs"
-                            style={{ '--stripe': SUBMISSION_COLOR[s.status] }}
-                          >
-                            <div className="flex items-center justify-between gap-3">
+                        <button
+                          key={s.id}
+                          type="button"
+                          onClick={() => onOpenEvent(s.event_id, { tab: 'scientific' })}
+                          className="group w-full text-left py-3.5 px-5 flex items-center justify-between gap-4 hover:bg-surface-2/60 transition-colors"
+                        >
+                          <div className="min-w-0 flex-1 space-y-0.5">
+                            <div className="flex items-center gap-2 text-xs">
                               <span
-                                className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                                className="font-semibold px-2 py-0.5 rounded-full text-[11px]"
                                 style={{
                                   color: SUBMISSION_COLOR[s.status],
                                   background: `color-mix(in srgb, ${SUBMISSION_COLOR[s.status]} 15%, transparent)`,
@@ -930,18 +878,21 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                               >
                                 {statusOf(s)}
                               </span>
-                              <span className="text-xs text-faint num">
-                                {formatDate(s.submitted_at, { day: 'numeric', month: 'short' })}
-                              </span>
+                              <span className="text-muted truncate">{s.events?.title}</span>
                             </div>
-                            <span className="block mt-1.5 font-semibold text-fg text-sm leading-snug line-clamp-1">
+                            <p className="font-semibold text-fg text-sm leading-snug truncate group-hover:text-accent-ink transition-colors">
                               {s.title}
+                            </p>
+                          </div>
+                          <div className="shrink-0 flex items-center gap-3">
+                            <span className="text-xs text-faint num">
+                              {formatDate(s.submitted_at, { day: 'numeric', month: 'short' })}
                             </span>
-                            <span className="block text-xs text-muted truncate mt-0.5">{s.events?.title}</span>
-                          </button>
-                        </li>
+                            <ArrowRightIcon size={13} weight="bold" className="text-muted group-hover:text-accent-ink transition-transform group-hover:translate-x-0.5" />
+                          </div>
+                        </button>
                       ))}
-                    </ul>
+                    </div>
                   )}
                 </section>
               </div>
@@ -951,15 +902,12 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                 {/* Badge d'accès numérique */}
                 <section className="card p-5 border-line bg-surface/80 space-y-3">
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-bold text-sm sm:text-base text-fg flex items-baseline gap-2">
-                      <span className="text-fg flex items-center gap-1.5">
-                        <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
-                        Badge d'accès.
-                      </span>
-                      <span className="text-muted font-normal text-xs sm:text-sm">Pass numérique amphis.</span>
+                    <h3 className="font-bold text-sm sm:text-base text-fg flex items-center gap-2">
+                      <ShieldCheckIcon size={16} className="text-accent-ink" weight="bold" />
+                      <span>Badge d'accès</span>
                     </h3>
                     {validatedParticipation && (
-                      <span className="badge badge-ok">Pass Actif</span>
+                      <span className="badge badge-ok">Pass actif</span>
                     )}
                   </div>
 
@@ -993,8 +941,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
               {/* Mes conférences actives */}
               <section className="space-y-3">
                 <SectionTitle
-                  title="Mes conférences."
-                  subtitle="Manifestations suivies sur le campus."
+                  title="Mes conférences"
                   count={data ? data.parts.length : null}
                   actions={
                     <button
@@ -1026,36 +973,37 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                     }
                   />
                 ) : (
-                  <ul className="card divide-y divide-line overflow-hidden border-line">
+                  <div className="card rounded-2xl border border-line divide-y divide-line/60 overflow-hidden bg-surface shadow-xs">
                     {data.parts
                       .slice()
                       .sort((a, b) => (a.events.start_date || '').localeCompare(b.events.start_date || ''))
                       .map((p) => (
-                        <li key={p.event_id}>
-                          <button
-                            type="button"
-                            onClick={() => onOpenEvent(p.event_id)}
-                            className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-fg/4 transition-colors"
-                          >
-                            <span className="w-9 h-9 rounded-xl shrink-0" style={coverStyle(p.events || p.event_id)} aria-hidden="true" />
-                            <span className="min-w-0 flex-1">
-                              <span className="block font-medium text-fg text-sm truncate">{p.events.title}</span>
-                              <span className="block text-xs text-muted num mt-0.5">
-                                {formatDate(p.events.start_date, { day: 'numeric', month: 'short' })}
-                                {', '}
-                                {PHASE_LABELS[p.events.phase]?.replace('Phase ', '') || ''}
-                              </span>
+                        <button
+                          key={p.event_id}
+                          type="button"
+                          onClick={() => onOpenEvent(p.event_id)}
+                          className="group w-full text-left py-3.5 px-5 flex items-center gap-3 hover:bg-surface-2/60 transition-colors"
+                        >
+                          <span className="w-9 h-9 rounded-xl shrink-0" style={coverStyle(p.events || p.event_id)} aria-hidden="true" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-semibold text-fg text-sm truncate group-hover:text-accent-ink transition-colors">
+                              {p.events.title}
                             </span>
-                            <span className="flex flex-col items-end gap-1 shrink-0">
-                              <span className="text-xs font-medium text-accent-ink">{ROLE_LABELS[p.role_in_event]}</span>
-                              <span className={STATUS_BADGE[p.events.status] || 'badge-draft'}>
-                                {STATUS_LABELS[p.events.status]}
-                              </span>
+                            <span className="block text-xs text-muted num mt-0.5">
+                              {formatDate(p.events.start_date, { day: 'numeric', month: 'short' })}
+                              {p.events.phase ? ` • ${PHASE_LABELS[p.events.phase]?.replace('Phase ', '') || ''}` : ''}
                             </span>
-                          </button>
-                        </li>
+                          </span>
+                          <span className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs font-medium text-accent-ink hidden sm:inline">{ROLE_LABELS[p.role_in_event]}</span>
+                            <span className={STATUS_BADGE[p.events.status] || 'badge-draft'}>
+                              {STATUS_LABELS[p.events.status]}
+                            </span>
+                            <ArrowRightIcon size={13} weight="bold" className="text-muted group-hover:text-accent-ink transition-transform group-hover:translate-x-0.5" />
+                          </span>
+                        </button>
                       ))}
-                  </ul>
+                  </div>
                 )}
               </section>
             </div>
