@@ -30,7 +30,7 @@ function CoverDate({ date, large = false }) {
   if (!date) return null
   return (
     <div className="flex items-center gap-2.5">
-      <div className="bg-surface/90 dark:bg-black/50 backdrop-blur-md border border-line/60 rounded-xl px-2.5 py-1.5 text-center text-fg dark:text-white min-w-[48px] shadow-xs">
+      <div className="bg-surface/90 dark:bg-[#18181B]/90 backdrop-blur-md border border-line/60 rounded-xl px-2.5 py-1.5 text-center text-fg dark:text-white min-w-[48px] shadow-xs">
         <span className="block text-xs font-bold uppercase tracking-wider text-accent leading-none">
           {date.month}
         </span>
@@ -70,12 +70,12 @@ export default function EventCard({ event, role, onOpen, style }) {
     <button
       type="button"
       onClick={() => onOpen(event.id)}
-      className="group card overflow-hidden text-left flex flex-col rise transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft) hover:-translate-y-1 hover:shadow-lift hover:border-accent/40 active:translate-y-0 active:scale-[0.985] cursor-pointer"
+      className="group card overflow-hidden text-left flex flex-col rise transition-[transform,box-shadow,border-color] duration-200 ease-(--ease-out-soft) hover:-translate-y-1 hover:shadow-lift hover:border-accent/40 dark:hover:border-white/[0.12] active:translate-y-0 active:scale-[0.985] cursor-pointer"
       style={style}
     >
       <EventCover seed={event.id} event={event} className="h-36 sm:h-44 p-4 sm:p-5 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <span className="text-xs font-medium text-fg dark:text-white/90 px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs w-fit self-start shrink-0">
+          <span className="text-xs font-medium text-fg dark:text-white/90 px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-[#222226] border border-line/50 backdrop-blur-xs w-fit self-start shrink-0">
             {TYPE_LABELS[event.type] || event.type}
             {event.format && event.format !== 'onsite' && <span className="text-muted dark:text-white/70"> • {FORMAT_LABELS[event.format].toLowerCase()}</span>}
           </span>
@@ -130,11 +130,11 @@ export function FeaturedEventCard({ event, role, onOpen }) {
     <button
       type="button"
       onClick={() => onOpen(event.id)}
-      className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-[transform,box-shadow,border-color] duration-200 hover:shadow-lift hover:border-accent/40 active:scale-[0.99] cursor-pointer"
+      className="group card overflow-hidden text-left w-full grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] rise transition-[transform,box-shadow,border-color] duration-200 hover:shadow-lift hover:border-accent/40 dark:hover:border-white/[0.12] active:scale-[0.99] cursor-pointer"
     >
       <EventCover seed={event.id} event={event} className="min-h-48 md:min-h-80 p-5 sm:p-8 flex flex-col justify-between relative overflow-hidden">
         <div className="flex items-center justify-between gap-2 relative z-10">
-          <span className="text-sm font-medium text-fg dark:text-white/90 px-3 py-1 rounded-full bg-surface/90 dark:bg-black/40 border border-line/50 backdrop-blur-xs w-fit self-start shrink-0">
+          <span className="text-sm font-medium text-fg dark:text-white/90 px-3 py-1 rounded-full bg-surface/90 dark:bg-[#222226] border border-line/50 backdrop-blur-xs w-fit self-start shrink-0">
             {TYPE_LABELS[event.type] || event.type} • {(FORMAT_LABELS[event.format] || '').toLowerCase()}
           </span>
           {timer && (

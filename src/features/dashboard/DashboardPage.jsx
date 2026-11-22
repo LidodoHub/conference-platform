@@ -298,7 +298,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
 
   const renderTabSwitcher = () => (
     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-line/60">
-      <div className="inline-flex items-center bg-black/[0.04] dark:bg-white/[0.06] p-1 rounded-xl border border-black/[0.06] dark:border-white/[0.06] gap-1 max-w-full overflow-x-auto">
+      <div className="inline-flex items-center bg-black/[0.04] dark:bg-[#222226] p-1 rounded-xl border border-black/[0.06] dark:border-white/[0.06] gap-1 max-w-full overflow-x-auto">
         <button
           type="button"
           onClick={() => setActiveMainTab('discover')}
@@ -306,13 +306,13 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
           className={`px-4 sm:px-5 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 select-none ${
             activeMainTab === 'discover'
               ? 'bg-surface text-fg shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.08]'
-              : 'text-muted hover:text-fg hover:bg-black/[0.02] dark:hover:bg-white/[0.04]'
+              : 'text-muted hover:text-fg hover:bg-black/[0.02] dark:hover:bg-[#222226]'
           }`}
         >
           <span>Découvrir & Conférences</span>
           <span className={`ml-2 text-xs font-mono font-medium px-2 py-0.5 rounded-full transition-colors ${
             activeMainTab === 'discover'
-              ? 'bg-black/[0.06] dark:bg-white/10 text-fg'
+              ? 'bg-black/[0.06] dark:bg-[#18181B] text-fg'
               : 'text-faint'
           }`}>
             {publicEvents.length}
@@ -326,7 +326,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
           className={`px-4 sm:px-5 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 select-none ${
             activeMainTab === 'myspace'
               ? 'bg-surface text-fg shadow-xs ring-1 ring-black/[0.04] dark:ring-white/[0.08]'
-              : 'text-muted hover:text-fg hover:bg-black/[0.02] dark:hover:bg-white/[0.04]'
+              : 'text-muted hover:text-fg hover:bg-black/[0.02] dark:hover:bg-[#222226]'
           }`}
         >
           <span>Mon Espace</span>
@@ -541,15 +541,15 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                         className="w-full h-48 sm:h-56 md:h-64 flex flex-col justify-between p-4 sm:p-5"
                       >
                         <div className="flex items-center justify-between gap-2 relative z-10">
-                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs w-fit self-start shrink-0">
+                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-[#222226] text-fg dark:text-white border border-line/60 backdrop-blur-xs w-fit self-start shrink-0">
                             {TYPE_LABELS[featuredEvent.type] || featuredEvent.type}
                           </span>
-                          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 shadow-xs w-fit self-start shrink-0">
+                          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-[#222226] text-fg dark:text-white border border-line/60 shadow-xs w-fit self-start shrink-0">
                             USTO-MB
                           </span>
                         </div>
                         <div className="relative z-10 flex items-center justify-between text-xs">
-                          <span className="font-semibold text-accent-ink bg-surface/90 dark:bg-black/50 border border-line/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
+                          <span className="font-semibold text-accent-ink bg-surface/90 dark:bg-[#222226] border border-line/60 backdrop-blur-xs px-2.5 py-1 rounded-lg">
                             Actes & Archives
                           </span>
                         </div>
@@ -635,7 +635,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                       role="button"
                       tabIndex={0}
                       onKeyDown={(e) => e.key === 'Enter' && onOpenEvent(ev.id)}
-                      className="group card overflow-hidden border-line bg-surface/80 hover:bg-surface hover:border-accent/60 transition-all duration-300 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
+                      className="group card overflow-hidden border-line bg-surface/80 hover:bg-surface hover:border-accent/60 dark:hover:border-white/[0.12] transition-all duration-300 flex flex-col justify-between cursor-pointer text-left shadow-xs hover:-translate-y-1 hover:shadow-lg"
                     >
                       <div>
                         <EventCover
@@ -643,7 +643,7 @@ export default function DashboardPage({ onOpenEvent, onNavigateAdmin }) {
                           seed={ev.id}
                           className="h-28 px-4 py-3 flex items-start justify-between relative overflow-hidden"
                         >
-                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-black/50 text-fg dark:text-white border border-line/60 backdrop-blur-xs w-fit self-start shrink-0">
+                          <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-surface/90 dark:bg-[#222226] text-fg dark:text-white border border-line/60 backdrop-blur-xs w-fit self-start shrink-0">
                             {TYPE_LABELS[ev.type] || ev.type}
                           </span>
                           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full shadow-xs w-fit self-start shrink-0 ${

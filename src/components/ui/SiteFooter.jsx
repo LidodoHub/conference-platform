@@ -29,7 +29,7 @@ function Column({ title, children }) {
 // Pied de page : liens secondaires (à propos, aide, confidentialité, contact), à l'écart de la navigation principale.
 export default function SiteFooter({ onNavigate }) {
   return (
-    <footer className="mt-auto bg-surface text-fg border-t border-black/[0.06] dark:bg-[#141416] dark:border-white/[0.06] transition-colors">
+    <footer className="mt-auto bg-surface text-fg border-t border-black/[0.06] dark:bg-[#18181B] dark:border-white/[0.06] transition-colors">
       <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 pt-12 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(0,1fr))] gap-x-8 gap-y-10">
           <div className="col-span-2 md:col-span-1 max-w-sm">

@@ -31,7 +31,7 @@
   --color-faint: var(--c-faint);
   --color-accent: var(--c-accent);
   --color-accent-ink: var(--c-accent-ink);
-  --color-on-accent: #16233F;
+  --color-on-accent: var(--c-on-accent, #16233F);
   --color-navy: #1B2A4A;
   --color-navy-2: #23365E;
 
@@ -89,20 +89,22 @@
 
 [data-theme="dark"] {
   color-scheme: dark;
-  --c-bg: #141416;
-  --c-surface: #1C1C1F;
-  --c-surface-2: #26262B;
-  --c-line: rgba(255, 255, 255, 0.08);
-  --c-fg: #F0F2F5;
-  --c-muted: #9E9EA7;
-  --c-faint: #7A7A85;
-  --c-accent: #D2A24E;
-  --c-accent-ink: #D4A759;
+  --c-bg: #0F0F11;
+  --c-surface: #18181B;
+  --c-surface-2: #222226;
+  --c-line: rgba(255, 255, 255, 0.06);
+  --c-fg: #F5F5F7;
+  --c-muted: #A1A1AA;
+  --c-faint: #71717A;
+  --c-accent: #D4A017;
+  --c-accent-hover: #E5B53B;
+  --c-accent-ink: #D4A017;
+  --c-on-accent: #0F0F11;
   --c-ok: #2A8E66;
   --c-warn: #BD7C24;
   --c-bad: #BD4239;
   --c-info: #3D6FB0;
-  --c-neutral: #9E9EA7;
+  --c-neutral: #A1A1AA;
 
   --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.4);
   --shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.4), 0 18px 40px -16px rgba(0, 0, 0, 0.5);
@@ -193,21 +195,22 @@
   /* ---------- Boutons (base dupliquée par variante : contrainte @apply de Tailwind v4) ---------- */
   .btn-primary {
     @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
-           bg-navy text-white px-4 py-2.5 rounded-[10px] min-h-10
+           bg-[#1D1D1F] text-white px-4 py-2.5 rounded-[10px] min-h-10
            shadow-[inset_0_1px_0_rgb(255_255_255/0.08)]
            transition-[background-color,transform] duration-200 ease-(--ease-out-soft)
-           hover:bg-navy-2 hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 active:scale-[0.98]
+           hover:bg-black hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 active:scale-[0.98]
            disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
-           dark:bg-surface-2 dark:text-fg dark:hover:bg-[#30363D] dark:border dark:border-line;
+           dark:bg-white dark:text-[#1D1D1F] dark:hover:bg-[#E5E5EA] dark:border-0;
   }
 
   .btn-accent {
     @apply inline-flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap
            bg-accent text-on-accent px-4 py-2.5 rounded-[10px] min-h-10
            shadow-[inset_0_1px_0_rgb(255_255_255/0.25)]
-           transition-[filter,transform] duration-200 ease-(--ease-out-soft)
+           transition-[filter,transform,background-color] duration-200 ease-(--ease-out-soft)
            hover:brightness-105 hover:-translate-y-0.5 hover:shadow-xs active:translate-y-0 active:scale-[0.98]
-           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none;
+           disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none
+           dark:hover:bg-[#E5B53B];
   }
 
   .btn-outline {
@@ -323,25 +326,32 @@
     box-shadow: var(--shadow-lift);
   }
 
+  [data-theme="dark"] .card:hover,
+  [data-theme="dark"] .card-panel:hover,
+  [data-theme="dark"] .card-ticket:hover,
+  [data-theme="dark"] .entity:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
   .editorial-cover--sand {
     background: linear-gradient(135deg, #F5F1EB 0%, #E8E2D8 100%) !important;
   }
   [data-theme="dark"] .editorial-cover--sand {
-    background: linear-gradient(135deg, #201E1A 0%, #151412 100%) !important;
+    background: linear-gradient(135deg, #222226 0%, #18181B 100%) !important;
   }
 
   .editorial-cover--slate {
     background: linear-gradient(135deg, #EEF3F8 0%, #DFE7F0 100%) !important;
   }
   [data-theme="dark"] .editorial-cover--slate {
-    background: linear-gradient(135deg, #1B1E26 0%, #12141A 100%) !important;
+    background: linear-gradient(135deg, #222226 0%, #18181B 100%) !important;
   }
 
   .editorial-cover--sage {
     background: linear-gradient(135deg, #F0F5F1 0%, #DDE6DF 100%) !important;
   }
   [data-theme="dark"] .editorial-cover--sage {
-    background: linear-gradient(135deg, #18201A 0%, #111612 100%) !important;
+    background: linear-gradient(135deg, #222226 0%, #18181B 100%) !important;
   }
 
   .card-panel {
@@ -464,7 +474,7 @@
 }
 
 [data-theme="dark"] .hero {
-  background: linear-gradient(180deg, #0D1117 0%, #161B22 100%);
+  background: linear-gradient(180deg, #121214 0%, #18181B 100%);
   border-bottom: 1px solid var(--c-line);
 }
 
@@ -475,7 +485,7 @@
   right: 0;
   bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgb(200 150 62 / 0.7), transparent);
+  background: linear-gradient(90deg, transparent, rgb(212 160 23 / 0.7), transparent);
 }
 
 .hero-photo {
@@ -485,7 +495,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center 40%;
-  /* bichromie : la photo devient une matière marine, l'or vient des halos */
+  /* bichromie : la photo devient une matière, l'or vient des halos */
   filter: grayscale(1) contrast(1.2) brightness(1.05);
   mix-blend-mode: luminosity;
   opacity: 0.85;
@@ -497,7 +507,7 @@
 
 /* textes posés sur la photo : ombre douce pour rester lisibles quel que soit le ciel */
 .hero-text {
-  text-shadow: 0 1px 2px rgb(10 18 34 / 0.55), 0 4px 24px rgb(10 18 34 / 0.45);
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.55), 0 4px 24px rgb(0 0 0 / 0.45);
 }
 
 .hero-photo--tall {
@@ -537,6 +547,13 @@
   animation: hero-drift 26s ease-in-out infinite alternate;
   mix-blend-mode: screen;
   opacity: 0.8;
+}
+
+[data-theme="dark"] .hero-glow {
+  background:
+    radial-gradient(40% 50% at 18% 30%, rgb(212 160 23 / 0.35), transparent 70%),
+    radial-gradient(36% 46% at 82% 72%, rgb(212 160 23 / 0.2), transparent 70%),
+    radial-gradient(30% 40% at 62% 8%, rgb(255 255 255 / 0.08), transparent 70%);
 }
 
 .hero-rings {
