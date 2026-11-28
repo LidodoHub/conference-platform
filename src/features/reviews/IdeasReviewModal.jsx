@@ -16,6 +16,7 @@ import {
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { writeError } from '../../lib/errors'
+import { useLanguage } from '../../context/LanguageContext'
 import {
   FORM_STORAGE_KEY_PREFIX,
   A1_OPTIONS,
@@ -74,6 +75,7 @@ export default function IdeasReviewModal({
   onClose,
   onReviewed,
 }) {
+  const { t } = useLanguage()
   const { user } = useAuth()
   const formId = useId()
   const storageKey = `${FORM_STORAGE_KEY_PREFIX}${submission.id}_${user?.id || 'anon'}`
@@ -206,7 +208,7 @@ export default function IdeasReviewModal({
     setError(null)
 
     if (!formData.e1.trim()) {
-      setError('Veuillez renseigner au moins les points forts (E1) pour les auteurs.')
+      setError(t('ideasReview.e1RequiredError'))
       setTab('ef')
       return
     }
@@ -237,7 +239,7 @@ export default function IdeasReviewModal({
         })
         .eq('id', existing.id)
         .select('id')
-      submitError = writeError(updateRes, 'Enregistrement de l’évaluation refusé.')
+      submitError = writeError(updateRes, t('ideasReview.saveRefused'))
     } else {
       const insertRes = await supabase
         .from('reviews')
@@ -250,7 +252,7 @@ export default function IdeasReviewModal({
           recommended_session_id: dbRecommendation === 'accept' && formData.sessionId ? formData.sessionId : null,
         })
         .select('id')
-      submitError = writeError(insertRes, 'Enregistrement de l’évaluation refusé.')
+      submitError = writeError(insertRes, t('ideasReview.saveRefused'))
       if (!submitError && insertRes.data?.[0]?.id) {
         targetReviewId = insertRes.data[0].id
       }
@@ -317,9 +319,9 @@ export default function IdeasReviewModal({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-[11px] font-mono font-semibold uppercase px-2.5 py-0.5 rounded-full bg-accent/15 text-accent-ink border border-accent/30">
-                IDEAS’2027 Review Form
+                {t('ideasReview.badgeTitle')}
               </span>
-              <span className="text-xs text-muted">Grille officielle d’évaluation par les pairs</span>
+              <span className="text-xs text-muted">{t('ideasReview.subtitle')}</span>
             </div>
             <h2 id={`${formId}-title`} className="text-base sm:text-lg font-semibold text-fg mt-1 truncate max-w-2xl">
               {submission.title}
@@ -333,17 +335,17 @@ export default function IdeasReviewModal({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="btn-outline btn-sm text-xs inline-flex items-center gap-1.5"
-                title="Consulter le PDF de l'article"
+                title={t('ideasReview.viewPdfTitle')}
               >
                 <FilePdfIcon size={14} className="text-bad" />
-                <span className="hidden sm:inline">Consulter PDF</span>
+                <span className="hidden sm:inline">{t('ideasReview.viewPdfLabel')}</span>
               </a>
             )}
             <button
               type="button"
               onClick={onClose}
               className="icon-btn"
-              aria-label="Fermer la grille d'évaluation"
+              aria-label={t('ideasReview.closeAria')}
             >
               <XIcon size={18} />
             </button>
@@ -353,20 +355,20 @@ export default function IdeasReviewModal({
         {/* Tab Switcher */}
         <div className="px-4 sm:px-5 pt-3 pb-2 border-b border-line/60 bg-surface-2/40 flex items-center justify-between gap-2 shrink-0 overflow-x-auto">
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {TABS.map((t) => {
-              const active = tab === t.id
+            {TABS.map((tabItem) => {
+              const active = tab === tabItem.id
               return (
                 <button
-                  key={t.id}
+                  key={tabItem.id}
                   type="button"
-                  onClick={() => setTab(t.id)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all text-left ${
+                  onClick={() => setTab(tabItem.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all text-start ${
                     active
                       ? 'bg-fg text-surface font-semibold shadow-xs'
                       : 'text-muted hover:text-fg hover:bg-fg/5'
                   }`}
                 >
-                  <span>{t.label}</span>
+                  <span>{t(`ideasReview.tabs.${tabItem.id}`)}</span>
                 </button>
               )
             })}
@@ -374,7 +376,7 @@ export default function IdeasReviewModal({
 
           <div className="text-[11px] text-muted flex items-center gap-1 shrink-0">
             <FloppyDiskIcon size={12} className={draftSaved ? 'text-ok' : 'text-faint'} />
-            <span className="hidden sm:inline">{draftSaved ? 'Brouillon auto-sauvegardé' : 'Auto-sauvegarde active'}</span>
+            <span className="hidden sm:inline">{draftSaved ? t('ideasReview.draftSaved') : t('ideasReview.autoSaveActive')}</span>
           </div>
         </div>
 
@@ -392,17 +394,17 @@ export default function IdeasReviewModal({
               {/* Section A */}
               <fieldset className="space-y-3">
                 <legend className="text-xs font-bold uppercase tracking-wider text-accent-ink mb-1 flex items-center gap-1.5">
-                  <span>Section A: Reviewer profile</span>
+                  <span>{t('ideasReview.sectionA')}</span>
                 </legend>
                 <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                   <label className="text-xs font-semibold text-fg block">
-                    A1. Your confidence in evaluating this paper
+                    {t('ideasReview.a1Label')}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {A1_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-left ${
+                        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-start ${
                           formData.a1 === opt.value
                             ? 'bg-accent/15 border-accent text-fg shadow-xs ring-1 ring-accent/30 font-medium'
                             : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -417,9 +419,9 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('a1', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs font-semibold text-fg">{opt.label}</span>
+                          <span className="text-xs font-semibold text-fg">{t(`ideasReview.a1Options.${opt.value}.label`)}</span>
                         </div>
-                        <span className="text-[10px] text-muted pl-5">{opt.hint}</span>
+                        <span className="text-[10px] text-muted ps-5">{t(`ideasReview.a1Options.${opt.value}.hint`)}</span>
                       </label>
                     ))}
                   </div>
@@ -429,19 +431,19 @@ export default function IdeasReviewModal({
               {/* Section B */}
               <fieldset className="space-y-3 pt-2">
                 <legend className="text-xs font-bold uppercase tracking-wider text-accent-ink mb-1 flex items-center gap-1.5">
-                  <span>Section B: Scientific quality (scale 1 to 5: 5 = excellent, 1 = poor)</span>
+                  <span>{t('ideasReview.sectionB')}</span>
                 </legend>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <StarRating
-                    label="B1. Originality"
-                    desc="Does the paper contribute new ideas or findings?"
+                    label={t('ideasReview.b1Label')}
+                    desc={t('ideasReview.b1Desc')}
                     value={formData.b1}
                     onChange={(v) => updateField('b1', v)}
                   />
                   <StarRating
-                    label="B2. Technical soundness"
-                    desc="Are the methods correct and well explained?"
+                    label={t('ideasReview.b2Label')}
+                    desc={t('ideasReview.b2Desc')}
                     value={formData.b2}
                     onChange={(v) => updateField('b2', v)}
                   />
@@ -450,13 +452,13 @@ export default function IdeasReviewModal({
                 {/* B3 Validation */}
                 <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                   <label className="text-xs font-semibold text-fg block">
-                    B3. Validation: are the results convincingly supported?
+                    {t('ideasReview.b3Label')}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {B3_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-left ${
+                        className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-start ${
                           formData.b3 === opt.value
                             ? 'bg-accent/15 border-accent text-fg shadow-xs ring-1 ring-accent/30 font-medium'
                             : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -471,9 +473,9 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('b3', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs font-semibold text-fg">{opt.label}</span>
+                          <span className="text-xs font-semibold text-fg">{t(`ideasReview.b3Options.${opt.value}.label`)}</span>
                         </div>
-                        <span className="text-[10px] text-muted pl-5">{opt.hint}</span>
+                        <span className="text-[10px] text-muted ps-5">{t(`ideasReview.b3Options.${opt.value}.hint`)}</span>
                       </label>
                     ))}
                   </div>
@@ -481,14 +483,14 @@ export default function IdeasReviewModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <StarRating
-                    label="B4. Conclusions"
-                    desc="Are they supported by the presented results?"
+                    label={t('ideasReview.b4Label')}
+                    desc={t('ideasReview.b4Desc')}
                     value={formData.b4}
                     onChange={(v) => updateField('b4', v)}
                   />
                   <StarRating
-                    label="B5. Related work"
-                    desc="Is it properly cited and positioned against the state of the art?"
+                    label={t('ideasReview.b5Label')}
+                    desc={t('ideasReview.b5Desc')}
                     value={formData.b5}
                     onChange={(v) => updateField('b5', v)}
                   />
@@ -503,12 +505,12 @@ export default function IdeasReviewModal({
               {/* Section C */}
               <fieldset className="space-y-3">
                 <legend className="text-xs font-bold uppercase tracking-wider text-accent-ink mb-1 flex items-center gap-1.5">
-                  <span>Section C: Presentation and fit</span>
+                  <span>{t('ideasReview.sectionC')}</span>
                 </legend>
 
                 <StarRating
-                  label="C1. Clarity and organization"
-                  desc="Are objectives clearly stated, and is the paper well structured and easy to follow?"
+                  label={t('ideasReview.c1Label')}
+                  desc={t('ideasReview.c1Desc')}
                   value={formData.c1}
                   onChange={(v) => updateField('c1', v)}
                 />
@@ -517,13 +519,13 @@ export default function IdeasReviewModal({
                   {/* C2 Relevance */}
                   <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                     <label className="text-xs font-semibold text-fg block">
-                      C2. Relevance to themes & audience
+                      {t('ideasReview.c2Label')}
                     </label>
                     <div className="space-y-1.5">
                       {C2_OPTIONS.map((opt) => (
                         <label
                           key={opt.value}
-                          className={`p-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-left ${
+                          className={`p-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-start ${
                             formData.c2 === opt.value
                               ? 'bg-accent/15 border-accent text-fg font-medium'
                               : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -537,7 +539,7 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('c2', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs">{opt.label}</span>
+                          <span className="text-xs">{t(`ideasReview.c2Options.${opt.value}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -546,13 +548,13 @@ export default function IdeasReviewModal({
                   {/* C3 Main Track */}
                   <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                     <label className="text-xs font-semibold text-fg block">
-                      C3. Main track of the paper
+                      {t('ideasReview.c3Label')}
                     </label>
                     <div className="space-y-1.5">
                       {C3_TRACKS.map((trk) => (
                         <label
                           key={trk.value}
-                          className={`p-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-left ${
+                          className={`p-2 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-start ${
                             formData.c3 === trk.value
                               ? 'bg-accent/15 border-accent text-fg font-medium'
                               : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -566,7 +568,7 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('c3', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs">{trk.label}</span>
+                          <span className="text-xs">{t(`ideasReview.c3Tracks.${trk.value}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -576,13 +578,13 @@ export default function IdeasReviewModal({
                 {/* C4 Format compliance */}
                 <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                   <label className="text-xs font-semibold text-fg block">
-                    C4. Format compliance (IEEE template, 6 pages limit, double-blind)
+                    {t('ideasReview.c4Label')}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {C4_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-left ${
+                        className={`p-2 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-start ${
                           formData.c4 === opt.value
                             ? 'bg-accent/15 border-accent text-fg font-medium ring-1 ring-accent/30'
                             : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -597,9 +599,9 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('c4', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs font-semibold text-fg">{opt.label}</span>
+                          <span className="text-xs font-semibold text-fg">{t(`ideasReview.c4Options.${opt.value}.label`)}</span>
                         </div>
-                        <span className="text-[10px] text-muted pl-4.5">{opt.hint}</span>
+                        <span className="text-[10px] text-muted ps-4.5">{t(`ideasReview.c4Options.${opt.value}.hint`)}</span>
                       </label>
                     ))}
                   </div>
@@ -610,19 +612,19 @@ export default function IdeasReviewModal({
               <fieldset className="space-y-3 pt-2">
                 <legend className="text-xs font-bold uppercase tracking-wider text-accent-ink mb-1 flex items-center gap-1.5">
                   <ShieldCheckIcon size={14} className="text-accent-ink" />
-                  <span>Section D: Responsible research (new for 2027)</span>
+                  <span>{t('ideasReview.sectionD')}</span>
                 </legend>
 
                 {/* D1 Ethics */}
                 <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                   <label className="text-xs font-semibold text-fg block">
-                    D1. Ethics and trustworthiness: data sources, privacy, bias & societal impact
+                    {t('ideasReview.d1Label')}
                   </label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {D1_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center gap-2 text-left ${
+                        className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center gap-2 text-start ${
                           formData.d1 === opt.value
                             ? 'bg-accent/15 border-accent text-fg font-medium'
                             : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -636,7 +638,7 @@ export default function IdeasReviewModal({
                           onChange={(e) => updateField('d1', e.target.value)}
                           className="text-accent"
                         />
-                        <span className="text-xs">{opt.label}</span>
+                        <span className="text-xs">{t(`ideasReview.d1Options.${opt.value}`)}</span>
                       </label>
                     ))}
                   </div>
@@ -645,13 +647,13 @@ export default function IdeasReviewModal({
                 {/* D2 Reproducibility */}
                 <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                   <label className="text-xs font-semibold text-fg block">
-                    D2. Reproducibility: are datasets, code, parameters or protocols described well?
+                    {t('ideasReview.d2Label')}
                   </label>
                   <div className="grid grid-cols-3 gap-2">
                     {D2_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center gap-2 text-left ${
+                        className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center gap-2 text-start ${
                           formData.d2 === opt.value
                             ? 'bg-accent/15 border-accent text-fg font-medium'
                             : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -665,7 +667,7 @@ export default function IdeasReviewModal({
                           onChange={(e) => updateField('d2', e.target.value)}
                           className="text-accent"
                         />
-                        <span className="text-xs">{opt.label}</span>
+                        <span className="text-xs">{t(`ideasReview.d2Options.${opt.value}`)}</span>
                       </label>
                     ))}
                   </div>
@@ -674,13 +676,13 @@ export default function IdeasReviewModal({
                 {/* D3 Integrity concerns */}
                 <div className="p-3.5 rounded-xl border border-line bg-surface-2/30 space-y-2">
                   <label className="text-xs font-semibold text-fg block">
-                    D3. Integrity concerns: plagiarism, duplicate submission, undisclosed AI content?
+                    {t('ideasReview.d3Label')}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {D3_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center gap-2 text-left ${
+                        className={`p-2 rounded-xl border cursor-pointer transition-all flex items-center gap-2 text-start ${
                           formData.d3 === opt.value
                             ? opt.value === 'possible_concern'
                               ? 'bg-bad/15 border-bad text-bad font-medium'
@@ -696,7 +698,7 @@ export default function IdeasReviewModal({
                           onChange={(e) => updateField('d3', e.target.value)}
                           className="text-accent"
                         />
-                        <span className="text-xs font-semibold">{opt.label}</span>
+                        <span className="text-xs font-semibold">{t(`ideasReview.d3Options.${opt.value}`)}</span>
                       </label>
                     ))}
                   </div>
@@ -711,23 +713,23 @@ export default function IdeasReviewModal({
               {/* Section E */}
               <fieldset className="space-y-4">
                 <legend className="text-xs font-bold uppercase tracking-wider text-accent-ink mb-1 flex items-center gap-1.5">
-                  <span>Section E: Detailed Comments</span>
+                  <span>{t('ideasReview.sectionE')}</span>
                 </legend>
 
                 {/* E1 */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor={`${formId}-e1`} className="text-xs font-semibold text-fg flex items-center gap-1">
-                      <span>E1. Strengths</span>
-                      <span className="text-[10px] text-ok bg-ok/10 px-1.5 py-0.2 rounded font-normal">Visible aux auteurs</span>
+                      <span>{t('ideasReview.e1Label')}</span>
+                      <span className="text-[10px] text-ok bg-ok/10 px-1.5 py-0.2 rounded font-normal">{t('ideasReview.visibleToAuthors')}</span>
                     </label>
-                    <span className="text-[11px] text-muted">Ce qui rend ce papier solide</span>
+                    <span className="text-[11px] text-muted">{t('ideasReview.e1Hint')}</span>
                   </div>
                   <textarea
                     id={`${formId}-e1`}
                     rows={3}
                     className="textarea-field text-xs"
-                    placeholder="Points forts scientifiques, nouveauté, qualité des résultats..."
+                    placeholder={t('ideasReview.e1Placeholder')}
                     value={formData.e1}
                     onChange={(e) => updateField('e1', e.target.value)}
                     required
@@ -738,16 +740,16 @@ export default function IdeasReviewModal({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor={`${formId}-e2`} className="text-xs font-semibold text-fg flex items-center gap-1">
-                      <span>E2. Weaknesses</span>
-                      <span className="text-[10px] text-ok bg-ok/10 px-1.5 py-0.2 rounded font-normal">Visible aux auteurs</span>
+                      <span>{t('ideasReview.e2Label')}</span>
+                      <span className="text-[10px] text-ok bg-ok/10 px-1.5 py-0.2 rounded font-normal">{t('ideasReview.visibleToAuthors')}</span>
                     </label>
-                    <span className="text-[11px] text-muted">Limites et faiblesses méthodologiques</span>
+                    <span className="text-[11px] text-muted">{t('ideasReview.e2Hint')}</span>
                   </div>
                   <textarea
                     id={`${formId}-e2`}
                     rows={3}
                     className="textarea-field text-xs"
-                    placeholder="Manque de comparaisons, hypothèses non vérifiées, faiblesses..."
+                    placeholder={t('ideasReview.e2Placeholder')}
                     value={formData.e2}
                     onChange={(e) => updateField('e2', e.target.value)}
                   />
@@ -757,16 +759,16 @@ export default function IdeasReviewModal({
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor={`${formId}-e3`} className="text-xs font-semibold text-fg flex items-center gap-1">
-                      <span>E3. Actionable suggestions for improvement</span>
-                      <span className="text-[10px] text-ok bg-ok/10 px-1.5 py-0.2 rounded font-normal">Visible aux auteurs</span>
+                      <span>{t('ideasReview.e3Label')}</span>
+                      <span className="text-[10px] text-ok bg-ok/10 px-1.5 py-0.2 rounded font-normal">{t('ideasReview.visibleToAuthors')}</span>
                     </label>
-                    <span className="text-[11px] text-muted">Conseils concrets pour la version finale</span>
+                    <span className="text-[11px] text-muted">{t('ideasReview.e3Hint')}</span>
                   </div>
                   <textarea
                     id={`${formId}-e3`}
                     rows={3}
                     className="textarea-field text-xs"
-                    placeholder="Expérimentations additionnelles suggérées, clarifications de preuves..."
+                    placeholder={t('ideasReview.e3Placeholder')}
                     value={formData.e3}
                     onChange={(e) => updateField('e3', e.target.value)}
                   />
@@ -777,20 +779,20 @@ export default function IdeasReviewModal({
                   <div className="flex items-center justify-between mb-1">
                     <label htmlFor={`${formId}-e4`} className="text-xs font-semibold text-warn flex items-center gap-1">
                       <EyeSlashIcon size={14} />
-                      <span>E4. Confidential comments to the chairs</span>
+                      <span>{t('ideasReview.e4Label')}</span>
                       <span className="text-[10px] text-warn bg-warn/15 px-1.5 py-0.2 rounded font-bold uppercase tracking-wider">
-                        Non visible aux auteurs
+                        {t('ideasReview.e4Badge')}
                       </span>
                     </label>
                   </div>
                   <p className="text-[11px] text-muted mb-2">
-                    Remarques réservées exclusivement au comité de programme (doutes d'intégrité, réserve d'arbitrage).
+                    {t('ideasReview.e4Hint')}
                   </p>
                   <textarea
                     id={`${formId}-e4`}
                     rows={2}
                     className="textarea-field text-xs border-warn/30 focus:border-warn"
-                    placeholder="Remarques confidentielles pour les présidents du colloque..."
+                    placeholder={t('ideasReview.e4Placeholder')}
                     value={formData.e4}
                     onChange={(e) => updateField('e4', e.target.value)}
                   />
@@ -800,19 +802,19 @@ export default function IdeasReviewModal({
               {/* Section F */}
               <fieldset className="space-y-4 pt-2">
                 <legend className="text-xs font-bold uppercase tracking-wider text-accent-ink mb-1 flex items-center gap-1.5">
-                  <span>Section F: Recommendation & Decision</span>
+                  <span>{t('ideasReview.sectionF')}</span>
                 </legend>
 
                 {/* F1 Decision */}
                 <div className="space-y-2">
                   <label className="text-xs font-semibold text-fg block">
-                    F1. Decision recommendation
+                    {t('ideasReview.f1Label')}
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {F1_OPTIONS.map((opt) => (
                       <label
                         key={opt.value}
-                        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-left ${
+                        className={`p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col gap-0.5 text-start ${
                           formData.f1 === opt.value
                             ? `${opt.bg} ${opt.color} font-bold ring-1 ring-current`
                             : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -827,9 +829,9 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('f1', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs font-bold">{opt.label}</span>
+                          <span className="text-xs font-bold">{t(`ideasReview.f1Options.${opt.value}.label`)}</span>
                         </div>
-                        <span className="text-[10px] text-muted/90 pl-5">{opt.desc}</span>
+                        <span className="text-[10px] text-muted/90 ps-5">{t(`ideasReview.f1Options.${opt.value}.desc`)}</span>
                       </label>
                     ))}
                   </div>
@@ -839,13 +841,13 @@ export default function IdeasReviewModal({
                   {/* F2 Presentation format */}
                   <div className="p-3 rounded-xl border border-line bg-surface-2/30 space-y-1.5">
                     <label className="text-xs font-semibold text-fg block">
-                      F2. Suggested presentation format
+                      {t('ideasReview.f2Label')}
                     </label>
                     <div className="space-y-1">
                       {F2_FORMATS.map((fmt) => (
                         <label
                           key={fmt.value}
-                          className={`p-1.5 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-left ${
+                          className={`p-1.5 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-start ${
                             formData.f2 === fmt.value
                               ? 'bg-accent/15 border-accent text-fg font-medium'
                               : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -859,7 +861,7 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('f2', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs">{fmt.label}</span>
+                          <span className="text-xs">{t(`ideasReview.f2Formats.${fmt.value}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -869,13 +871,13 @@ export default function IdeasReviewModal({
                   <div className="p-3 rounded-xl border border-line bg-surface-2/30 space-y-1.5">
                     <label className="text-xs font-semibold text-fg flex items-center gap-1.5">
                       <BookBookmarkIcon size={14} className="text-accent-ink" />
-                      <span>F3. Book chapter potential (IGI Global)</span>
+                      <span>{t('ideasReview.f3Label')}</span>
                     </label>
                     <div className="space-y-1">
                       {F3_OPTIONS.map((opt) => (
                         <label
                           key={opt.value}
-                          className={`p-1.5 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-left ${
+                          className={`p-1.5 rounded-lg border cursor-pointer transition-all flex items-center gap-2 text-start ${
                             formData.f3 === opt.value
                               ? 'bg-accent/15 border-accent text-fg font-medium'
                               : 'bg-surface border-line text-muted hover:border-fg/30'
@@ -889,7 +891,7 @@ export default function IdeasReviewModal({
                             onChange={(e) => updateField('f3', e.target.value)}
                             className="text-accent"
                           />
-                          <span className="text-xs">{opt.label}</span>
+                          <span className="text-xs">{t(`ideasReview.f3Options.${opt.value}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -904,10 +906,10 @@ export default function IdeasReviewModal({
                     </div>
                     <div>
                       <span className="text-xs font-bold text-fg block">
-                        F4. Best Paper Award nomination
+                        {t('ideasReview.f4Label')}
                       </span>
                       <span className="text-[11px] text-muted">
-                        Proposer cet article pour le prix du meilleur papier de la conférence
+                        {t('ideasReview.f4Desc')}
                       </span>
                     </div>
                   </div>
@@ -921,7 +923,7 @@ export default function IdeasReviewModal({
                           : 'text-muted border-line hover:border-fg/20'
                       }`}
                     >
-                      Non
+                      {t('ideasReview.f4No')}
                     </button>
                     <button
                       type="button"
@@ -933,7 +935,7 @@ export default function IdeasReviewModal({
                       }`}
                     >
                       <TrophyIcon size={12} weight="fill" />
-                      <span>Nominer</span>
+                      <span>{t('ideasReview.f4Nominate')}</span>
                     </button>
                   </div>
                 </div>
@@ -943,13 +945,13 @@ export default function IdeasReviewModal({
                   <div className="flex items-center justify-between gap-2">
                     <div>
                       <label htmlFor={`${formId}-f5`} className="text-xs font-bold text-fg block">
-                        F5. Overall score (scale 1 to 100)
+                        {t('ideasReview.f5Label')}
                       </label>
                       <span className="text-[11px] text-muted">
-                        Évaluation synthétique globale
+                        {t('ideasReview.f5Desc')}
                       </span>
                     </div>
-                    <div className="text-right">
+                    <div className="text-end">
                       <span className="text-2xl font-bold font-mono text-accent-ink">{formData.f5}</span>
                       <span className="text-xs text-muted"> / 100</span>
                     </div>
@@ -968,19 +970,19 @@ export default function IdeasReviewModal({
                   {/* Reference bands */}
                   <div className="grid grid-cols-2 sm:grid-cols-5 gap-1 pt-1 text-[10px]">
                     <div className={`p-1 rounded text-center border ${formData.f5 >= 90 ? 'bg-ok/20 border-ok text-ok font-bold' : 'border-line text-muted'}`}>
-                      90-100: outstanding
+                      {t('ideasReview.band90')}
                     </div>
                     <div className={`p-1 rounded text-center border ${formData.f5 >= 75 && formData.f5 < 90 ? 'bg-info/20 border-info text-info font-bold' : 'border-line text-muted'}`}>
-                      75-89: strong, accept
+                      {t('ideasReview.band75')}
                     </div>
                     <div className={`p-1 rounded text-center border ${formData.f5 >= 60 && formData.f5 < 75 ? 'bg-accent/20 border-accent text-accent-ink font-bold' : 'border-line text-muted'}`}>
-                      60-74: revisions
+                      {t('ideasReview.band60')}
                     </div>
                     <div className={`p-1 rounded text-center border ${formData.f5 >= 40 && formData.f5 < 60 ? 'bg-warn/20 border-warn text-warn font-bold' : 'border-line text-muted'}`}>
-                      40-59: weaknesses
+                      {t('ideasReview.band40')}
                     </div>
                     <div className={`p-1 rounded text-center border ${formData.f5 < 40 ? 'bg-bad/20 border-bad text-bad font-bold' : 'border-line text-muted'}`}>
-                      &lt; 40: reject
+                      {t('ideasReview.bandUnder40')}
                     </div>
                   </div>
                 </div>
@@ -989,7 +991,7 @@ export default function IdeasReviewModal({
                 {sessions.length > 0 && formData.f1 === 'accept' && (
                   <div>
                     <label htmlFor={`${formId}-session`} className="text-xs font-semibold text-fg block mb-1">
-                      Session thématique recommandée (optionnel)
+                      {t('ideasReview.sessionLabel')}
                     </label>
                     <select
                       id={`${formId}-session`}
@@ -997,7 +999,7 @@ export default function IdeasReviewModal({
                       value={formData.sessionId}
                       onChange={(e) => updateField('sessionId', e.target.value)}
                     >
-                      <option value="">-- Choisir une session --</option>
+                      <option value="">{t('ideasReview.sessionPlaceholder')}</option>
                       {sessions.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.title}
@@ -1020,8 +1022,8 @@ export default function IdeasReviewModal({
                 onClick={() => setTab(tab === 'ef' ? 'cd' : 'ab')}
                 className="btn-ghost btn-sm text-xs inline-flex items-center gap-1"
               >
-                <ArrowLeftIcon size={12} />
-                <span>Précédent</span>
+                <ArrowLeftIcon size={12} className="rtl:rotate-180" />
+                <span>{t('ideasReview.prevBtn')}</span>
               </button>
             )}
             {tab !== 'ef' && (
@@ -1030,8 +1032,8 @@ export default function IdeasReviewModal({
                 onClick={() => setTab(tab === 'ab' ? 'cd' : 'ef')}
                 className="btn-outline btn-sm text-xs inline-flex items-center gap-1"
               >
-                <span>Suivant</span>
-                <ArrowRightIcon size={12} />
+                <span>{t('ideasReview.nextBtn')}</span>
+                <ArrowRightIcon size={12} className="rtl:rotate-180" />
               </button>
             )}
           </div>
@@ -1042,7 +1044,7 @@ export default function IdeasReviewModal({
               onClick={onClose}
               className="btn-ghost btn-sm text-xs"
             >
-              Annuler
+              {t('common.cancel')}
             </button>
             <button
               type="submit"
@@ -1051,11 +1053,11 @@ export default function IdeasReviewModal({
               className="btn-primary btn-sm text-xs inline-flex items-center gap-1.5 min-h-9"
             >
               {submitting ? (
-                <span>Enregistrement…</span>
+                <span>{t('common.saving')}</span>
               ) : (
                 <>
                   <CheckCircleIcon size={14} weight="bold" />
-                  <span>Soumettre l’évaluation IDEAS'2027</span>
+                  <span>{t('ideasReview.submitBtn')}</span>
                 </>
               )}
             </button>

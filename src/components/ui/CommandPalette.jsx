@@ -19,8 +19,12 @@ import {
 import { supabase } from '../../lib/supabaseClient'
 import { applyTheme, readThemePref } from '../../lib/theme'
 import { isSoundEnabled, setSoundEnabled, playSuccessSound } from '../../lib/sound'
+import { useLanguage } from '../../context/LanguageContext'
+import { useModalBehavior } from '../../hooks/useModalBehavior'
 
 export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEvent }) {
+  const { t } = useLanguage()
+  useModalBehavior(isOpen, onClose)
   const [query, setQuery] = useState('')
   const [events, setEvents] = useState([])
   const [submissions, setSubmissions] = useState([])
@@ -73,41 +77,41 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
     {
       id: 'nav-home',
       category: 'Navigation',
-      label: 'Tableau de bord (Accueil)',
+      label: t('nav.discover'),
       icon: HouseIcon,
       run: () => onNavigate('home'),
     },
     {
       id: 'nav-archives',
       category: 'Navigation',
-      label: 'Consulter les Actes de colloques & Archives',
+      label: t('nav.archives'),
       icon: BooksIcon,
       run: () => onNavigate('archives'),
     },
     {
       id: 'nav-researchers',
       category: 'Navigation',
-      label: 'Annuaire des Chercheurs & Laboratoires',
+      label: t('nav.researchers'),
       icon: GraduationCapIcon,
       run: () => onNavigate('researchers'),
     },
     {
       id: 'nav-profile',
       category: 'Navigation',
-      label: 'Mon profil chercheur & Badge',
+      label: t('nav.myProfile'),
       icon: UserIcon,
       run: () => onNavigate('profile'),
     },
     {
       id: 'theme-toggle',
-      category: 'Préférences',
-      label: readThemePref() === 'dark' ? 'Passer en thème Clair' : 'Passer en thème Sombre',
+      category: t('theme.label'),
+      label: readThemePref() === 'dark' ? t('theme.light') : t('theme.dark'),
       icon: readThemePref() === 'dark' ? SunIcon : MoonIcon,
       run: () => applyTheme(readThemePref() === 'dark' ? 'light' : 'dark'),
     },
     {
       id: 'sound-toggle',
-      category: 'Préférences',
+      category: 'Audio',
       label: soundOn ? 'Effets sonores : Activés (cliquer pour couper)' : 'Effets sonores : Désactivés (cliquer pour activer)',
       icon: soundOn ? SpeakerHighIcon : SpeakerSimpleSlashIcon,
       run: toggleSound,
@@ -115,7 +119,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
     {
       id: 'auth-logout',
       category: 'Session',
-      label: 'Se déconnecter de CONFERA',
+      label: t('nav.signOut'),
       icon: SignOutIcon,
       run: () => supabase.auth.signOut(),
     },
@@ -192,10 +196,10 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
       role="dialog"
       aria-modal="true"
       aria-label="Palette de commande rapide"
-      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-navy/60 dark:bg-black/75 backdrop-blur-sm animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 flex items-start justify-center pt-20 px-4 bg-navy/60 dark:bg-black/75 backdrop-blur-sm animate-fade-in"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
-      <div className="w-full max-w-xl card border-line bg-surface/95 shadow-lift overflow-hidden backdrop-blur-md flex flex-col">
+      <div className="w-full max-w-xl card border-line bg-surface/95 shadow-lift overflow-hidden backdrop-blur-md flex flex-col animate-modal-enter">
         {/* Barre de recherche */}
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
           <MagnifyingGlassIcon size={18} className="text-muted shrink-0" aria-hidden="true" />
@@ -203,7 +207,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
             ref={inputRef}
             type="text"
             className="w-full bg-transparent text-sm sm:text-base text-fg placeholder:text-muted focus:outline-none"
-            placeholder="Conférence, article, auteur, session ou action…"
+            placeholder={t('modals.commandPlaceholder')}
             value={query}
             onChange={(e) => {
               setQuery(e.target.value)
@@ -215,7 +219,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
             type="button"
             onClick={onClose}
             className="p-1 rounded-lg text-muted hover:text-fg hover:bg-fg/6"
-            aria-label="Fermer"
+            aria-label={t('common.close')}
           >
             <XIcon size={16} />
           </button>
@@ -225,7 +229,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
         <div className="max-h-84 overflow-y-auto p-2 divide-y divide-line/40">
           {filteredActions.length === 0 ? (
             <div className="p-6 text-center text-xs text-muted">
-              Aucun résultat pour « {query} »
+              {t('common.noData')}
             </div>
           ) : (
             filteredActions.map((action, i) => {
@@ -240,7 +244,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
                     onClose()
                   }}
                   onMouseEnter={() => setSelectedIndex(i)}
-                  className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm text-left transition-colors cursor-pointer ${
+                  className={`w-full flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm text-start transition-colors cursor-pointer ${
                     isSelected
                       ? 'bg-black/[0.06] dark:bg-white/10 text-fg dark:text-white font-medium ring-1 ring-black/[0.08] dark:ring-white/10'
                       : 'text-fg/85 hover:bg-surface-2/60'
@@ -256,7 +260,7 @@ export default function CommandPalette({ isOpen, onClose, onNavigate, onOpenEven
                     </span>
                     <ArrowRightIcon
                       size={12}
-                      className={isSelected ? 'opacity-100 text-fg dark:text-white' : 'opacity-0'}
+                      className={`${isSelected ? 'opacity-100 text-fg dark:text-white' : 'opacity-0'} rtl:rotate-180`}
                     />
                   </div>
                 </button>

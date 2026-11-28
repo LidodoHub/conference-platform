@@ -239,7 +239,7 @@ export default function EventsPage({ onSelectEvent }) {
                       : 'bg-surface border border-line text-muted hover:text-fg hover:border-line/80'
                   }`}
                 >
-                  {chip.dot && <span className={`w-1.5 h-1.5 rounded-full ${chip.dot} ${chip.id === 'ongoing' ? 'animate-pulse' : ''}`} />}
+                  {chip.dot && <span className={`w-1.5 h-1.5 rounded-full ${chip.dot}`} />}
                   <span>{chip.label}</span>
                   {chip.count !== undefined && chip.count > 0 && (
                     <span className={`num text-[11px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-bg/25 text-bg' : 'bg-surface-2 text-faint'}`}>
@@ -321,7 +321,7 @@ export default function EventsPage({ onSelectEvent }) {
         {/* Colonne Latérale Compagne (Agenda, Filtres Rapides, Repères) */}
         <aside className="space-y-6 lg:sticky lg:top-24">
           {/* Widget 1 : Agenda des dates clés */}
-          <div className="card p-5 border-line/70 bg-surface/90 shadow-xs space-y-4">
+          <div className="card p-5 border-line/70 bg-surface/90 shadow-card space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CalendarBlankIcon size={16} className="text-accent-ink" weight="bold" />
@@ -361,7 +361,7 @@ export default function EventsPage({ onSelectEvent }) {
                             {item.location || FORMAT_LABELS[item.format] || 'USTO Oran'}
                           </span>
                           {days && (
-                            <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full bg-surface-sunken text-accent-ink shrink-0">
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-neutral-100/80 text-neutral-700 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10 shrink-0">
                               {days}
                             </span>
                           )}
@@ -375,7 +375,7 @@ export default function EventsPage({ onSelectEvent }) {
           </div>
 
           {/* Widget 2 : Filtres rapides par format */}
-          <div className="card p-5 border-line/70 bg-surface/90 shadow-xs space-y-3.5">
+          <div className="card p-5 border-line/70 bg-surface/90 shadow-card space-y-3.5">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-bold uppercase tracking-wider text-fg">Format de tenue</h3>
               {formatFilter !== 'all' && (
@@ -422,7 +422,7 @@ export default function EventsPage({ onSelectEvent }) {
           </div>
 
           {/* Widget 3 : Repères & Dynamique USTO */}
-          <div className="card p-5 border-line/70 bg-surface/90 shadow-xs space-y-3">
+          <div className="card p-5 border-line/70 bg-surface/90 shadow-card space-y-3">
             <h3 className="text-xs font-bold uppercase tracking-wider text-fg">Indicateurs académiques</h3>
             <div className="grid grid-cols-2 gap-2 text-center">
               <div className="p-2.5 rounded-xl bg-surface-sunken/70 border border-line/60">

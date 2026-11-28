@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { PlusIcon, PencilSimpleIcon, TrashIcon, DoorOpenIcon, UsersThreeIcon, MapPinIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
+import { useConfirm } from '../../context/ConfirmContext'
+import { useLanguage } from '../../context/LanguageContext'
 import SectionTitle from '../../components/ui/SectionTitle'
 import EmptyState from '../../components/ui/EmptyState'
 
@@ -9,6 +11,8 @@ const EMPTY = { name: '', capacity: '', location: '' }
 
 // Salles de l'événement : CRUD par l'organisateur. Les sessions y sont ensuite placées (Programme).
 export default function RoomsPanel({ eventId }) {
+  const confirm = useConfirm()
+  const { t } = useLanguage()
   const [rooms, setRooms] = useState([])
   const [usage, setUsage] = useState({})
   const [loading, setLoading] = useState(true)
@@ -54,7 +58,7 @@ export default function RoomsPanel({ eventId }) {
         ? await supabase.from('rooms').insert({ ...values, event_id: eventId }).select('id')
         : await supabase.from('rooms').update(values).eq('id', editing).select('id')
     setBusy(false)
-    const msg = writeError(res, 'Enregistrement refusé.')
+    const msg = writeError(res, t('errors.saveRefused'))
     if (msg) setError(msg)
     else {
       setEditing(null)
@@ -64,10 +68,16 @@ export default function RoomsPanel({ eventId }) {
 
   const remove = async (room) => {
     const n = usage[room.id] || 0
-    if (!window.confirm(`Supprimer la salle « ${room.name} » ?${n ? `\n${n} session(s) y sont placées : elles n'auront plus de salle.` : ''}`)) return
+    const ok = await confirm({
+      title: t('rooms.deleteTitle', { name: room.name }),
+      description: n ? t('rooms.deleteDesc', { count: n }) : '',
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setError(null)
     const res = await supabase.from('rooms').delete().eq('id', room.id).select('id')
-    const msg = writeError(res, 'Suppression refusée.')
+    const msg = writeError(res, t('errors.deleteRefused'))
     if (msg) setError(msg)
     else load()
   }
@@ -77,13 +87,13 @@ export default function RoomsPanel({ eventId }) {
       <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
         <div>
           <label htmlFor="room-name" className="form-label">
-            Nom de la salle
+            {t('rooms.nameLabel')}
           </label>
           <input id="room-name" className="input-field" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} required />
         </div>
         <div>
           <label htmlFor="room-cap" className="form-label">
-            Capacité
+            {t('rooms.capacityLabel')}
           </label>
           <input
             id="room-cap"
@@ -98,17 +108,19 @@ export default function RoomsPanel({ eventId }) {
       </div>
       <div>
         <label htmlFor="room-loc" className="form-label">
-          Emplacement
+          {t('rooms.locationLabel')}
         </label>
         <input id="room-loc" className="input-field" value={form.location} onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))} />
-        <p className="form-hint">Bâtiment, étage : pour que les participants trouvent la salle.</p>
+        <p className="form-hint">
+          {t('rooms.locationHint')}
+        </p>
       </div>
       <div className="flex gap-2">
         <button type="submit" disabled={busy} className="btn-primary">
-          {busy ? 'Enregistrement…' : editing === 'new' ? 'Ajouter la salle' : 'Enregistrer'}
+          {busy ? t('common.saving') : editing === 'new' ? t('rooms.addRoomSubmit') : t('common.save')}
         </button>
         <button type="button" className="btn-ghost" onClick={() => setEditing(null)}>
-          Annuler
+          {t('common.cancel')}
         </button>
       </div>
     </form>
@@ -117,14 +129,14 @@ export default function RoomsPanel({ eventId }) {
   return (
     <section>
       <SectionTitle
-        title="Salles"
+        title={t('event.rooms')}
         count={rooms.length}
-        description="Une salle ne peut accueillir qu'une session à la fois : les chevauchements sont refusés à l'enregistrement d'une session."
+        description={t('rooms.description')}
         actions={
           editing === null && (
             <button type="button" className="btn-accent" onClick={() => startEdit(null)}>
               <PlusIcon size={16} weight="bold" aria-hidden="true" />
-              Ajouter une salle
+              {t('rooms.addRoomBtn')}
             </button>
           )
         }
@@ -141,7 +153,11 @@ export default function RoomsPanel({ eventId }) {
       {loading ? (
         <div className="skeleton h-32" />
       ) : rooms.length === 0 && editing !== 'new' ? (
-        <EmptyState icon={DoorOpenIcon} title="Aucune salle" body="Ajoute les amphithéâtres et salles disponibles, puis place les sessions dedans." />
+        <EmptyState
+          icon={DoorOpenIcon}
+          title={t('rooms.emptyTitle')}
+          body={t('rooms.emptyBody')}
+        />
       ) : (
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {rooms.map((room) =>
@@ -158,7 +174,7 @@ export default function RoomsPanel({ eventId }) {
                       {room.capacity && (
                         <span className="inline-flex items-center gap-1.5">
                           <UsersThreeIcon size={14} aria-hidden="true" />
-                          {room.capacity} places
+                          {room.capacity} {t('rooms.seats')}
                         </span>
                       )}
                       {room.location && (
@@ -169,14 +185,16 @@ export default function RoomsPanel({ eventId }) {
                       )}
                     </div>
                     <p className="mt-2 text-xs text-faint">
-                      {usage[room.id] ? `${usage[room.id]} session${usage[room.id] > 1 ? 's' : ''} programmée${usage[room.id] > 1 ? 's' : ''}` : 'Aucune session'}
+                      {usage[room.id]
+                        ? t(usage[room.id] > 1 ? 'rooms.scheduledPlural' : 'rooms.scheduledSingle', { count: usage[room.id] })
+                        : t('rooms.noSessions')}
                     </p>
                   </div>
                   <span className="flex gap-1 shrink-0">
-                    <button type="button" className="icon-btn w-9 h-9" onClick={() => startEdit(room)} aria-label={`Modifier ${room.name}`}>
+                    <button type="button" className="icon-btn w-9 h-9" onClick={() => startEdit(room)} aria-label={`${t('common.edit')} ${room.name}`}>
                       <PencilSimpleIcon size={16} />
                     </button>
-                    <button type="button" className="icon-btn w-9 h-9 hover:text-bad" onClick={() => remove(room)} aria-label={`Supprimer ${room.name}`}>
+                    <button type="button" className="icon-btn w-9 h-9 hover:text-bad" onClick={() => remove(room)} aria-label={`${t('common.delete')} ${room.name}`}>
                       <TrashIcon size={16} />
                     </button>
                   </span>

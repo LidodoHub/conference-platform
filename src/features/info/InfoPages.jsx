@@ -13,6 +13,7 @@ import {
 import PageHeader from '../../components/ui/PageHeader'
 import { SITE } from '../../lib/site'
 import { MAX_ACCEPTED_PER_AUTHOR } from '../../lib/constants'
+import { useLanguage } from '../../context/LanguageContext'
 
 const STEPS = [
   { icon: ArticleIcon, title: 'Dépôt', text: 'Les auteurs soumettent le titre et le résumé de leurs articles.' },
@@ -25,6 +26,7 @@ const STEPS = [
 ]
 
 function AboutPage({ anchor }) {
+  const { t } = useLanguage()
   useEffect(() => {
     if (anchor) document.getElementById(anchor)?.scrollIntoView({ behavior: 'smooth' })
   }, [anchor])
@@ -32,8 +34,8 @@ function AboutPage({ anchor }) {
   return (
     <div className="page-container max-w-5xl">
       <PageHeader
-        title="À propos de CONFERA"
-        description="Une plateforme pour organiser une conférence scientifique de bout en bout : sélectionner les travaux, puis préparer l'événement."
+        title={t('info.aboutTitle')}
+        description={t('info.aboutDesc')}
       />
 
       <section className="card-panel">
@@ -155,9 +157,10 @@ const FAQ = [
 ]
 
 function FaqPage() {
+  const { t } = useLanguage()
   return (
     <div className="page-container max-w-5xl">
-      <PageHeader title="Questions fréquentes" description="Les réponses aux questions les plus courantes, selon ton rôle." />
+      <PageHeader title={t('info.faqTitle')} description={t('info.faqDesc')} />
       <div className="space-y-10">
         {FAQ.map(({ group, items }) => (
           <section key={group}>
@@ -178,6 +181,7 @@ function FaqPage() {
 }
 
 function PrivacyPage({ onNavigate }) {
+  const { t } = useLanguage()
   const rows = [
     ['Données collectées', 'Nom, adresse e-mail, affiliation, pays et domaines d’expertise ; articles, reviews, inscriptions, références de paiement et présences.'],
     ['Pourquoi', 'Uniquement pour organiser les conférences : évaluation des articles, inscriptions, programme, badges et certificats.'],
@@ -187,18 +191,18 @@ function PrivacyPage({ onNavigate }) {
   ]
   return (
     <div className="page-container max-w-3xl">
-      <PageHeader title="Confidentialité" description="Ce que CONFERA conserve, pourquoi, et qui peut le voir." />
+      <PageHeader title={t('info.privacyTitle')} description="Ce que CONFERA conserve, pourquoi, et qui peut le voir." />
       <dl className="card divide-y divide-line overflow-hidden">
-        {rows.map(([t, d]) => (
-          <div key={t} className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-1 sm:gap-6">
-            <dt className="font-semibold text-fg">{t}</dt>
+        {rows.map(([rowTitle, d]) => (
+          <div key={rowTitle} className="p-5 sm:p-6 grid grid-cols-1 sm:grid-cols-[180px_minmax(0,1fr)] gap-1 sm:gap-6">
+            <dt className="font-semibold text-fg">{rowTitle}</dt>
             <dd className="text-sm text-muted leading-relaxed">{d}</dd>
           </div>
         ))}
       </dl>
-      <button type="button" onClick={() => onNavigate('about', 'contact')} className="btn-ghost mt-6 -ml-3">
-        Une question ? Nous contacter
-        <ArrowRightIcon size={15} aria-hidden="true" />
+      <button type="button" onClick={() => onNavigate('about', 'contact')} className="btn-ghost mt-6 -ms-3">
+        {t('footer.contact')}
+        <ArrowRightIcon size={15} className="rtl:rotate-180" aria-hidden="true" />
       </button>
     </div>
   )

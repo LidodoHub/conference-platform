@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { SparkleIcon, EyeIcon, NotePencilIcon, CheckIcon, UserPlusIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
+import { useLanguage } from '../../context/LanguageContext'
 import { frError } from '../../lib/errors'
 
 const words = (t) => (t.trim() ? t.trim().split(/\s+/).length : 0)
@@ -18,6 +19,7 @@ const SUGGESTED_KEYWORDS = [
 
 export default function SubmissionForm({ eventId, onSubmitted }) {
   const { user } = useAuth()
+  const { t } = useLanguage()
   const [title, setTitle] = useState('')
   const [abstract, setAbstract] = useState('')
   const [coauthors, setCoauthors] = useState('')
@@ -85,9 +87,9 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
     <form onSubmit={handleSubmit} className="card-panel space-y-6 rise shadow-card">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-line">
         <div>
-          <h3 className="text-lg font-semibold tracking-tight text-fg">Déposer un article scientifique</h3>
+          <h3 className="text-lg font-semibold tracking-tight text-fg">{t('submissions.submitArticle')}</h3>
           <p className="text-xs text-muted mt-0.5">
-            Votre communication sera anonymisée et évaluée par le comité scientifique de la conférence.
+            {t('submissionForm.subtitle')}
           </p>
         </div>
 
@@ -97,21 +99,21 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
             type="button"
             onClick={() => setPreviewMode(false)}
             className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors ${
-              !previewMode ? 'bg-accent/20 text-accent-ink font-semibold shadow-xs' : 'text-muted hover:text-fg'
+              !previewMode ? 'bg-surface text-fg font-semibold shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
             }`}
           >
             <NotePencilIcon size={14} />
-            Édition
+            {t('submissionForm.editTab')}
           </button>
           <button
             type="button"
             onClick={() => setPreviewMode(true)}
             className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors ${
-              previewMode ? 'bg-accent/20 text-accent-ink font-semibold shadow-xs' : 'text-muted hover:text-fg'
+              previewMode ? 'bg-surface text-fg font-semibold shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
             }`}
           >
             <EyeIcon size={14} />
-            Aperçu Preprint
+            {t('submissionForm.previewTab')}
           </button>
         </div>
       </div>
@@ -120,7 +122,7 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
         <div className="space-y-5">
           <div>
             <label htmlFor="submission-title" className="form-label">
-              Titre de la communication scientifique
+              {t('submissions.title')}
             </label>
             <input
               id="submission-title"
@@ -128,7 +130,7 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className="input-field text-sm sm:text-base font-medium"
-              placeholder="ex. Optimisation quantique des réseaux distribués..."
+              placeholder={t('submissionForm.titlePlaceholder')}
               required
             />
           </div>
@@ -136,7 +138,9 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
           <div>
             <label htmlFor="submission-coauthors" className="form-label flex items-center gap-1.5">
               <UserPlusIcon size={15} className="text-accent-ink" />
-              <span>Co-auteurs & Affiliations (Optionnel)</span>
+              <span>
+                {t('submissionForm.coauthorsLabel')} ({t('common.optional')})
+              </span>
             </label>
             <input
               id="submission-coauthors"
@@ -144,18 +148,18 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
               value={coauthors}
               onChange={(e) => setCoauthors(e.target.value)}
               className="input-field text-xs sm:text-sm"
-              placeholder="ex. Dr. A. Cherif (USTO-MB), Pr. Y. Mansouri (Univ. Oran 1)"
+              placeholder={t('submissionForm.coauthorsPlaceholder')}
             />
-            <p className="form-hint">Séparez les co-auteurs par des virgules.</p>
+            <p className="form-hint">{t('submissionForm.coauthorsHint')}</p>
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label htmlFor="submission-abstract" className="form-label mb-0">
-                Résumé scientifique (Abstract)
+                {t('submissions.abstract')}
               </label>
               <span className={`text-xs num ${wordStatus}`}>
-                {n} mot{n > 1 ? 's' : ''} (150 à 500 conseillés)
+                {t(n > 1 ? 'submissionForm.wordCountPlural' : 'submissionForm.wordCountSingle', { count: n })}
               </span>
             </div>
             <textarea
@@ -164,7 +168,7 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
               onChange={(e) => setAbstract(e.target.value)}
               className="textarea-field text-sm leading-relaxed"
               rows={8}
-              placeholder="Présentez la problématique de recherche, la méthodologie proposée, les expérimentations et les résultats majeurs..."
+              placeholder={t('submissionForm.abstractPlaceholder')}
               required
             />
           </div>
@@ -173,7 +177,7 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
           <div>
             <label className="form-label flex items-center gap-1.5">
               <SparkleIcon size={14} className="text-accent-ink" />
-              <span>Mots-clés thématiques (Matching IA)</span>
+              <span>{t('submissions.keywords')}</span>
             </label>
 
             {/* Suggestions en un clic */}
@@ -201,8 +205,8 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
                   <button
                     type="button"
                     onClick={() => removeKeyword(kw)}
-                    className="hover:text-bad font-bold ml-0.5"
-                    aria-label={`Retirer ${kw}`}
+                    className="hover:text-bad font-bold ms-0.5"
+                    aria-label={`${t('submissionForm.removeKeyword')} ${kw}`}
                   >
                     ×
                   </button>
@@ -213,7 +217,11 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
                 value={keywordInput}
                 onChange={(e) => setKeywordInput(e.target.value)}
                 onKeyDown={handleKeyDownKeyword}
-                placeholder={keywords.length === 0 ? "Tapez un mot-clé puis 'Entrée'…" : "Ajouter un autre mot-clé…"}
+                placeholder={
+                  keywords.length === 0
+                    ? t('submissionForm.keywordPlaceholderEmpty')
+                    : t('submissionForm.keywordPlaceholderMore')
+                }
                 className="flex-1 bg-transparent text-xs text-fg focus:outline-none min-w-[160px] py-1"
               />
             </div>
@@ -222,29 +230,29 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
       ) : (
         /* Mode Prévisualisation Preprint */
         <div className="space-y-4">
-          <div className="p-5 sm:p-6 rounded-2xl border border-line/80 bg-surface-2/30 space-y-4 border-l-4 border-l-accent">
+          <div className="p-5 sm:p-6 rounded-2xl border border-line/80 bg-surface-2/30 space-y-4 border-s-4 border-s-accent">
             <span className="text-[11px] font-mono text-accent-ink uppercase tracking-wider block font-semibold">
-              Aperçu officiel avant dépôt
+              {t('submissionForm.previewBanner')}
             </span>
             <h4 className="text-lg sm:text-xl font-bold tracking-tight text-fg">
-              {title || 'Titre de votre article non renseigné'}
+              {title || t('submissionForm.titleMissing')}
             </h4>
             {coauthors && (
               <p className="text-xs text-muted font-medium">
-                Co-auteurs : {coauthors}
+                {t('submissionForm.coauthorsPrefix')} {coauthors}
               </p>
             )}
             <div className="pt-2 border-t border-line/50">
               <span className="text-xs font-semibold uppercase tracking-wider text-muted block mb-1.5">
-                Résumé
+                {t('submissions.abstract')}
               </span>
               <p className="text-sm sm:text-base leading-relaxed text-fg/90 whitespace-pre-line max-w-prose">
-                {abstract || 'Rédigez votre résumé dans l’onglet Édition pour le visualiser ici.'}
+                {abstract || t('submissionForm.abstractMissing')}
               </p>
             </div>
             {keywords.length > 0 && (
               <div className="pt-2 flex flex-wrap gap-1.5 items-center">
-                <span className="text-xs font-semibold text-muted">Mots-clés :</span>
+                <span className="text-xs font-semibold text-muted">{t('submissions.keywords')} :</span>
                 {keywords.map((k) => (
                   <span key={k} className="text-xs font-mono text-accent-ink bg-accent/10 px-2 py-0.5 rounded">
                     {k}
@@ -254,7 +262,7 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
             )}
           </div>
           <p className="text-xs text-muted italic">
-            Les évaluateurs recevront cette mise en page pour rendre leurs avis et notes scientifiques.
+            {t('submissionForm.previewNote')}
           </p>
         </div>
       )}
@@ -268,9 +276,11 @@ export default function SubmissionForm({ eventId, onSubmitted }) {
       <div className="pt-2 flex items-center justify-between gap-3">
         <button type="submit" disabled={submitting || !title.trim() || !abstract.trim()} className="btn-primary">
           <CheckIcon size={16} weight="bold" aria-hidden="true" />
-          {submitting ? 'Dépôt en cours…' : "Confirmer & Soumettre l'article"}
+          {submitting
+            ? t('submissionForm.submitting')
+            : t('submissionForm.submitBtn')}
         </button>
-        <span className="text-xs text-faint">Validation immédiate par horodatage</span>
+        <span className="text-xs text-faint">{t('submissionForm.timestampNote')}</span>
       </div>
     </form>
   )

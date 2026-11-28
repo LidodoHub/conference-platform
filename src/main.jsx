@@ -2,6 +2,8 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
+import { LanguageProvider } from './context/LanguageContext.jsx'
+import { ConfirmProvider } from './context/ConfirmContext.jsx'
 import { applyTheme, readThemePref } from './lib/theme'
 
 // appliqué avant le premier rendu pour éviter un flash de mauvais thème
@@ -13,6 +15,10 @@ window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change',
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <LanguageProvider>
+      <ConfirmProvider>
+        <App />
+      </ConfirmProvider>
+    </LanguageProvider>
   </StrictMode>,
 )

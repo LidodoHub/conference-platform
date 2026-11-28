@@ -3,10 +3,19 @@ import { CertificateIcon, HourglassIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { frError } from '../../lib/errors'
-import { formatDate, slug } from '../../lib/constants'
+import { slug } from '../../lib/constants'
+import { useLanguage } from '../../context/LanguageContext'
+
+const formatLocalDate = (d, locale) => {
+  if (!d) return ''
+  const str = String(d)
+  const date = str.length <= 10 ? new Date(`${str}T00:00:00`) : new Date(str)
+  return date.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })
+}
 
 // Le certificat n'est disponible qu'une fois l'événement commencé : on n'atteste pas une participation à venir.
 export default function CertificateButton({ event }) {
+  const { t, locale } = useLanguage()
   const { user, profile } = useAuth()
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState(null)
@@ -18,7 +27,7 @@ export default function CertificateButton({ event }) {
     return (
       <p className="flex items-start gap-2 text-[13px] text-muted">
         <HourglassIcon size={16} className="shrink-0 mt-px" aria-hidden="true" />
-        Ton certificat sera disponible à partir du {formatDate(event.start_date)}.
+        {t('certificate.availableFrom', { date: formatLocalDate(event.start_date, locale) })}
       </p>
     )
   }
@@ -36,7 +45,7 @@ export default function CertificateButton({ event }) {
       location: event.location,
       organizer: event.profiles?.full_name,
     })
-    doc.save(`certificat-${slug(event.title)}.pdf`)
+    doc.save(`${t('certificate.filePrefix')}-${slug(event.title)}.pdf`)
 
     // trace de délivrance (une ligne par personne et par événement)
     const { error: insertError } = await supabase.from('certificates').insert({ event_id: event.id, user_id: user.id })
@@ -48,7 +57,7 @@ export default function CertificateButton({ event }) {
     <div>
       <button onClick={handleGenerate} disabled={generating} className="btn-accent w-full">
         <CertificateIcon size={17} aria-hidden="true" />
-        {generating ? 'Génération…' : 'Télécharger mon certificat'}
+        {generating ? t('certificate.generating') : t('certificate.download')}
       </button>
       {error && <div className="alert-error mt-3">{error}</div>}
     </div>

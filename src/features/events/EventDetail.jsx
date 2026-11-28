@@ -21,19 +21,30 @@ import {
   CpuIcon,
   ShieldCheckIcon,
   FilePdfIcon,
+  UserPlusIcon,
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
+import { useLanguage } from '../../context/LanguageContext'
 import { frError } from '../../lib/errors'
-import {
-  TYPE_LABELS,
-  STATUS_LABELS,
-  STATUS_BADGE,
-  FORMAT_LABELS,
-  formatDateRange,
-} from '../../lib/constants'
+import { STATUS_BADGE } from '../../lib/constants'
+
+const parseDay = (d) => {
+  if (!d) return null
+  const str = String(d)
+  return str.length <= 10 ? new Date(`${str}T00:00:00`) : new Date(str)
+}
+
+const fmtDateRange = (start, end, locale) => {
+  const opts = { day: 'numeric', month: 'long', year: 'numeric' }
+  const a = parseDay(start)?.toLocaleDateString(locale, opts) || ''
+  if (!end || String(end).slice(0, 10) === String(start).slice(0, 10)) return a
+  return `${a} → ${parseDay(end)?.toLocaleDateString(locale, opts) || ''}`
+}
 import Avatar from '../../components/ui/Avatar'
 import { coverStyle } from '../../lib/cover'
+import InviteMemberModal from '../registrations/InviteMemberModal'
+import FloatingEventAssistant from './EventAssistantModal'
 import PhaseStepper from './PhaseStepper'
 import EventSettings from './EventSettings'
 import ManageParticipants from './ManageParticipants'
@@ -48,6 +59,11 @@ import InvitationsPanel from '../registrations/InvitationsPanel'
 import RegistrationCard from '../registrations/RegistrationCard'
 import AttendancePanel from '../attendance/AttendancePanel'
 import EventStats from '../stats/EventStats'
+import AIMatchingPanel from './AIMatchingPanel'
+import AISimilarityPanel from './AISimilarityPanel'
+import AIQuboPanel from './AIQuboPanel'
+import AIMetaReviewPanel from './AIMetaReviewPanel'
+import { fetchEventAssignments, unassignReviewer } from '../../lib/assignments'
 
 function NavItem({ item, active, onClick }) {
   const Icon = item.icon
@@ -56,11 +72,11 @@ function NavItem({ item, active, onClick }) {
       type="button"
       onClick={onClick}
       aria-current={active ? 'page' : undefined}
-      className={`group w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all text-left ${
+      className={`group w-full flex items-center justify-between gap-2.5 px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all text-start cursor-pointer ${
         active
-          ? 'bg-accent/15 text-accent-ink font-semibold shadow-xs ring-1 ring-accent/30'
+          ? 'bg-[#EDEDEF] dark:bg-[#24262B] text-[#111111] dark:text-white font-semibold border-s-2 border-accent ps-2.5'
           : item.highlight
-            ? 'border-l-2 border-accent text-fg font-medium bg-accent/6 hover:bg-accent/10 pl-2.5'
+            ? 'border-s-2 border-accent/60 text-fg font-medium hover:bg-surface-2/60 ps-2.5'
             : 'text-muted hover:text-fg hover:bg-surface-2/60'
       }`}
     >
@@ -87,179 +103,76 @@ function NavItem({ item, active, onClick }) {
   )
 }
 
-function AIBetaPlaceholder({ title, icon: Icon, badge, model, description, scriptRef, features }) {
-  return (
-    <div className="card p-6 sm:p-8 border-accent/40 bg-surface/70 space-y-6 rise shadow-card">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="flex items-start gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-accent/15 text-accent-ink flex items-center justify-center shrink-0">
-            <Icon size={26} weight="duotone" aria-hidden="true" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs font-semibold text-accent-ink px-2.5 py-0.5 rounded-full bg-accent/20">
-                {badge}
-              </span>
-              <span className="text-xs font-mono text-muted bg-fg/6 px-2 py-0.5 rounded-md">
-                Modèle : {model}
-              </span>
-            </div>
-            <h2 className="text-xl sm:text-2xl font-semibold tracking-tight text-fg mt-2">
-              {title}
-            </h2>
-            <p className="text-sm text-muted mt-1 max-w-[65ch] leading-relaxed">
-              {description}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Simulation / Visualisation scientifique en direct */}
-      <div className="p-4 sm:p-5 rounded-2xl border border-line bg-surface/90 space-y-4">
-        <div className="flex items-center justify-between pb-3 border-b border-line/60">
-          <div className="flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-ok animate-pulse" />
-            <span className="text-xs font-semibold text-fg">Simulation algorithmique (Dataset USTO-MB)</span>
-          </div>
-          <span className="text-xs font-mono text-accent-ink bg-accent/12 px-2 py-0.5 rounded font-semibold">Précision : 94.8%</span>
-        </div>
-
-        {scriptRef.includes('matching') && (
-          <div className="space-y-3 text-xs">
-            <p className="font-medium text-fg">Article test : « Optimisation QAOA pour l'ordonnancement »</p>
-            <div className="space-y-2">
-              {[
-                { name: 'Dr. Amina Cherif', lab: 'Lab LIO USTO', score: 94, tags: ['Optimisation', 'Graphes'] },
-                { name: 'Pr. Yassine Mansouri', lab: 'Univ. Oran 1', score: 88, tags: ['Informatique Quantique'] },
-                { name: 'Dr. Karim Benali', lab: 'CRTI', score: 76, tags: ['Recherche Opérationnelle'] },
-              ].map((m) => (
-                <div key={m.name} className="flex items-center justify-between p-2.5 rounded-xl bg-surface-2/50 border border-line/50">
-                  <div className="min-w-0">
-                    <span className="font-semibold text-fg block">{m.name}</span>
-                    <span className="text-xs text-muted">{m.lab} • {m.tags.join(', ')}</span>
-                  </div>
-                  <div className="text-right shrink-0">
-                    <span className="num font-bold text-accent-ink text-sm block">{m.score}%</span>
-                    <span className="text-xs text-ok font-medium">Recommandé</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {scriptRef.includes('clustering') && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            {[
-              { theme: 'Vision & Imagerie', count: '14 articles', score: 'Silhouette 0.78', color: 'border-l-accent' },
-              { theme: 'NLP & Modèles LLM', count: '9 articles', score: 'Silhouette 0.82', color: 'border-l-ok' },
-              { theme: 'Systèmes & Sécurité', count: '7 articles', score: 'Silhouette 0.71', color: 'border-l-info' },
-            ].map((c) => (
-              <div key={c.theme} className={`p-3 rounded-xl bg-surface-2/50 border border-line/60 border-l-4 ${c.color} space-y-1`}>
-                <span className="font-semibold text-fg block">{c.theme}</span>
-                <span className="text-muted block">{c.count}</span>
-                <span className="text-xs font-mono text-faint block">{c.score}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {scriptRef.includes('qubo') && (
-          <div className="p-3.5 rounded-xl bg-surface-2/50 border border-line/60 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div>
-              <span className="font-semibold text-fg block">Résolution Hamiltonienne Ising / QUBO</span>
-              <span className="text-muted text-xs">Énergie minimale trouvée après 100 itérations QAOA</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="text-center px-3 py-1 rounded-lg bg-ok/15 text-ok font-bold">
-                0 Conflit
-              </div>
-              <div className="text-center px-3 py-1 rounded-lg bg-accent/15 text-accent-ink font-bold">
-                100% Salles assignées
-              </div>
-            </div>
-          </div>
-        )}
-
-        {scriptRef.includes('plagiarism') && (
-          <div className="p-3.5 rounded-xl bg-surface-2/50 border border-line/60 flex flex-wrap items-center justify-between gap-4 text-xs">
-            <div>
-              <span className="font-semibold text-fg block">Distribution de Singularité Textuelle</span>
-              <span className="text-muted text-xs">Similarité maximale observée entre 2 soumissions : 14.2%</span>
-            </div>
-            <div className="px-3 py-1.5 rounded-lg bg-ok/15 text-ok font-bold">
-              ✓ Intégrité Scientifique Validée
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="p-4 rounded-xl border border-line bg-bg/60 space-y-3">
-        <div className="text-xs font-semibold text-fg">
-          Fonctionnalités scientifiques de ce module :
-        </div>
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-muted">
-          {features.map((f, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent mt-1.5 shrink-0" aria-hidden="true" />
-              <span>{f}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-4 border-t border-line text-xs text-muted">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-accent animate-pulse" aria-hidden="true" />
-          <span>
-            Code source Python : <code className="font-mono text-fg bg-fg/8 px-1.5 py-0.5 rounded">{scriptRef}</code>
-          </span>
-        </div>
-        <button
-          type="button"
-          disabled
-          className="btn-outline btn-sm opacity-60 cursor-not-allowed text-xs"
-        >
-          Exécution API (Bientôt disponible)
-        </button>
-      </div>
-    </div>
-  )
-}
-
-export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab }) {
+export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab, onTabChange }) {
   const { user, isAdmin } = useAuth()
+  const { t, locale } = useLanguage()
+  const [showInviteModal, setShowInviteModal] = useState(false)
   const [event, setEvent] = useState(null)
   const [participants, setParticipants] = useState([])
   const [submissions, setSubmissions] = useState([])
+  const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
-  const resolveInitialTab = () => {
+  const resolveInitialTab = useCallback(() => {
     if (initialTab === 'organization') {
       if (initialOrgTab) return `org-${initialOrgTab}`
       return 'org-settings'
     }
-    if (initialTab === 'stats') return 'stats'
-    if (initialTab === 'scientific') return 'scientific'
-    if (initialTab === 'program') return 'program'
+    const validTabs = [
+      'overview',
+      'scientific',
+      'program',
+      'map',
+      'my-registration',
+      'stats',
+      'ai-matching',
+      'ai-clustering',
+      'ai-plagiarism',
+      'ai-scheduling',
+      'org-settings',
+      'org-participants',
+      'org-registrations',
+      'org-rooms',
+      'org-sponsors',
+      'org-attendance',
+    ]
+    if (initialTab && validTabs.includes(initialTab)) return initialTab
     return 'overview'
-  }
+  }, [initialTab, initialOrgTab])
 
   const [activeTab, setActiveTab] = useState(resolveInitialTab)
 
+  useEffect(() => {
+    setActiveTab(resolveInitialTab())
+  }, [resolveInitialTab])
+
+  const selectTab = useCallback(
+    (nextTab) => {
+      setActiveTab(nextTab)
+      onTabChange?.(nextTab)
+    },
+    [onTabChange],
+  )
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' })
+  }, [activeTab])
+
+  useEffect(() => {
+    if (event?.title) {
+      document.title = `${event.title} — CONFERA`
+    } else if (!loading && !event) {
+      document.title = `${t('event.notFound')} — CONFERA`
+    }
+  }, [event, loading, t])
+
   const fetchEventData = useCallback(async () => {
-    const [eventRes, partRes, subRes] = await Promise.all([
+    const [eventRes, partRes] = await Promise.all([
       supabase.from('events').select('*, profiles(full_name, email)').eq('id', eventId).single(),
       supabase
         .from('event_participants')
         .select('id, user_id, role_in_event, registered_at, registration_status, invited_at, validated_at, profiles(full_name, email)')
-        .eq('event_id', eventId),
-      supabase
-        .from('submissions')
-        .select(
-          'id, author_id, title, abstract, status, submitted_at, profiles(full_name), reviews(id, score, comments, recommendation, reviewer_id, recommended_session_id), decisions(id, status, revision_type, decided_at)',
-        )
         .eq('event_id', eventId),
     ])
 
@@ -267,10 +180,59 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
     else setEvent(eventRes.data)
     if (partRes.error) setError(frError(partRes.error))
     else setParticipants(partRes.data)
-    if (subRes.error) setError(frError(subRes.error))
-    else setSubmissions(subRes.data)
+
+    const ev = eventRes.data
+    const parts = partRes.data || []
+    const assignRes = await fetchEventAssignments(eventId, parts)
+    setAssignments(assignRes.list)
+
+    const myPart = parts.find((p) => p.user_id === user.id)
+    const userIsOrg = ev?.organizer_id === user.id || myPart?.role_in_event === 'organizer'
+    const userCanManage = Boolean(isAdmin || userIsOrg)
+    const userIsRev = myPart?.role_in_event === 'reviewer'
+
+    const selectCols =
+      'id, author_id, title, abstract, status, submitted_at, profiles(full_name), reviews(id, score, comments, recommendation, reviewer_id, recommended_session_id), decisions(id, status, revision_type, decided_at)'
+
+    let subData = []
+    if (userCanManage) {
+      const subRes = await supabase.from('submissions').select(selectCols).eq('event_id', eventId)
+      if (subRes.error) setError(frError(subRes.error))
+      else subData = subRes.data || []
+    } else if (userIsRev) {
+      const assignedIds = assignRes.list
+        .filter((a) => a.reviewer_id === String(user.id))
+        .map((a) => a.submission_id)
+      if (assignedIds.length > 0) {
+        const subRes = await supabase
+          .from('submissions')
+          .select(selectCols)
+          .eq('event_id', eventId)
+          .in('id', assignedIds)
+        if (subRes.error) setError(frError(subRes.error))
+        else subData = subRes.data || []
+      }
+    } else {
+      const subRes = await supabase
+        .from('submissions')
+        .select(selectCols)
+        .eq('event_id', eventId)
+        .or(`author_id.eq.${user.id},status.eq.accepted`)
+      if (subRes.error) setError(frError(subRes.error))
+      else subData = subRes.data || []
+    }
+
+    setSubmissions(subData)
     setLoading(false)
-  }, [eventId])
+  }, [eventId, user.id, isAdmin])
+
+  const handleUnassign = useCallback(
+    async (submissionId, reviewerId) => {
+      await unassignReviewer(eventId, String(submissionId), String(reviewerId))
+      fetchEventData()
+    },
+    [eventId, fetchEventData],
+  )
 
   useEffect(() => {
     fetchEventData()
@@ -289,11 +251,11 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
   if (!event) {
     return (
       <div className="page-container">
-        <button onClick={onBack} className="btn-ghost -ml-3 mb-6">
-          <ArrowLeftIcon size={16} aria-hidden="true" />
-          Événements
+        <button onClick={onBack} className="btn-ghost -ms-3 mb-6">
+          <ArrowLeftIcon size={16} className="rtl:rotate-180" aria-hidden="true" />
+          {t('event.backToEvents')}
         </button>
-        <div className="alert-error">Événement introuvable ou inaccessible.{error && ` (${error})`}</div>
+        <div className="alert-error">{t('event.notFound')}{error && ` (${error})`}</div>
       </div>
     )
   }
@@ -319,34 +281,34 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
   ).length
   const isParticipantValidated = mine?.role_in_event === 'participant' && mine?.registration_status === 'validated'
 
-  const organizerName = event.profiles?.full_name || 'Organisateur'
+  const organizerName = event.profiles?.full_name || t('roles.organizer')
 
   const isScientificPhase = event.phase === 'scientific'
 
   // 1. Général / Cadrage
   const navGeneral = [
-    { id: 'overview', label: 'Aperçu', icon: InfoIcon },
+    { id: 'overview', label: t('event.overview'), icon: InfoIcon },
   ]
 
   // 2. Étape 1 : Sélection Scientifique
   const navScientific = [
     {
       id: 'scientific',
-      label: 'Articles',
+      label: t('event.articles'),
       icon: ArticleIcon,
       badge: isScientificPhase
-        ? (canManage && pendingCount > 0 ? `${pendingCount} à trancher` : 'Sélection')
-        : (acceptedCount > 0 ? `${acceptedCount} retenus` : null),
+        ? (canManage && pendingCount > 0 ? t('eventDetailExtra.toDecide', { count: pendingCount }) : t('eventDetailExtra.selection'))
+        : (acceptedCount > 0 ? t('eventDetailExtra.acceptedCount', { count: acceptedCount }) : null),
       badgeColor: isScientificPhase
-        ? 'bg-accent/20 text-accent-ink font-semibold'
+        ? 'bg-fg/8 text-fg font-semibold'
         : 'bg-surface-2 text-faint',
       highlight: isScientificPhase,
     },
     ...(canManage
       ? [
-          { id: 'ai-matching', label: 'Matching Reviewers', icon: BrainIcon, badge: 'IA' },
-          { id: 'ai-clustering', label: 'Thèmes & Clusters', icon: TreeStructureIcon, badge: 'IA' },
-          { id: 'ai-plagiarism', label: 'Détection Similarité', icon: ShieldCheckIcon, badge: 'IA' },
+          { id: 'ai-matching', label: t('eventDetailExtra.aiMatching'), icon: BrainIcon, badge: t('eventDetailExtra.aiBadge') },
+          { id: 'ai-clustering', label: t('eventDetailExtra.aiMetaReview'), icon: TreeStructureIcon, badge: t('eventDetailExtra.aiBadge') },
+          { id: 'ai-plagiarism', label: t('eventDetailExtra.aiSimilarity'), icon: ShieldCheckIcon, badge: t('eventDetailExtra.aiBadge') },
         ]
       : []),
   ]
@@ -357,31 +319,33 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
       ? [
           {
             id: 'org-registrations',
-            label: 'Inscriptions & Frais',
+            label: t('event.registrations'),
             icon: TicketIcon,
             badge: isScientificPhase
-              ? 'À venir'
-              : (paymentsToValidate > 0 ? `${paymentsToValidate} à valider` : (validatedCount > 0 ? `${validatedCount} validés` : null)),
+              ? t('event.upcoming')
+              : (paymentsToValidate > 0 ? t('eventDetailExtra.toValidateCount', { count: paymentsToValidate }) : (validatedCount > 0 ? t('eventDetailExtra.validatedCount', { count: validatedCount }) : null)),
             badgeColor: isScientificPhase
               ? 'bg-surface-2 text-faint'
-              : (paymentsToValidate > 0 ? 'bg-warn/20 text-warn font-semibold' : 'bg-surface-2 text-muted'),
+              : (paymentsToValidate > 0 ? 'bg-fg/8 text-fg font-semibold' : 'bg-surface-2 text-muted'),
             highlight: !isScientificPhase && paymentsToValidate > 0,
           },
         ]
       : []),
     {
       id: 'program',
-      label: 'Programme & Sessions',
+      label: t('event.program'),
       icon: PresentationChartIcon,
-      badge: isScientificPhase ? 'À venir' : null,
-      badgeColor: isScientificPhase ? 'bg-surface-2 text-faint' : 'bg-ok/15 text-ok font-semibold',
+      badge: isScientificPhase ? t('event.upcoming') : null,
+      badgeColor: isScientificPhase
+        ? 'bg-neutral-100/80 text-neutral-700 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10'
+        : 'bg-neutral-100/80 text-neutral-700 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10',
       highlight: !isScientificPhase,
     },
     ...(canManage
       ? [
-          { id: 'org-rooms', label: 'Salles & Amphis', icon: DoorIcon },
-          { id: 'org-sponsors', label: 'Sponsors & Partenaires', icon: StarIcon },
-          { id: 'ai-scheduling', label: 'Planification QUBO', icon: CpuIcon, badge: 'IA' },
+          { id: 'org-rooms', label: t('event.rooms'), icon: DoorIcon },
+          { id: 'org-sponsors', label: t('event.sponsors'), icon: StarIcon },
+          { id: 'ai-scheduling', label: t('eventDetailExtra.aiScheduling'), icon: CpuIcon, badge: t('eventDetailExtra.aiBadge') },
         ]
       : []),
   ]
@@ -391,9 +355,9 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
     ? [
         {
           id: 'org-attendance',
-          label: 'Présences & Scan QR',
+          label: t('event.attendance'),
           icon: QrCodeIcon,
-          badge: isScientificPhase ? 'À venir' : null,
+          badge: isScientificPhase ? t('event.upcoming') : null,
           badgeColor: 'bg-surface-2 text-faint',
         },
       ]
@@ -402,18 +366,18 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
   // 5. Administration & Bilan
   const navAdmin = canManage
     ? [
-        { id: 'stats', label: 'Statistiques & Bilan', icon: ChartBarIcon },
-        { id: 'org-participants', label: 'Membres & Rôles', icon: UsersIcon, count: participants.length },
-        { id: 'org-settings', label: 'Paramètres', icon: GearSixIcon },
+        { id: 'stats', label: t('event.stats'), icon: ChartBarIcon },
+        { id: 'org-participants', label: t('event.members'), icon: UsersIcon, count: participants.length },
+        { id: 'org-settings', label: t('event.settings'), icon: GearSixIcon },
       ]
     : []
 
   const navSections = [
-    { title: 'Général', items: navGeneral },
-    { title: '1. Sélection Scientifique', items: navScientific },
-    { title: '2. Logistique & Programme', items: navLogistics },
-    ...(navDayJ.length > 0 ? [{ title: '3. Jour J (Sur site)', items: navDayJ }] : []),
-    ...(navAdmin.length > 0 ? [{ title: 'Administration & Bilan', items: navAdmin }] : []),
+    { title: t('eventDetailExtra.navGeneral'), items: navGeneral },
+    { title: t('eventDetailExtra.navScientific'), items: navScientific },
+    { title: t('eventDetailExtra.navLogistics'), items: navLogistics },
+    ...(navDayJ.length > 0 ? [{ title: t('eventDetailExtra.navDayJ'), items: navDayJ }] : []),
+    ...(navAdmin.length > 0 ? [{ title: t('eventDetailExtra.navAdmin'), items: navAdmin }] : []),
   ]
 
   const allNavItems = navSections.flatMap((s) => s.items)
@@ -425,40 +389,30 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
         {/* ========================================================================= */}
         {/* VOLET VERTICAL GAUCHE (SIDEBAR)                                          */}
         {/* ========================================================================= */}
-        <aside className="lg:sticky lg:top-20 space-y-5">
+        <aside className="lg:sticky lg:top-24 space-y-5">
           {/* Bouton retour */}
           <button
             type="button"
             onClick={onBack}
-            className="btn-ghost btn-sm -ml-2 text-muted hover:text-fg"
+            className="btn-ghost btn-sm -ms-2 text-muted hover:text-fg"
           >
-            <ArrowLeftIcon size={14} aria-hidden="true" />
-            Retour aux événements
+            <ArrowLeftIcon size={14} className="rtl:rotate-180" aria-hidden="true" />
+            {t('event.backToEvents')}
           </button>
 
           {/* Vignette d'identité de l'événement */}
-          <div className="p-3.5 rounded-2xl border border-line bg-surface/70 space-y-2.5">
-            <div className="flex items-start gap-3">
-              <span
-                className="w-10 h-10 rounded-xl shrink-0 shadow-xs"
-                style={coverStyle(event)}
-                aria-hidden="true"
-              />
-              <div className="min-w-0 flex-1">
-                <span className="block text-xs text-muted leading-tight truncate">
-                  {TYPE_LABELS[event.type] || event.type}
-                </span>
-                <h1 className="text-sm font-semibold text-fg line-clamp-2 leading-snug mt-0.5" title={event.title}>
-                  {event.title}
-                </h1>
-              </div>
-            </div>
-            <div className="flex items-center justify-between gap-2 pt-2 border-t border-line text-xs">
-              <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
-                {STATUS_LABELS[event.status] || event.status}
-              </span>
-              <span className="text-faint font-medium">
-                {event.phase === 'scientific' ? 'Scientifique' : 'Organisation'}
+          <div className="p-3 rounded-2xl border border-line bg-surface/70 flex items-start gap-3">
+            <span
+              className="w-10 h-10 rounded-xl shrink-0 shadow-xs mt-0.5"
+              style={coverStyle(event)}
+              aria-hidden="true"
+            />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <h1 className="text-sm font-semibold text-fg line-clamp-2 leading-snug" title={event.title}>
+                {event.title}
+              </h1>
+              <span className={`inline-flex ${STATUS_BADGE[event.status] || 'badge-draft'}`}>
+                {t(`eventCard.statuses.${event.status}`) || event.status}
               </span>
             </div>
           </div>
@@ -469,11 +423,11 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
               <button
                 key={item.id}
                 type="button"
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => selectTab(item.id)}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium shrink-0 flex items-center gap-1.5 ${
                   activeTab === item.id
-                    ? 'bg-accent text-on-accent font-semibold'
-                    : 'bg-surface text-muted hover:text-fg'
+                    ? 'bg-[#EDEDEF] dark:bg-[#24262B] text-[#111111] dark:text-white border border-neutral-300 dark:border-white/20 font-semibold'
+                    : 'bg-surface text-muted hover:text-fg border border-line'
                 }`}
               >
                 <span>{item.label}</span>
@@ -487,7 +441,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
           </div>
 
           {/* Menu VERTICAL sur ORDINATEUR (Ordonné chronologiquement) */}
-          <nav className="hidden lg:block space-y-4" aria-label="Sections de la conférence">
+          <nav className="hidden lg:block space-y-4" aria-label={t('eventDetailExtra.sectionsAria')}>
             {navSections.map((section) => {
               const isSectionActive = section.items.some((item) => item.id === activeTab)
               return (
@@ -514,7 +468,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                         key={item.id}
                         item={item}
                         active={activeTab === item.id}
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => selectTab(item.id)}
                       />
                     ))}
                   </div>
@@ -526,7 +480,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
           {/* Encart Organisateur discret dans la sidebar */}
           <div className="hidden lg:block p-3 rounded-xl border border-line bg-surface/40 text-xs space-y-1.5">
             <span className="text-xs font-semibold text-muted block">
-              Organisateur
+              {t('roles.organizer')}
             </span>
             <div className="flex items-center gap-2.5 min-w-0">
               <Avatar name={organizerName} size={28} />
@@ -566,7 +520,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
             myAccepted={myAccepted}
             isParticipantValidated={isParticipantValidated}
             activeTab={activeTab}
-            onNavigateTab={setActiveTab}
+            onNavigateTab={selectTab}
           />
 
           {/* ========================================================================= */}
@@ -577,19 +531,19 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
               {/* ========================================================================= */}
               {/* 1. HERO DE LA CONFÉRENCE UNIFIÉ (AVEC BANDEAU D'ACTION INTÉGRÉ)          */}
               {/* ========================================================================= */}
-              <header className="card p-6 sm:p-7 border-line bg-surface/80 space-y-5 relative overflow-hidden shadow-xs">
+              <header className="card p-6 sm:p-7 border-line bg-surface/80 space-y-5 relative z-20 overflow-visible shadow-card">
                 {/* Badges de statut et format */}
                 <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-accent-ink px-2.5 py-1 rounded-full bg-accent/15 tracking-wide uppercase text-xs">
-                      {TYPE_LABELS[event.type] || event.type} • {(FORMAT_LABELS[event.format] || event.format || '').toLowerCase()}
+                    <span className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-0.5 rounded-full bg-neutral-100/80 text-neutral-700 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10">
+                      {t(`eventCard.types.${event.type}`) || event.type} • {(t(`eventCard.formats.${event.format}`) || event.format || '').toLowerCase()}
                     </span>
                     <span className="text-muted text-xs font-medium hidden sm:inline">
-                      {event.phase === 'scientific' ? 'Phase scientifique' : 'Phase organisation'}
+                      {t(`eventCard.phases.${event.phase}`) || event.phase}
                     </span>
                   </div>
                   <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
-                    {STATUS_LABELS[event.status] || event.status}
+                    {t(`eventCard.statuses.${event.status}`) || event.status}
                   </span>
                 </div>
 
@@ -601,12 +555,12 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   {event.title}
                 </h2>
 
-                {/* Métadonnées essentielles + Bouton Calendrier */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                {/* Métadonnées essentielles + Boutons d'action en bas à droite */}
+                <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pt-1">
                   <ul className="flex flex-col sm:flex-row sm:flex-wrap gap-x-6 gap-y-2.5 text-xs sm:text-sm text-muted">
                     <li className="flex items-center gap-2">
                       <CalendarBlankIcon size={16} className="text-accent-ink shrink-0" aria-hidden="true" />
-                      <span className="num font-medium text-fg">{formatDateRange(event.start_date, event.end_date)}</span>
+                      <span className="num font-medium text-fg">{fmtDateRange(event.start_date, event.end_date, locale)}</span>
                     </li>
                     {event.location && (
                       <li className="flex items-center gap-2 min-w-0">
@@ -616,10 +570,20 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                     )}
                     <li className="flex items-center gap-2">
                       <UserIcon size={16} className="text-accent-ink shrink-0" aria-hidden="true" />
-                      <span>Organisé par <span className="font-medium text-fg">{organizerName}</span></span>
+                      <span>{t('event.organizedBy')} <span className="font-medium text-fg">{organizerName}</span></span>
                     </li>
                   </ul>
-                  <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2 shrink-0 md:justify-end">
+                    {canManage && (
+                      <button
+                        type="button"
+                        onClick={() => setShowInviteModal(true)}
+                        className="btn-primary btn-sm text-xs inline-flex items-center gap-1.5 active:scale-95 transition-all duration-150 cursor-pointer"
+                      >
+                        <UserPlusIcon size={15} weight="bold" />
+                        <span>{t('network.inviteBtn')}</span>
+                      </button>
+                    )}
                     <AddToCalendarButton event={event} />
                     <button
                       type="button"
@@ -631,10 +595,10 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                         })
                       }}
                       className="btn-outline btn-sm text-xs inline-flex items-center gap-1.5 active:scale-95 transition-all duration-150"
-                      title="Télécharger le recueil officiel des actes et résumés scientifiques (PDF)"
+                      title={t('event.proceedingsPdf')}
                     >
                       <FilePdfIcon size={15} className="text-accent-ink" weight="bold" />
-                      <span>Actes & Résumés (PDF)</span>
+                      <span>{t('event.proceedingsPdf')}</span>
                     </button>
                   </div>
                 </div>
@@ -644,42 +608,42 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
               {/* 2. CHIFFRES CLÉS DU TABLEAU DE BORD                                      */}
               {/* ========================================================================= */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-xs hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 transition-all duration-200">
-                  <div className="w-10 h-10 rounded-xl bg-accent/15 text-accent-ink flex items-center justify-center shrink-0">
+                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-card hover:-translate-y-0.5 hover:shadow-lift hover:border-neutral-300 dark:hover:border-white/20 transition-all duration-200">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-100 text-neutral-700 dark:bg-white/[0.06] dark:text-neutral-200 flex items-center justify-center shrink-0">
                     <ArticleIcon size={20} weight="duotone" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs text-muted font-medium block truncate">Articles soumis</span>
+                    <span className="text-xs text-muted font-medium block truncate">{t('event.submittedArticles')}</span>
                     <span className="num text-2xl font-bold text-fg tracking-tight">{submissions.length}</span>
                   </div>
                 </div>
 
-                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-xs hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 transition-all duration-200">
-                  <div className="w-10 h-10 rounded-xl bg-warn/15 text-warn flex items-center justify-center shrink-0">
+                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-card hover:-translate-y-0.5 hover:shadow-lift hover:border-neutral-300 dark:hover:border-white/20 transition-all duration-200">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-100 text-neutral-700 dark:bg-white/[0.06] dark:text-neutral-200 flex items-center justify-center shrink-0">
                     <ClockIcon size={20} weight="duotone" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs text-muted font-medium block truncate">En attente</span>
+                    <span className="text-xs text-muted font-medium block truncate">{t('event.pending')}</span>
                     <span className="num text-2xl font-bold text-fg tracking-tight">{pendingCount}</span>
                   </div>
                 </div>
 
-                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-xs hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 transition-all duration-200">
-                  <div className="w-10 h-10 rounded-xl bg-ok/15 text-ok flex items-center justify-center shrink-0">
+                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-card hover:-translate-y-0.5 hover:shadow-lift hover:border-neutral-300 dark:hover:border-white/20 transition-all duration-200">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-100 text-neutral-700 dark:bg-white/[0.06] dark:text-neutral-200 flex items-center justify-center shrink-0">
                     <CheckCircleIcon size={20} weight="duotone" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs text-muted font-medium block truncate">Articles acceptés</span>
+                    <span className="text-xs text-muted font-medium block truncate">{t('event.acceptedArticles')}</span>
                     <span className="num text-2xl font-bold text-fg tracking-tight">{acceptedCount}</span>
                   </div>
                 </div>
 
-                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-xs hover:-translate-y-0.5 hover:shadow-md hover:border-accent/40 transition-all duration-200">
-                  <div className="w-10 h-10 rounded-xl bg-accent/12 text-accent-ink flex items-center justify-center shrink-0">
+                <div className="card p-4.5 border-line/80 bg-surface/80 flex items-center gap-3.5 shadow-card hover:-translate-y-0.5 hover:shadow-lift hover:border-neutral-300 dark:hover:border-white/20 transition-all duration-200">
+                  <div className="w-10 h-10 rounded-xl bg-neutral-100 text-neutral-700 dark:bg-white/[0.06] dark:text-neutral-200 flex items-center justify-center shrink-0">
                     <TicketIcon size={20} weight="duotone" aria-hidden="true" />
                   </div>
                   <div className="min-w-0">
-                    <span className="text-xs text-muted font-medium block truncate">Inscrits validés</span>
+                    <span className="text-xs text-muted font-medium block truncate">{t('event.validatedRegistrations')}</span>
                     <span className="num text-2xl font-bold text-fg tracking-tight">{validatedCount}</span>
                   </div>
                 </div>
@@ -695,7 +659,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   {event.description ? (
                     <section className="card p-6 border-line bg-surface/60 space-y-3">
                       <h3 className="text-base font-semibold tracking-tight text-fg">
-                        À propos de la conférence
+                        {t('eventDetailExtra.aboutTitle')}
                       </h3>
                       <p className="text-fg/85 text-sm sm:text-base leading-relaxed whitespace-pre-line" style={{ overflowWrap: 'anywhere' }}>
                         {event.description}
@@ -704,7 +668,9 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   ) : (
                     <section className="card p-6 border-line bg-surface/40 text-sm text-muted">
                       <p>
-                        Bienvenue sur la page officielle de <strong className="text-fg">{event.title}</strong>. Retrouvez ici les informations clés, les articles déposés et le programme des sessions.
+                        {t('eventDetailExtra.welcomePrefix')}
+                        <strong className="text-fg">{event.title}</strong>
+                        {t('eventDetailExtra.welcomeSuffix')}
                       </p>
                     </section>
                   )}
@@ -718,10 +684,10 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   <section className="card p-5 sm:p-6 border-line bg-surface/60 space-y-4">
                     <div className="flex items-center justify-between gap-2">
                       <h3 className="text-base font-semibold tracking-tight text-fg">
-                        Déroulement & Phases de l'événement
+                        {t('eventDetailExtra.phasesTitle')}
                       </h3>
                       <span className="text-xs text-muted font-medium">
-                        {event.phase === 'scientific' ? 'Étape 1 sur 2' : 'Étape 2 sur 2'}
+                        {event.phase === 'scientific' ? t('eventDetailExtra.step1Of2') : t('eventDetailExtra.step2Of2')}
                       </span>
                     </div>
                     <PhaseStepper phase={event.phase} />
@@ -738,7 +704,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                       <div className="ticket-stripe" />
                       <div className="ticket-perforation" />
                       <div className="p-5 flex-1 min-w-0">
-                        <h3 className="font-semibold text-fg mb-4">Ma participation</h3>
+                        <h3 className="font-semibold text-fg mb-4">{t('eventDetailExtra.myRegistration')}</h3>
                         <RegistrationCard event={event} participants={participants} onRefresh={fetchEventData} />
                       </div>
                     </section>
@@ -751,13 +717,13 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
             /* CAS 2 : TOUS LES AUTRES ONGLETS -> MICRO-LIGNE ÉPURÉE SANS BRUIT VISUEL  */
             /* ========================================================================= */
             <div className="space-y-6">
-              <nav aria-label="Fil d'Ariane" className="flex items-center justify-between gap-3 pb-3 border-b border-line text-xs">
+              <nav aria-label={t('eventDetailExtra.breadcrumbAria')} className="flex items-center justify-between gap-3 pb-3 border-b border-line text-xs">
                 <div className="flex items-center gap-1.5 text-muted min-w-0">
                   <button
                     type="button"
-                    onClick={() => setActiveTab('overview')}
+                    onClick={() => selectTab('overview')}
                     className="hover:text-fg font-medium truncate max-w-[220px] transition-colors"
-                    title="Retour à l'Aperçu"
+                    title={t('event.overview')}
                   >
                     {event.title}
                   </button>
@@ -768,31 +734,33 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={STATUS_BADGE[event.status] || 'badge-draft'}>
-                    {STATUS_LABELS[event.status] || event.status}
+                    {t(`eventCard.statuses.${event.status}`) || event.status}
                   </span>
                   <span className="text-faint text-xs font-medium hidden sm:inline">
-                    {event.phase === 'scientific' ? 'Phase scientifique' : 'Phase organisation'}
+                    {t(`eventCard.phases.${event.phase}`) || event.phase}
                   </span>
                 </div>
               </nav>
 
               {/* Rendu direct du contenu sélectionné */}
-              <div className="rise">
+              <div key={activeTab} className="animate-panel-enter">
                 {activeTab === 'scientific' && (
                   <ScientificPanel
                     eventId={eventId}
                     submissions={submissions}
                     participants={participants}
+                    assignments={assignments}
                     isOrganizer={isOrganizer}
                     isReviewer={isReviewer}
                     isAdmin={isAdmin}
                     frozen={event.phase !== 'scientific'}
+                    onUnassign={handleUnassign}
                     onRefresh={fetchEventData}
                   />
                 )}
 
                 {activeTab === 'program' && (
-                  <div className="max-w-4xl">
+                  <div className="w-full">
                     <SessionsPanel
                       eventId={eventId}
                       event={event}
@@ -815,7 +783,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                 )}
 
                 {activeTab === 'org-participants' && canManage && (
-                  <div className="max-w-4xl">
+                  <div className="w-full">
                     <ManageParticipants
                       participants={participants}
                       onUpdated={fetchEventData}
@@ -824,7 +792,7 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                 )}
 
                 {activeTab === 'org-registrations' && canManage && (
-                  <div className="max-w-4xl">
+                  <div className="w-full">
                     <InvitationsPanel
                       eventId={eventId}
                       event={event}
@@ -832,28 +800,29 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                       submissions={submissions}
                       participants={participants}
                       onRefresh={fetchEventData}
+                      onOpenInviteModal={() => setShowInviteModal(true)}
                     />
                   </div>
                 )}
 
                 {activeTab === 'org-rooms' && canManage && (
-                  <div className="max-w-4xl">
+                  <div className="w-full">
                     <RoomsPanel eventId={eventId} />
                   </div>
                 )}
 
                 {activeTab === 'org-sponsors' && canManage && (
-                  <div className="max-w-4xl">
+                  <div className="w-full">
                     <SponsorsPanel eventId={eventId} isOrganizer />
                   </div>
                 )}
 
                 {activeTab === 'org-attendance' && canManage && (
-                  <div className="max-w-4xl">
+                  <div className="w-full">
                     {event.phase === 'organizational' ? (
                       <AttendancePanel eventId={eventId} participants={participants} />
                     ) : (
-                      <div className="alert-info">Le pointage des présences s’ouvre en phase organisationnelle.</div>
+                      <div className="alert-info">{t('eventDetailExtra.attendanceOpensInOrg')}</div>
                     )}
                   </div>
                 )}
@@ -866,79 +835,44 @@ export default function EventDetail({ eventId, onBack, initialTab, initialOrgTab
                   />
                 )}
 
-                {/* --- MODULES IA (BÊTA) --- */}
+                {/* --- MODULES IA --- */}
                 {activeTab === 'ai-matching' && canManage && (
-                  <AIBetaPlaceholder
-                    title="Affectation intelligente Reviewers – Articles"
-                    icon={BrainIcon}
-                    badge="Module 1 • NLP / SBERT"
-                    model="paraphrase-multilingual-MiniLM-L12-v2 (384 dim)"
-                    description="Calcule la similarité sémantique cosinus entre les résumés d’articles et les expertises des relecteurs, puis applique une affectation gloutonne sous contrainte de charge maximale."
-                    scriptRef="ai/matching.ipynb"
-                    features={[
-                      'Encodage multilingue SBERT (titres + résumés)',
-                      'Contrainte stricte de 2 reviewers par soumission',
-                      'Priorité de service aux articles aux profils les plus rares',
-                      'Validation et affectation en 1 clic par l’organisateur',
-                    ]}
-                  />
+                  <AIMatchingPanel eventId={eventId} onAssigned={fetchEventData} />
                 )}
 
                 {activeTab === 'ai-clustering' && canManage && (
-                  <AIBetaPlaceholder
-                    title="Regroupement thématique automatique des articles"
-                    icon={TreeStructureIcon}
-                    badge="Module 2 • Topic Modeling"
-                    model="BERTopic (UMAP 5D + HDBSCAN + c-TF-IDF)"
-                    description="Découvre automatiquement les axes de recherche et thématiques sous-jacentes du corpus pour structurer et créer les sessions scientifiques."
-                    scriptRef="ai/clustering.ipynb"
-                    features={[
-                      'Clustering non-supervisé avec isolation du bruit (-1)',
-                      'Extraction des mots-clés distinctifs par c-TF-IDF',
-                      'Score ARI d’alignement avec catégories réelles (arXiv)',
-                      'Pré-remplissage automatique des sessions de la conférence',
-                    ]}
-                  />
+                  <AIMetaReviewPanel eventId={eventId} />
                 )}
 
                 {activeTab === 'ai-scheduling' && canManage && (
-                  <AIBetaPlaceholder
-                    title="Planification des créneaux par QUBO et QAOA"
-                    icon={CpuIcon}
-                    badge="Module 3 • Optimisation Combinatoire"
-                    model="Qiskit Optimization • QAOA (p=2) & NumPyMinimumEigensolver"
-                    description="Formule l’ordonnancement des sessions et créneaux horaires sous forme d’un problème quadratique binaire pour minimiser les conflits de relecteurs et les doublons de thèmes."
-                    scriptRef="ai/qubo.ipynb"
-                    features={[
-                      'Minimisation des conflits d’horaires pour les intervenants',
-                      'Pondération automatique (conflits reviewer + centroïdes thématiques)',
-                      'Résolution exacte classique vs algorithme quantique QAOA',
-                      'Export direct vers le planning officiel des sessions',
-                    ]}
+                  <AIQuboPanel
+                    eventId={eventId}
+                    event={event}
+                    onApplied={fetchEventData}
                   />
                 )}
 
                 {activeTab === 'ai-plagiarism' && canManage && (
-                  <AIBetaPlaceholder
-                    title="Détection de similarité textuelle et originalité"
-                    icon={ShieldCheckIcon}
-                    badge="Module 4 • Contrôle d'Intégrité"
-                    model="Sentence-BERT & Similarité Cosinus croisée"
-                    description="Détecte les doublons de soumission ou les proximités textuelles suspectes entre les articles d’une même édition afin d’aider le comité à préserver l’intégrité scientifique."
-                    scriptRef="ai/plagiarism.ipynb"
-                    features={[
-                      'Analyse croisée de toutes les soumissions de la conférence',
-                      'Détection des doublons involontaires ou similitudes élevées',
-                      'Aide à l’examen humain (aucun rejet automatique sans accord)',
-                      'Tableau de bord de traçabilité pour le comité',
-                    ]}
-                  />
+                  <AISimilarityPanel eventId={eventId} />
                 )}
               </div>
             </div>
           )}
         </main>
       </div>
+
+      {canManage && (
+        <InviteMemberModal
+          open={showInviteModal}
+          onClose={() => setShowInviteModal(false)}
+          eventId={eventId}
+          eventTitle={event.title}
+          existingParticipantIds={participants.map((p) => p.user_id)}
+          onInvited={fetchEventData}
+        />
+      )}
+
+      <FloatingEventAssistant event={event} />
     </div>
   )
 }

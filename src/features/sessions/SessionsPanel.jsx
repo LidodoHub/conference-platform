@@ -14,6 +14,9 @@ import {
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
+import { useConfirm } from '../../context/ConfirmContext'
+import { useLanguage } from '../../context/LanguageContext'
+import { useUrlQueryState } from '../../hooks/useUrlQueryState'
 import { SESSION_TYPE_LABELS } from '../../lib/constants'
 import EmptyState from '../../components/ui/EmptyState'
 import SectionTitle from '../../components/ui/SectionTitle'
@@ -21,13 +24,14 @@ import Tabs from '../../components/ui/Tabs'
 import SessionForm from './SessionForm'
 import AddToCalendarButton from '../../components/ui/AddToCalendarButton'
 
-const timeOf = (iso) => (iso ? new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '')
+const timeOf = (iso, locale) => (iso ? new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' }) : '')
 const dayKey = (iso) => {
   if (!iso) return 'none'
   const d = new Date(iso)
   return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
 }
-const dayOf = (iso) => (iso ? new Date(iso).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }) : 'À planifier')
+const dayOf = (iso, locale, fallback) =>
+  iso ? new Date(iso).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }) : fallback
 
 // session la plus recommandée par les reviewers pour un article
 const suggestedSessionId = (s) => {
@@ -39,16 +43,42 @@ const suggestedSessionId = (s) => {
 }
 
 export default function SessionsPanel({ eventId, event, isOrganizer, phase, submissions = [] }) {
+  const confirm = useConfirm()
+  const { t, locale } = useLanguage()
   const [sessions, setSessions] = useState([])
   const [rooms, setRooms] = useState([])
   const [links, setLinks] = useState({})
   const [assignments, setAssignments] = useState([])
   const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(null) // null | 'new' | id de session
+  const [searchParams, setSearchParams] = useUrlQueryState()
+  const editing = searchParams.get('session') || null
+  const viewMode = searchParams.get('sview') === 'timeline' ? 'timeline' : 'grid'
+
+  const setEditing = useCallback(
+    (val) => {
+      setSearchParams((prev) => {
+        if (val !== null && val !== undefined) prev.set('session', String(val))
+        else prev.delete('session')
+        return prev
+      })
+    },
+    [setSearchParams],
+  )
+
+  const setViewMode = useCallback(
+    (mode) => {
+      setSearchParams((prev) => {
+        if (mode === 'timeline') prev.set('sview', 'timeline')
+        else prev.delete('sview')
+        return prev
+      })
+    },
+    [setSearchParams],
+  )
+
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [choices, setChoices] = useState({})
-  const [viewMode, setViewMode] = useState('grid') // 'grid' | 'timeline'
   const [selectedDay, setSelectedDay] = useState('all')
   const [query, setQuery] = useState('')
   const [now] = useState(() => Date.now())
@@ -97,7 +127,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
       sessionId = data.id
     } else {
       const res = await supabase.from('sessions').update(fields).eq('id', editing).select('id')
-      const msg = writeError(res, "Modification refusée : tu n'es pas organisateur de cet événement.")
+      const msg = writeError(res, t('errors.saveRefused'))
       if (msg) return msg
     }
 
@@ -105,7 +135,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
       const linkRes = url
         ? await supabase.from('session_links').upsert({ session_id: sessionId, url, updated_at: new Date().toISOString() })
         : await supabase.from('session_links').delete().eq('session_id', sessionId)
-      if (linkRes.error) return `Session enregistrée, mais pas le lien : ${frError(linkRes.error)}`
+      if (linkRes.error) return `${t('sessions.linkSaveError')} : ${frError(linkRes.error)}`
     }
 
     setEditing(null)
@@ -114,10 +144,16 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   }
 
   const handleDelete = async (s) => {
-    if (!window.confirm(`Supprimer la session « ${s.title} » ? Ses articles redeviendront à placer.`)) return
+    const ok = await confirm({
+      title: t('sessions.deleteTitle', { title: s.title }),
+      description: t('sessions.deleteDesc'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setError(null)
     const res = await supabase.from('sessions').delete().eq('id', s.id).select('id')
-    const msg = writeError(res, "Suppression refusée : tu n'es pas organisateur de cet événement.")
+    const msg = writeError(res, t('errors.deleteRefused'))
     if (msg) setError(msg)
     else load()
   }
@@ -156,12 +192,13 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   })
 
   // Groupement par jour
+  const toScheduleLabel = t('sessions.toSchedule')
   const days = []
   for (const s of filteredSessions) {
     const key = dayKey(s.start_time)
     let day = days.find((d) => d.key === key)
     if (!day) {
-      day = { key, label: dayOf(s.start_time), items: [] }
+      day = { key, label: dayOf(s.start_time, locale, toScheduleLabel), items: [] }
       days.push(day)
     }
     day.items.push(s)
@@ -170,10 +207,10 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   const displayedDays = selectedDay === 'all' ? days : days.filter((d) => d.key === selectedDay)
 
   const dayFilterTabs = [
-    { id: 'all', label: 'Tous les jours', badge: filteredSessions.length },
+    { id: 'all', label: t('sessions.allDays'), badge: filteredSessions.length },
     ...days.map((d, i) => ({
       id: d.key,
-      label: `Jour ${i + 1} (${d.items[0]?.start_time ? new Date(d.items[0].start_time).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) : 'À planifier'})`,
+      label: `${t('sessions.day')} ${i + 1} (${d.items[0]?.start_time ? new Date(d.items[0].start_time).toLocaleDateString(locale, { day: 'numeric', month: 'short' }) : toScheduleLabel})`,
       badge: d.items.length,
     })),
   ]
@@ -184,7 +221,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
       rooms={rooms}
       sessions={sessions}
       showMeeting={showMeeting}
-      submitLabel={initial ? 'Enregistrer' : 'Créer la session'}
+      submitLabel={initial ? t('common.save') : t('sessions.createSession')}
       onSubmit={saveSession}
       onCancel={() => setEditing(null)}
     />
@@ -193,15 +230,15 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
   return (
     <section className="space-y-6">
       <SectionTitle
-        title="Programme & Sessions"
+        title={t('event.program')}
         count={sessions.length}
-        description="Sessions, horaires, salles et articles présentés. Le programme est visible par tous une fois l'événement publié."
+        description={t('sessions.description')}
         actions={
           isOrganizer &&
           editing === null && (
             <button type="button" onClick={() => setEditing('new')} className="btn-accent">
               <PlusIcon size={16} weight="bold" aria-hidden="true" />
-              Ajouter une session
+              {t('sessions.addSession')}
             </button>
           )
         }
@@ -215,7 +252,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
 
       {isOrganizer && !organizational && (
         <div className="alert-info">
-          Le placement définitif des articles se fait en phase organisationnelle. D'ici là, les reviewers peuvent suggérer une session.
+          {t('sessions.placementNotice')}
         </div>
       )}
 
@@ -223,20 +260,22 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
 
       {/* Articles acceptés non placés */}
       {canAssign && unplaced.length > 0 && (
-        <section className="card p-5 border-accent/40 bg-surface/80 space-y-3">
+        <section className="card p-5 border border-line bg-surface/80 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="font-semibold text-fg flex items-baseline gap-2 text-sm sm:text-base">
-              Articles acceptés à placer dans le programme
-              <span className="num font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-accent/20 text-accent-ink">
+              {t('sessions.papersToSchedule')}
+              <span className="num font-mono text-xs font-semibold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-700 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10">
                 {unplaced.length}
               </span>
             </h3>
           </div>
           <div className="mt-2">
             {sessions.length === 0 ? (
-              <p className="text-xs text-muted">Créez d'abord des sessions ci-dessous pour y placer des articles.</p>
+              <p className="text-xs text-muted">
+                {t('sessions.createSessionsFirst')}
+              </p>
             ) : (
-              <ul className="divide-y divide-line max-h-64 overflow-y-auto pr-1">
+              <ul className="divide-y divide-line max-h-64 overflow-y-auto pe-1">
                 {unplaced.map((s) => {
                   const suggestion = suggestedSessionId(s)
                   const value = choices[s.id] ?? suggestion
@@ -248,18 +287,18 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
                         </p>
                         <p className="text-xs text-muted mt-0.5">
                           {s.profiles?.full_name}
-                          {suggestion && <span className="text-accent-ink"> • Recommandé : {sessionTitle(suggestion) || 'session'}</span>}
+                          {suggestion && <span className="text-accent-ink"> • {t('sessions.recommended')} : {sessionTitle(suggestion) || t('sessions.sessionWord')}</span>}
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
                         <select
                           id={`place-${s.id}`}
-                          aria-label={`Session pour ${s.title}`}
+                          aria-label={`${t('sessions.sessionFor')} ${s.title}`}
                           className="select-field md:w-52 py-1 text-xs"
                           value={value}
                           onChange={(e) => setChoices((c) => ({ ...c, [s.id]: e.target.value }))}
                         >
-                          <option value="">Sélectionner une session…</option>
+                          <option value="">{t('sessions.selectSession')}</option>
                           {sessions.map((x) => (
                             <option key={x.id} value={x.id}>
                               {x.title}
@@ -272,8 +311,8 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
                           disabled={busy || !value}
                           onClick={() => assign(s.id, value)}
                         >
-                          Placer
-                          <ArrowRightIcon size={13} weight="bold" aria-hidden="true" />
+                          {t('sessions.assign')}
+                          <ArrowRightIcon size={13} weight="bold" className="rtl:rotate-180" aria-hidden="true" />
                         </button>
                       </div>
                     </li>
@@ -292,7 +331,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
             <Tabs
               variant="pill"
               wrap
-              label="Filtrer par jour"
+              label={t('sessions.filterByDay')}
               active={selectedDay}
               onChange={setSelectedDay}
               tabs={dayFilterTabs}
@@ -303,31 +342,31 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
 
           <div className="flex items-center gap-2.5">
             <label className="relative flex-1 sm:w-64">
-              <span className="sr-only">Rechercher une session</span>
+              <span className="sr-only">{t('common.search')}</span>
               <MagnifyingGlassIcon
                 size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+                className="absolute start-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
                 aria-hidden="true"
               />
               <input
                 type="search"
-                className="input-field pl-9.5 text-xs sm:text-sm py-1.5"
-                placeholder="Session, salle, article…"
+                className="input-field ps-9.5 text-xs sm:text-sm py-1.5"
+                placeholder={t('sessions.searchPlaceholder')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </label>
 
             {/* Commutateur de vue : Grille vs Frise */}
-            <div className="flex items-center rounded-xl border border-line bg-surface/80 p-0.5 shrink-0" aria-label="Format d'affichage">
+            <div className="flex items-center rounded-xl border border-line bg-surface/80 p-0.5 shrink-0" aria-label={t('sessions.displayMode')}>
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'grid' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                  viewMode === 'grid' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
                 }`}
-                title="Affichage en cartes horizontales"
-                aria-label="Affichage en cartes"
+                title={t('sessions.gridView')}
+                aria-label={t('sessions.gridViewAria')}
               >
                 <SquaresFourIcon size={17} weight={viewMode === 'grid' ? 'fill' : 'regular'} aria-hidden="true" />
               </button>
@@ -335,10 +374,10 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
                 type="button"
                 onClick={() => setViewMode('timeline')}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'timeline' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                  viewMode === 'timeline' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
                 }`}
-                title="Affichage chronologique (Frise)"
-                aria-label="Affichage en frise chronologique"
+                title={t('sessions.timelineView')}
+                aria-label={t('sessions.timelineViewAria')}
               >
                 <ClockIcon size={17} weight={viewMode === 'timeline' ? 'fill' : 'regular'} aria-hidden="true" />
               </button>
@@ -346,7 +385,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
 
             <AddToCalendarButton
               event={event}
-              label="Agenda"
+              label={t('sessions.calendar')}
               btnClass="btn-outline btn-sm text-xs py-1.5"
             />
           </div>
@@ -362,15 +401,15 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
         editing !== 'new' && (
           <EmptyState
             icon={PresentationChartIcon}
-            title="Programme à venir"
-            body="Les sessions de l'événement apparaîtront ici dès leur création."
+            title={t('sessions.emptyTitle')}
+            body={t('sessions.emptyBody')}
           />
         )
       ) : displayedDays.length === 0 ? (
         <EmptyState
           compact
-          title="Aucune session trouvée"
-          body="Modifiez vos critères de recherche ou de filtre par jour."
+          title={t('sessions.noResultsTitle')}
+          body={t('sessions.noResultsBody')}
         />
       ) : (
         <div className="space-y-10">
@@ -386,7 +425,7 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
                 /* --- VUE GRILLE HORIZONTALE DE SESSIONS --- */
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rise">
                   {day.items.map((s) =>
-                    editing === s.id ? (
+                    String(editing) === String(s.id) ? (
                       <div key={s.id} className="md:col-span-2">
                         {formFor(s)}
                       </div>
@@ -405,16 +444,18 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
                         onEdit={() => setEditing(s.id)}
                         onDelete={() => handleDelete(s)}
                         onUnassign={(id) => assign(id, null)}
+                        t={t}
+                        locale={locale}
                       />
                     ),
                   )}
                 </div>
               ) : (
                 /* --- VUE CHRONOLOGIQUE CLASSIQUE --- */
-                <ol className="relative space-y-3 sm:pl-[104px] rise">
-                  <span className="hidden sm:block absolute left-[88px] top-2 bottom-2 w-px bg-line" aria-hidden="true" />
+                <ol className="relative space-y-3 sm:ps-[104px] rise">
+                  <span className="hidden sm:block absolute start-[88px] top-2 bottom-2 w-px bg-line" aria-hidden="true" />
                   {day.items.map((s, idx) =>
-                    editing === s.id ? (
+                    String(editing) === String(s.id) ? (
                       <li key={s.id}>{formFor(s)}</li>
                     ) : (
                       <SessionTimelineItem
@@ -432,6 +473,8 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
                         onEdit={() => setEditing(s.id)}
                         onDelete={() => handleDelete(s)}
                         onUnassign={(id) => assign(id, null)}
+                        t={t}
+                        locale={locale}
                       />
                     ),
                   )}
@@ -446,13 +489,13 @@ export default function SessionsPanel({ eventId, event, isOrganizer, phase, subm
 }
 
 // Carte horizontale de session (Vue Grille)
-function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign }) {
+function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign, t, locale }) {
   const live = s.start_time && s.end_time && new Date(s.start_time).getTime() <= now && now <= new Date(s.end_time).getTime()
 
   return (
-    <article className="card p-5 border-line bg-surface/70 hover:bg-surface hover:border-accent/40 hover:-translate-y-0.5 hover:shadow-lift active:scale-[0.99] transition-all duration-200 flex flex-col justify-between relative overflow-hidden group shadow-xs">
+    <article className="card p-5 border-line bg-surface/70 hover:bg-surface hover:border-accent/40 hover:-translate-y-0.5 shadow-card hover:shadow-lift active:scale-[0.99] transition-all duration-200 flex flex-col justify-between relative overflow-hidden group">
       <span
-        className="absolute left-0 top-0 bottom-0 w-1.5"
+        className="absolute start-0 top-0 bottom-0 w-1.5"
         style={{ background: live ? 'var(--color-ok)' : 'var(--color-accent)' }}
         aria-hidden="true"
       />
@@ -461,11 +504,11 @@ function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, 
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             <span className="badge-type text-[11px] font-semibold">{SESSION_TYPE_LABELS[s.session_type] || s.session_type}</span>
-            {live && <span className="badge-published text-[11px] animate-pulse">En cours</span>}
+            {live && <span className="badge-published text-[11px]">{t('event.ongoingPhase')}</span>}
           </div>
           <span className="num text-xs font-semibold text-fg flex items-center gap-1.5 bg-bg/80 px-2 py-0.5 rounded-md border border-line">
             <ClockIcon size={13} className="text-accent-ink" aria-hidden="true" />
-            {s.start_time ? `${timeOf(s.start_time)}${s.end_time ? ` - ${timeOf(s.end_time)}` : ''}` : 'Horaire à fixer'}
+            {s.start_time ? `${timeOf(s.start_time, locale)}${s.end_time ? ` - ${timeOf(s.end_time, locale)}` : ''}` : t('sessions.timeTbd')}
           </span>
         </div>
 
@@ -484,7 +527,7 @@ function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, 
             {s.max_capacity && (
               <span className="inline-flex items-center gap-1.5">
                 <UsersThreeIcon size={14} aria-hidden="true" />
-                <span>{s.max_capacity} places</span>
+                <span>{s.max_capacity} {t('sessions.seats')}</span>
               </span>
             )}
           </div>
@@ -499,26 +542,26 @@ function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, 
         {/* Liste des articles assignés */}
         <div className="pt-3 border-t border-line">
           <span className="text-[11px] font-semibold text-faint uppercase tracking-wider block mb-1.5">
-            Articles programmés ({papers.length})
+            {t('sessions.scheduledPapers')} ({papers.length})
           </span>
           {papers.length > 0 ? (
-            <ol className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+            <ol className="space-y-1.5 max-h-36 overflow-y-auto pe-1">
               {papers.map((a, i) => {
                 const sub = submissionById.get(a.submission_id)
                 return (
                   <li key={a.id} className="flex items-start justify-between gap-2 rounded-lg bg-surface-2/60 px-2.5 py-1.5 text-xs">
                     <div className="min-w-0 flex items-start gap-1.5">
                       <span className="num font-semibold text-accent-ink shrink-0">{i + 1}.</span>
-                      <span className="font-medium text-fg truncate leading-snug">{sub?.title || 'Article'}</span>
+                      <span className="font-medium text-fg truncate leading-snug">{sub?.title || t('sessions.paperWord')}</span>
                     </div>
                     {canAssign && (
                       <button
                         type="button"
-                        className="text-[11px] text-faint hover:text-bad font-medium shrink-0 ml-1"
+                        className="text-[11px] text-faint hover:text-bad font-medium shrink-0 ms-1"
                         disabled={busy}
                         onClick={() => onUnassign(a.submission_id)}
                       >
-                        Retirer
+                        {t('sessions.remove')}
                       </button>
                     )}
                   </li>
@@ -526,7 +569,7 @@ function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, 
               })}
             </ol>
           ) : (
-            <p className="text-xs text-faint italic">Aucun article assigné pour l'instant.</p>
+            <p className="text-xs text-faint italic">{t('sessions.noPapersAssigned')}</p>
           )}
         </div>
       </div>
@@ -541,16 +584,16 @@ function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, 
               className={live ? 'btn-success btn-sm text-xs' : 'btn-outline btn-sm text-xs'}
             >
               <VideoCameraIcon size={14} aria-hidden="true" />
-              Rejoindre en visio
+              {t('sessions.joinVideo')}
             </a>
           )}
         </div>
         {isOrganizer && (
           <div className="flex items-center gap-1">
-            <button type="button" className="icon-btn w-8 h-8 text-xs" onClick={onEdit} title="Modifier">
+            <button type="button" className="icon-btn w-8 h-8 text-xs" onClick={onEdit} title={t('common.edit')}>
               <PencilSimpleIcon size={14} />
             </button>
-            <button type="button" className="icon-btn w-8 h-8 hover:text-bad text-xs" onClick={onDelete} title="Supprimer">
+            <button type="button" className="icon-btn w-8 h-8 hover:text-bad text-xs" onClick={onDelete} title={t('common.delete')}>
               <TrashIcon size={14} />
             </button>
           </div>
@@ -561,28 +604,28 @@ function SessionCard({ s, now, room, link, papers, submissionById, isOrganizer, 
 }
 
 // Élément de frise chronologique (Vue Frise)
-function SessionTimelineItem({ s, idx, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign }) {
+function SessionTimelineItem({ s, idx, now, room, link, papers, submissionById, isOrganizer, canAssign, busy, onEdit, onDelete, onUnassign, t, locale }) {
   const live = s.start_time && s.end_time && new Date(s.start_time).getTime() <= now && now <= new Date(s.end_time).getTime()
 
   return (
     <li className="relative rise" style={{ '--i': Math.min(idx, 8) }}>
       {/* heure + point sur la frise (ordinateur) */}
-      <div className="hidden sm:block absolute -left-[104px] top-5 w-[76px] text-right">
-        <p className="num text-lg font-semibold tracking-tight text-fg leading-none">{s.start_time ? timeOf(s.start_time) : '--:--'}</p>
-        {s.end_time && <p className="num text-xs text-faint mt-1">{timeOf(s.end_time)}</p>}
+      <div className="hidden sm:block absolute -start-[104px] top-5 w-[76px] text-end">
+        <p className="num text-lg font-semibold tracking-tight text-fg leading-none">{s.start_time ? timeOf(s.start_time, locale) : '--:--'}</p>
+        {s.end_time && <p className="num text-xs text-faint mt-1">{timeOf(s.end_time, locale)}</p>}
       </div>
       <span
-        className={`hidden sm:block absolute -left-[20px] top-6 w-2.5 h-2.5 rounded-full ring-4 ring-bg ${live ? 'bg-ok' : 'bg-accent'}`}
+        className={`hidden sm:block absolute -start-[20px] top-6 w-2.5 h-2.5 rounded-full ring-4 ring-bg ${live ? 'bg-ok' : 'bg-accent'}`}
         aria-hidden="true"
       />
 
       <article className="entity" style={{ '--stripe': live ? 'var(--color-ok)' : 'var(--color-accent)' }}>
         <div className="flex flex-wrap items-center gap-2">
           <span className="sm:hidden num text-sm font-semibold text-fg">
-            {s.start_time ? `${timeOf(s.start_time)}${s.end_time ? ` - ${timeOf(s.end_time)}` : ''}` : 'Horaire à fixer'}
+            {s.start_time ? `${timeOf(s.start_time, locale)}${s.end_time ? ` - ${timeOf(s.end_time, locale)}` : ''}` : t('sessions.timeTbd')}
           </span>
           <span className="badge-type">{SESSION_TYPE_LABELS[s.session_type] || s.session_type}</span>
-          {live && <span className="badge-published">En cours</span>}
+          {live && <span className="badge-published">{t('event.ongoingPhase')}</span>}
           {room && (
             <span className="inline-flex items-center gap-1 text-xs text-muted">
               <DoorOpenIcon size={14} aria-hidden="true" />
@@ -593,13 +636,13 @@ function SessionTimelineItem({ s, idx, now, room, link, papers, submissionById, 
           {s.max_capacity && (
             <span className="inline-flex items-center gap-1 text-xs text-muted">
               <UsersThreeIcon size={14} aria-hidden="true" />
-              {s.max_capacity} places
+              {s.max_capacity} {t('sessions.seats')}
             </span>
           )}
           {!s.start_time && (
             <span className="hidden sm:inline-flex items-center gap-1 text-xs text-warn">
               <ClockIcon size={14} aria-hidden="true" />
-              Horaire à fixer
+              {t('sessions.timeTbd')}
             </span>
           )}
         </div>
@@ -609,7 +652,7 @@ function SessionTimelineItem({ s, idx, now, room, link, papers, submissionById, 
           {link && (
             <a href={link} target="_blank" rel="noopener noreferrer" className={live ? 'btn-success btn-sm' : 'btn-outline btn-sm'}>
               <VideoCameraIcon size={15} aria-hidden="true" />
-              Rejoindre
+              {t('sessions.join')}
             </a>
           )}
         </div>
@@ -623,12 +666,12 @@ function SessionTimelineItem({ s, idx, now, room, link, papers, submissionById, 
                 <li key={a.id} className="flex items-start gap-3 rounded-lg bg-surface-2/70 px-3 py-2.5">
                   <span className="num text-xs font-medium text-accent-ink w-5 shrink-0 pt-0.5">{i + 1}.</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-fg leading-snug">{sub?.title || 'Article'}</p>
+                    <p className="text-sm font-medium text-fg leading-snug">{sub?.title || t('sessions.paperWord')}</p>
                     {sub?.profiles?.full_name && <p className="text-xs text-muted mt-0.5">{sub.profiles.full_name}</p>}
                   </div>
                   {canAssign && (
                     <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => onUnassign(a.submission_id)}>
-                      Retirer
+                      {t('sessions.remove')}
                     </button>
                   )}
                 </li>
@@ -636,18 +679,18 @@ function SessionTimelineItem({ s, idx, now, room, link, papers, submissionById, 
             })}
           </ol>
         ) : (
-          <p className="text-[13px] text-faint mt-3">Aucun article placé pour l'instant.</p>
+          <p className="text-[13px] text-faint mt-3">{t('sessions.noPapersAssigned')}</p>
         )}
 
         {isOrganizer && (
           <div className="mt-4 flex justify-end gap-1">
             <button type="button" className="btn-ghost btn-sm" onClick={onEdit}>
               <PencilSimpleIcon size={15} aria-hidden="true" />
-              Modifier
+              {t('common.edit')}
             </button>
             <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={onDelete}>
               <TrashIcon size={15} aria-hidden="true" />
-              Supprimer
+              {t('common.delete')}
             </button>
           </div>
         )}

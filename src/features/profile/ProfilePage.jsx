@@ -3,10 +3,10 @@ import { CheckIcon, SparkleIcon, SignOutIcon, QrCodeIcon, IdentificationBadgeIco
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { writeError, frError } from '../../lib/errors'
-import { ROLE_LABELS } from '../../lib/constants'
 import PageHeader from '../../components/ui/PageHeader'
 import Avatar from '../../components/ui/Avatar'
 import Logo from '../../components/ui/Logo'
+import { useLanguage } from '../../context/LanguageContext'
 
 const SUGGESTED_TOPICS = [
   'Intelligence Artificielle',
@@ -21,6 +21,7 @@ const SUGGESTED_TOPICS = [
 // Profil de l'utilisateur avec aperçu en temps réel du badge de conférence.
 export default function ProfilePage({ onSaved }) {
   const { user, isAdmin } = useAuth()
+  const { t } = useLanguage()
   const [form, setForm] = useState(null)
   const [error, setError] = useState(null)
   const [savedSuccess, setSavedSuccess] = useState(false)
@@ -76,7 +77,7 @@ export default function ProfilePage({ onSaved }) {
       .eq('id', user.id)
       .select('id')
     setBusy(false)
-    const msg = writeError(res, 'Enregistrement refusé.')
+    const msg = writeError(res, t('errors.saveRefused'))
     if (msg) setError(msg)
     else {
       setSavedSuccess(true)
@@ -88,8 +89,8 @@ export default function ProfilePage({ onSaved }) {
   return (
     <div className="page-container max-w-6xl space-y-8">
       <PageHeader
-        title="Mon profil chercheur"
-        description="Configurez votre identité académique, vos expertises de relecture et visualisez votre badge officiel en temps réel."
+        title={t('profile.title')}
+        description={t('profile.description')}
       />
 
       {!form ? (
@@ -101,10 +102,10 @@ export default function ProfilePage({ onSaved }) {
             <div className="flex items-center gap-4 p-5 sm:p-7 border-b border-line bg-surface-2/40">
               <Avatar name={form.full_name} size={52} tone="brand" />
               <div className="min-w-0">
-                <p className="text-lg font-semibold text-fg truncate">{form.full_name || 'Sans nom'}</p>
+                <p className="text-lg font-semibold text-fg truncate">{form.full_name || t('profile.unnamed')}</p>
                 <p className="text-xs text-muted truncate">
                   {form.email}
-                  {isAdmin && <span className="text-accent-ink font-semibold"> · {ROLE_LABELS.admin}</span>}
+                  {isAdmin && <span className="text-accent-ink font-semibold"> · {t('roles.admin')}</span>}
                 </p>
               </div>
             </div>
@@ -112,7 +113,7 @@ export default function ProfilePage({ onSaved }) {
             <div className="p-5 sm:p-7 space-y-5">
               <div>
                 <label htmlFor="pf-name" className="form-label">
-                  Nom complet
+                  {t('profile.fullName')}
                 </label>
                 <input id="pf-name" className="input-field" autoComplete="name" required {...field('full_name')} />
               </div>
@@ -120,25 +121,25 @@ export default function ProfilePage({ onSaved }) {
               <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-4">
                 <div>
                   <label htmlFor="pf-aff" className="form-label">
-                    Affiliation académique
+                    {t('profile.affiliation')}
                   </label>
                   <input
                     id="pf-aff"
                     className="input-field"
-                    placeholder="ex. USTO-MB, Laboratoire LIO"
+                    placeholder={t('profile.affiliationPlaceholder')}
                     autoComplete="organization"
                     {...field('affiliation')}
                   />
-                  <p className="form-hint">Université, laboratoire de recherche ou institut.</p>
+                  <p className="form-hint">{t('profile.affiliationHint')}</p>
                 </div>
                 <div>
                   <label htmlFor="pf-country" className="form-label">
-                    Pays
+                    {t('profile.country')}
                   </label>
                   <input
                     id="pf-country"
                     className="input-field"
-                    placeholder="Algérie"
+                    placeholder={t('profile.countryPlaceholder')}
                     autoComplete="country-name"
                     {...field('country')}
                   />
@@ -148,10 +149,10 @@ export default function ProfilePage({ onSaved }) {
               <div>
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <label htmlFor="pf-exp" className="form-label flex items-center gap-1.5 mb-0">
-                    <span>Domaines d'expertise & Mots-clés</span>
+                    <span>{t('profile.expertise')}</span>
                     <SparkleIcon size={14} className="text-accent-ink" aria-hidden="true" />
                   </label>
-                  <span className="text-xs text-muted">Aide à l'affectation IA</span>
+                  <span className="text-xs text-muted">{t('profile.aiMatchingHint')}</span>
                 </div>
 
                 <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -171,11 +172,11 @@ export default function ProfilePage({ onSaved }) {
                   id="pf-exp"
                   className="textarea-field"
                   rows={3}
-                  placeholder="Intelligence artificielle, vision par ordinateur, optimisation QUBO..."
+                  placeholder={t('profile.expertisePlaceholder')}
                   {...field('expertise')}
                 />
                 <p className="form-hint">
-                  Ces mots-clés permettent à l'algorithme d'appariement d'attribuer automatiquement les articles les plus pertinents à votre comité.
+                  {t('profile.expertiseHelp')}
                 </p>
               </div>
 
@@ -192,7 +193,7 @@ export default function ProfilePage({ onSaved }) {
                   className={`btn-primary ${savedSuccess ? 'bg-ok text-white' : ''}`}
                 >
                   <CheckIcon size={16} weight="bold" aria-hidden="true" />
-                  {busy ? 'Enregistrement…' : savedSuccess ? 'Modifications enregistrées ✓' : 'Enregistrer mon profil'}
+                  {busy ? t('common.saving') : savedSuccess ? t('common.saved') : t('profile.saveProfile')}
                 </button>
               </div>
             </div>
@@ -203,9 +204,9 @@ export default function ProfilePage({ onSaved }) {
             <div className="flex items-center justify-between px-1">
               <span className="text-xs font-semibold text-accent-ink inline-flex items-center gap-1.5">
                 <IdentificationBadgeIcon size={16} weight="duotone" />
-                Badge officiel en direct
+                {t('profile.liveBadge')}
               </span>
-              <span className="text-[11px] font-mono text-muted">Aperçu badge physique</span>
+              <span className="text-[11px] font-mono text-muted">{t('profile.badgePreview')}</span>
             </div>
 
             {/* Carte Badge Conférence physique */}
@@ -216,7 +217,7 @@ export default function ProfilePage({ onSaved }) {
               {/* En-tête Badge */}
               <div className="w-full bg-navy text-white px-5 py-4 mt-3 border-y border-accent/40 flex items-center justify-between">
                 <Logo compact inverted />
-                <div className="text-right">
+                <div className="text-end">
                   <span className="block text-[10px] font-mono text-accent uppercase tracking-wider font-semibold">
                     Conférence 2026
                   </span>
@@ -234,19 +235,19 @@ export default function ProfilePage({ onSaved }) {
 
                 <div className="space-y-1">
                   <h3 className="font-bold text-fg text-lg leading-snug truncate" title={form.full_name}>
-                    {form.full_name || 'Votre Nom Complet'}
+                    {form.full_name || t('profile.unnamed')}
                   </h3>
                   <p className="text-xs font-medium text-accent-ink truncate" title={form.affiliation}>
-                    {form.affiliation || 'Laboratoire / Université'}
+                    {form.affiliation || t('profile.affiliationPlaceholder')}
                   </p>
                   <p className="text-[11px] text-muted">
-                    {form.country || 'Algérie'}
+                    {form.country || t('profile.countryPlaceholder')}
                   </p>
                 </div>
 
                 <div className="pt-2">
                   <span className="inline-block px-3 py-1 rounded-full bg-accent text-on-accent text-xs font-bold uppercase tracking-wider shadow-xs">
-                    {isAdmin ? 'Comité Scientifique' : 'Auteur & Participant'}
+                    {isAdmin ? t('workspace.scientificCommittee') : `${t('roles.author')} & ${t('roles.participant')}`}
                   </span>
                 </div>
 
@@ -255,7 +256,7 @@ export default function ProfilePage({ onSaved }) {
                   <div className="p-2 rounded-xl bg-white text-navy shadow-xs border border-line/40">
                     <QrCodeIcon size={44} weight="bold" />
                   </div>
-                  <div className="text-left text-[10px] font-mono text-muted leading-tight">
+                  <div className="text-start text-[10px] font-mono text-muted leading-tight">
                     <span className="block text-fg font-semibold">ID D'ACCÈS VÉRIFIÉ</span>
                     <span className="block text-faint mt-0.5">CNF-2026-{(user.id || '0000').slice(0, 8).toUpperCase()}</span>
                     <span className="block text-ok mt-0.5 font-sans font-medium">Prêt pour impression</span>
@@ -267,14 +268,14 @@ export default function ProfilePage({ onSaved }) {
         </div>
       )}
 
-      <div className="card p-5 sm:p-7 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+      <div className="card p-5 sm:p-7 flex flex-wrap items-center justify-between gap-3 shadow-card">
         <div>
           <p className="font-semibold text-fg text-sm">Gestion de la session</p>
-          <p className="text-xs text-muted">Connecté avec {form?.email || user.email}.</p>
+          <p className="text-xs text-muted">{form?.email || user.email}</p>
         </div>
         <button type="button" className="btn-danger btn-sm" onClick={() => supabase.auth.signOut()}>
           <SignOutIcon size={16} aria-hidden="true" />
-          Se déconnecter
+          {t('nav.signOut')}
         </button>
       </div>
     </div>

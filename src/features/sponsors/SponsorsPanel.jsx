@@ -2,14 +2,16 @@ import { useState, useEffect, useCallback } from 'react'
 import { PlusIcon, XIcon, ArrowUpRightIcon, EyeIcon, EyeSlashIcon, TrashIcon, HandshakeIcon, PencilSimpleIcon } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
+import { useConfirm } from '../../context/ConfirmContext'
+import { useLanguage } from '../../context/LanguageContext'
 import EmptyState from '../../components/ui/EmptyState'
 import SectionTitle from '../../components/ui/SectionTitle'
 
 const TIERS = {
-  platinum: { label: 'Platine', order: 0 },
-  gold: { label: 'Or', order: 1 },
-  silver: { label: 'Argent', order: 2 },
-  partner: { label: 'Partenaire', order: 3 },
+  platinum: { order: 0 },
+  gold: { order: 1 },
+  silver: { order: 2 },
+  partner: { order: 3 },
 }
 const EMPTY_FORM = { name: '', tier: 'partner', website: '', benefits: '' }
 
@@ -31,6 +33,8 @@ const hostOf = (url) => {
 }
 
 export default function SponsorsPanel({ eventId, isOrganizer, compact = false }) {
+  const confirm = useConfirm()
+  const { t } = useLanguage()
   const [sponsors, setSponsors] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -69,7 +73,7 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
       ? await supabase.from('sponsors').update(values).eq('id', editingId).select('id')
       : await supabase.from('sponsors').insert({ ...values, event_id: eventId, published: false }).select('id')
     setSaving(false)
-    const msg = writeError(res, "Enregistrement refusé : tu n'es pas organisateur de cet événement.")
+    const msg = writeError(res, t('errors.saveRefused'))
     if (msg) {
       setError(msg)
       return
@@ -83,16 +87,22 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
   const togglePublished = async (sponsor) => {
     setError(null)
     const res = await supabase.from('sponsors').update({ published: !sponsor.published }).eq('id', sponsor.id).select('id')
-    const msg = writeError(res, "Modification refusée : tu n'es pas organisateur de cet événement.")
+    const msg = writeError(res, t('errors.saveRefused'))
     if (msg) setError(msg)
     else loadSponsors()
   }
 
   const handleDelete = async (sponsor) => {
-    if (!window.confirm(`Supprimer le sponsor « ${sponsor.name} » ?`)) return
+    const ok = await confirm({
+      title: t('sponsors.deleteTitle', { name: sponsor.name }),
+      description: t('sponsors.deleteDesc'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setError(null)
     const res = await supabase.from('sponsors').delete().eq('id', sponsor.id).select('id')
-    const msg = writeError(res, "Suppression refusée : tu n'es pas organisateur de cet événement.")
+    const msg = writeError(res, t('errors.deleteRefused'))
     if (msg) setError(msg)
     else loadSponsors()
   }
@@ -103,9 +113,9 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
   return (
     <section>
       <SectionTitle
-        title={compact ? 'Partenaires' : 'Sponsors'}
+        title={compact ? t('sponsors.partnersTitle') : t('event.sponsors')}
         count={compact ? null : sponsors.length}
-        description={compact ? null : 'Un sponsor ajouté reste en brouillon tant que tu ne le publies pas.'}
+        description={compact ? null : t('sponsors.description')}
         actions={
           isOrganizer &&
           (showForm ? (
@@ -119,12 +129,12 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
               className="btn-ghost"
             >
               <XIcon size={16} aria-hidden="true" />
-              Annuler
+              {t('common.cancel')}
             </button>
           ) : (
             <button type="button" onClick={() => setShowForm(true)} className="btn-accent">
               <PlusIcon size={16} weight="bold" aria-hidden="true" />
-              Ajouter un sponsor
+              {t('sponsors.addSponsorBtn')}
             </button>
           ))
         }
@@ -141,18 +151,18 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
           <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px] gap-5">
             <div>
               <label htmlFor="sponsor-name" className="form-label">
-                Nom
+                {t('sponsors.nameLabel')}
               </label>
               <input id="sponsor-name" className="input-field" value={form.name} onChange={updateField('name')} required />
             </div>
             <div>
               <label htmlFor="sponsor-tier" className="form-label">
-                Niveau
+                {t('sponsors.tierLabel')}
               </label>
               <select id="sponsor-tier" className="select-field" value={form.tier} onChange={updateField('tier')}>
-                {Object.entries(TIERS).map(([value, t]) => (
+                {Object.keys(TIERS).map((value) => (
                   <option key={value} value={value}>
-                    {t.label}
+                    {t(`sponsors.tiers.${value}`)}
                   </option>
                 ))}
               </select>
@@ -160,19 +170,19 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
           </div>
           <div>
             <label htmlFor="sponsor-website" className="form-label">
-              Site web
+              {t('sponsors.websiteLabel')}
             </label>
             <input id="sponsor-website" className="input-field" inputMode="url" value={form.website} onChange={updateField('website')} />
-            <p className="form-hint">Facultatif. Ex. : univ-bejaia.dz</p>
+            <p className="form-hint">{t('sponsors.websiteHint')}</p>
           </div>
           <div>
             <label htmlFor="sponsor-benefits" className="form-label">
-              Contreparties
+              {t('sponsors.benefitsLabel')}
             </label>
             <textarea id="sponsor-benefits" className="textarea-field" rows={3} value={form.benefits} onChange={updateField('benefits')} />
           </div>
           <button type="submit" disabled={saving} className="btn-primary">
-            {saving ? 'Enregistrement…' : editingId ? 'Enregistrer' : 'Ajouter le sponsor'}
+            {saving ? t('common.saving') : editingId ? t('common.save') : t('sponsors.addSponsorSubmit')}
           </button>
         </form>
       )}
@@ -183,11 +193,15 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
           <div className="skeleton h-32" />
         </div>
       ) : sponsors.length === 0 ? (
-        <EmptyState icon={HandshakeIcon} title="Aucun sponsor" body="Les partenaires de l'événement apparaîtront ici." />
+        <EmptyState
+          icon={HandshakeIcon}
+          title={t('sponsors.emptyTitle')}
+          body={t('sponsors.emptyBody')}
+        />
       ) : (
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {sponsors.map((s) => {
-            const tier = TIERS[s.tier] || TIERS.partner
+            const tierKey = TIERS[s.tier] ? s.tier : 'partner'
             const url = safeUrl(s.website)
             return (
               <li
@@ -202,9 +216,11 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
                   <div className="min-w-0 flex-1">
                     <h4 className="font-semibold text-fg leading-snug">{s.name}</h4>
                     <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                      <span className="badge-type">{tier.label}</span>
+                      <span className="badge-type">{t(`sponsors.tiers.${tierKey}`)}</span>
                       {isOrganizer && (
-                        <span className={s.published ? 'badge-published' : 'badge-draft'}>{s.published ? 'Publié' : 'Brouillon'}</span>
+                        <span className={s.published ? 'badge-published' : 'badge-draft'}>
+                          {s.published ? t('eventCard.statuses.published') : t('eventCard.statuses.draft')}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -215,13 +231,13 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
                 {(url || isOrganizer) && (
                   <div className="mt-auto pt-4 flex flex-wrap items-center gap-1.5">
                     {url && (
-                      <a href={url} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm -ml-2">
+                      <a href={url} target="_blank" rel="noopener noreferrer" className="btn-ghost btn-sm -ms-2">
                         {hostOf(url)}
                         <ArrowUpRightIcon size={14} aria-hidden="true" />
                       </a>
                     )}
                     {isOrganizer && (
-                      <span className="ml-auto flex gap-1">
+                      <span className="ms-auto flex gap-1">
                         <button
                           type="button"
                           className="icon-btn w-9 h-9"
@@ -231,21 +247,21 @@ export default function SponsorsPanel({ eventId, isOrganizer, compact = false })
                             setShowForm(true)
                             window.scrollTo({ top: 0, behavior: 'smooth' })
                           }}
-                          aria-label={`Modifier ${s.name}`}
-                          title="Modifier"
+                          aria-label={`${t('common.edit')} ${s.name}`}
+                          title={t('common.edit')}
                         >
                           <PencilSimpleIcon size={16} />
                         </button>
                         <button type="button" className="btn-outline btn-sm" onClick={() => togglePublished(s)}>
                           {s.published ? <EyeSlashIcon size={15} aria-hidden="true" /> : <EyeIcon size={15} aria-hidden="true" />}
-                          {s.published ? 'Dépublier' : 'Publier'}
+                          {s.published ? t('sponsors.unpublish') : t('sponsors.publish')}
                         </button>
                         <button
                           type="button"
                           className="icon-btn w-9 h-9 hover:text-bad"
                           onClick={() => handleDelete(s)}
-                          aria-label={`Supprimer ${s.name}`}
-                          title="Supprimer"
+                          aria-label={`${t('common.delete')} ${s.name}`}
+                          title={t('common.delete')}
                         >
                           <TrashIcon size={16} />
                         </button>

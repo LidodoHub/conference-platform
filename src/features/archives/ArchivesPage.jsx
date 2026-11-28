@@ -16,37 +16,58 @@ import {
   EyeIcon,
   ArrowsOutIcon,
   XIcon,
+  SparkleIcon,
+  PaperPlaneRightIcon,
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
-import { TYPE_LABELS, FORMAT_LABELS, formatDateRange } from '../../lib/constants'
+import { useLanguage } from '../../context/LanguageContext'
+import { useUrlQueryState } from '../../hooks/useUrlQueryState'
+import { useModalBehavior } from '../../hooks/useModalBehavior'
+import { askRag } from '../../services/aiApi'
+import { TYPE_LABELS, FORMAT_LABELS } from '../../lib/constants'
 import { cleanDescription } from '../../lib/cover'
 import EventCover from '../../components/ui/EventCover'
 
-function generateBibtex(article, event) {
-  const authorLastName = (article.profiles?.full_name || 'Auteur')
+function generateBibtex(article, event, t) {
+  const words = (article.profiles?.full_name || '')
+    .replace(/\s*\([^)]*\)/g, ' ')
     .trim()
     .split(/\s+/)
-    .slice(-1)[0]
-    .toLowerCase()
-    .replace(/[^a-z0-9]/g, '')
+    .map((w) => w.toLowerCase().replace(/[^a-z]/g, ''))
+    .filter(Boolean)
+  const authorLastName = words.length ? words[words.length - 1] : 'author'
   const year = event.start_date ? event.start_date.slice(0, 4) : '2026'
-  const citeKey = `${authorLastName || 'auteur'}${year}:${article.id.slice(0, 6)}`
+  const citeKey = `${authorLastName}_${year}:${article.id.slice(0, 6)}`
 
   return `@inproceedings{${citeKey},
   title        = {${article.title.replace(/[{}]/g, '')}},
-  author       = {${article.profiles?.full_name || 'USTO-MB Chercheur'}},
-  booktitle    = {Actes de ${event.title.replace(/[{}]/g, '')}},
+  author       = {${article.profiles?.full_name || t('archives.bibtexAuthorFallback')}},
+  booktitle    = {${t('archives.bibtexBooktitlePrefix')} ${event.title.replace(/[{}]/g, '')}},
   year         = {${year}},
-  organization = {Université des Sciences et de la Technologie d'Oran Mohamed-Boudiaf (USTO-MB)},
-  address      = {${(event.location || 'Oran, Algérie').replace(/[{}]/g, '')}},
-  publisher    = {Éditions Scientifiques USTO-MB}
+  organization = {${t('archives.bibtexOrganization')}},
+  address      = {${(event.location || t('archives.bibtexAddressFallback')).replace(/[{}]/g, '')}},
+  publisher    = {${t('archives.bibtexPublisher')}}
 }`
 }
 
 let cachedArchives = null
 
 export default function ArchivesPage({ onOpenEvent }) {
-  const [activeTab, setActiveTab] = useState('proceedings') // 'proceedings' | 'posters'
+  const { lang, locale, t } = useLanguage()
+  const [searchParams, setSearchParams] = useUrlQueryState()
+  const rawTab = searchParams.get('tab')
+  const activeTab = rawTab === 'papers' ? 'papers' : rawTab === 'posters' ? 'posters' : 'proceedings'
+  const setActiveTab = useCallback(
+    (nextTab) => {
+      const urlTab = nextTab === 'proceedings' ? 'editions' : nextTab
+      setSearchParams((prev) => {
+        prev.set('page', 'archives')
+        prev.set('tab', urlTab)
+        return prev
+      })
+    },
+    [setSearchParams],
+  )
   const [events, setEvents] = useState(cachedArchives?.events || [])
   const [submissionsByEvent, setSubmissionsByEvent] = useState(cachedArchives?.submissionsByEvent || {})
   const [loading, setLoading] = useState(!cachedArchives)
@@ -56,6 +77,32 @@ export default function ArchivesPage({ onOpenEvent }) {
   const [expandedEvents, setExpandedEvents] = useState(new Set())
   const [copiedKey, setCopiedKey] = useState(null)
   const [previewPoster, setPreviewPoster] = useState(null)
+  const [ragQuery, setRagQuery] = useState('')
+  const [ragLoading, setRagLoading] = useState(false)
+  const [ragError, setRagError] = useState(null)
+  const [ragResult, setRagResult] = useState(null)
+  const closePoster = useCallback(() => setPreviewPoster(null), [])
+  useModalBehavior(Boolean(previewPoster), closePoster)
+
+  const submitArchivesQuestion = async (questionText) => {
+    if (ragLoading) return
+    const clean = (questionText ?? ragQuery).trim()
+    if (!clean) return
+    setRagQuery(clean)
+    setRagError(null)
+    setRagResult(null)
+    setRagLoading(true)
+    try {
+      const data = await askRag({ query: clean, scope: 'archives', lang })
+      setRagError(null)
+      setRagResult(data)
+    } catch (err) {
+      setRagResult(null)
+      setRagError(err.message || t('errors.generic'))
+    } finally {
+      setRagLoading(false)
+    }
+  }
 
   const loadArchives = useCallback(async () => {
     if (!cachedArchives) setLoading(true)
@@ -133,7 +180,7 @@ export default function ArchivesPage({ onOpenEvent }) {
   }
 
   const copyCitation = async (article, event) => {
-    const bib = generateBibtex(article, event)
+    const bib = generateBibtex(article, event, t)
     try {
       await navigator.clipboard.writeText(bib)
       setCopiedKey(article.id)
@@ -173,66 +220,177 @@ export default function ArchivesPage({ onOpenEvent }) {
 
   return (
     <div className="max-w-[1440px] mx-auto px-4 sm:px-8 lg:px-10 py-8 sm:py-12 space-y-8 animate-view-fade">
-      {/* EN-TÊTE SCIENTIFIQUE DES ARCHIVES */}
-      <header className="space-y-4 max-w-4xl">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/25 text-xs text-accent-ink font-semibold">
-          <BooksIcon size={16} weight="duotone" aria-hidden="true" />
-          <span>Patrimoine Académique & Actes Officiels • USTO-MB</span>
-        </div>
+      {/* EN-TÊTE COMPACT */}
+      <header className="space-y-3 max-w-4xl">
+        <h1 className="text-[28px] sm:text-[32px] font-semibold tracking-[-0.025em] text-fg leading-tight">
+          {t('archives.title')}
+        </h1>
+        <p className="text-sm sm:text-base text-muted leading-relaxed max-w-[70ch]">
+          {t('archives.subtitle')}
+        </p>
 
-        <div>
-          <h1 className="text-2xl sm:text-4xl font-bold tracking-tight text-fg leading-tight">
-            Actes de Colloques & Archives Scientifiques
-          </h1>
-          <p className="text-sm sm:text-base text-muted mt-2 leading-relaxed max-w-[70ch]">
-            Consultez les actes des manifestations passées, parcourez les communications évaluées et validées par les comités de pairs, et exportez les références bibliographiques certifiées.
-          </p>
-        </div>
-
-        {/* MÉTRIQUES CLÉS */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
-          <div className="card p-4 border-line bg-surface/80">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted block">Éditions Archivées</span>
-            <span className="text-2xl font-bold font-mono text-fg mt-1 block">{events.length}</span>
-          </div>
-          <div className="card p-4 border-line bg-surface/80">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted block">Articles Publiés</span>
-            <span className="text-2xl font-bold font-mono text-fg mt-1 block">{totalAcceptedSubmissions}</span>
-          </div>
-          <div className="card p-4 border-line bg-surface/80 col-span-2 sm:col-span-1">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted block">Indexation</span>
-            <span className="text-sm font-semibold text-accent-ink mt-1.5 block">BibTeX / DOI USTO</span>
-          </div>
+        {/* Bandeau de métadonnées inline sobre */}
+        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs sm:text-[13px] text-muted pt-1">
+          <span className="font-medium text-fg">{t('archives.metaEditions', { count: events.length })}</span>
+          <span className="text-neutral-300 dark:text-neutral-700" aria-hidden="true">·</span>
+          <span className="font-medium text-fg">{t('archives.metaPapers', { count: totalAcceptedSubmissions })}</span>
+          <span className="text-neutral-300 dark:text-neutral-700" aria-hidden="true">·</span>
+          <span>{t('archives.metaIndexing')}</span>
         </div>
       </header>
 
-      {/* COMMUTATEUR MAÎTRE : ACTES ÉCRITS vs GALERIE DES POSTERS */}
-      <div className="flex items-center justify-center pt-1 pb-2">
-        <div className="inline-flex items-center bg-surface-2 p-1.5 rounded-xl border border-line gap-1.5 shadow-sm">
+      {/* SPOTLIGHT : ASK THE ARCHIVES (AU-DESSUS DES ONGLETS & FILTRES) */}
+      <section
+        aria-label={t('rag.archivesTitle')}
+        className="rounded-2xl border border-accent/40 dark:border-accent/35 bg-surface p-5 sm:p-6 space-y-4 shadow-[0_0_28px_-6px_rgba(200,150,62,0.18)] dark:shadow-[0_0_32px_-6px_rgba(196,168,107,0.16)]"
+      >
+        <div className="flex items-center gap-2.5">
+          <SparkleIcon size={18} weight="fill" className="text-accent-ink shrink-0" aria-hidden="true" />
+          <h2 className="text-sm sm:text-base font-semibold tracking-tight text-fg">
+            {t('rag.archivesTitle')}
+          </h2>
+        </div>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault()
+            submitArchivesQuestion()
+          }}
+          className="flex flex-col sm:flex-row sm:items-center gap-2.5"
+        >
+          <input
+            type="text"
+            value={ragQuery}
+            disabled={ragLoading}
+            onChange={(e) => setRagQuery(e.target.value)}
+            placeholder={t('rag.archivesPlaceholder')}
+            aria-label={t('rag.archivesTitle')}
+            className="input-field flex-1 h-11 text-sm focus:border-accent focus:ring-1 focus:ring-accent disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={ragLoading || !ragQuery.trim()}
+            className="bg-accent hover:bg-accent/90 text-[#1D1D1F] font-semibold text-xs sm:text-sm rounded-xl px-5 h-11 shrink-0 inline-flex items-center justify-center gap-1.5 shadow-xs transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+          >
+            <PaperPlaneRightIcon size={14} weight="bold" className="rtl:rotate-180" aria-hidden="true" />
+            <span>{ragLoading ? t('rag.asking') : t('rag.askBtn')}</span>
+          </button>
+        </form>
+
+        {/* 3 starter prompt chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted me-0.5">{t('rag.tryAsking')}</span>
+          {[
+            t('rag.archivesStarterCount'),
+            t('rag.archivesStarterTopics'),
+            t('rag.archivesStarterEvents'),
+          ].map((starter) => (
+            <button
+              key={starter}
+              type="button"
+              disabled={ragLoading}
+              onClick={() => submitArchivesQuestion(starter)}
+              className="text-xs font-medium px-3 py-1 rounded-full bg-surface-2 border border-line text-fg hover:border-accent/60 hover:text-accent-ink transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {starter}
+            </button>
+          ))}
+        </div>
+
+        {ragError && <div className="alert-error text-xs">{ragError}</div>}
+
+        {ragLoading && (
+          <div className="space-y-2 border-s-4 border-accent ps-4 py-1.5">
+            <div className="skeleton h-3.5 w-4/5" />
+            <div className="skeleton h-3.5 w-2/3" />
+          </div>
+        )}
+
+        {!ragLoading && ragResult && (
+          <div className="border-s-4 border-accent ps-4 py-2 rounded-e-xl bg-surface-2/60 space-y-3 animate-panel-enter">
+            <div className="flex items-start justify-between gap-3">
+              <p className="text-sm text-fg leading-relaxed whitespace-pre-line">{ragResult.answer}</p>
+              <button
+                type="button"
+                onClick={() => setRagResult(null)}
+                className="btn-ghost btn-sm p-1 text-muted hover:text-fg shrink-0"
+                aria-label={t('common.close')}
+              >
+                <XIcon size={15} />
+              </button>
+            </div>
+
+            {ragResult.citations?.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="text-[11px] font-medium text-muted me-1">{t('rag.sources')}:</span>
+                {ragResult.citations.map((cit, idx) => {
+                  const matchedPaper = cit.paper_id
+                    ? allPosters.find((p) => String(p.id) === String(cit.paper_id))
+                    : null
+                  const clickable = Boolean(matchedPaper || cit.event_id)
+                  return (
+                    <button
+                      key={`${cit.paper_id || cit.title}-${idx}`}
+                      type="button"
+                      disabled={!clickable}
+                      onClick={() => {
+                        if (matchedPaper) setPreviewPoster(matchedPaper)
+                        else if (cit.event_id) onOpenEvent(cit.event_id)
+                      }}
+                      className="inline-flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-full bg-neutral-100/80 text-neutral-700 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10 hover:border-accent/60 hover:text-accent-ink transition-colors cursor-pointer disabled:cursor-default"
+                    >
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" aria-hidden="true" />
+                      <span className="truncate max-w-[240px]">{cit.title}</span>
+                      {clickable && <ArrowUpRightIcon size={11} weight="bold" className="rtl:rotate-180 shrink-0" />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      {/* COMMUTATEUR MAÎTRE : ÉDITIONS | ARTICLES PUBLIÉS | GALERIE DES POSTERS */}
+      <div className="flex items-center justify-start pt-1">
+        <div className="inline-flex items-center bg-surface-2 p-1 rounded-xl border border-line gap-1 max-w-full overflow-x-auto">
           <button
             type="button"
             onClick={() => setActiveTab('proceedings')}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'proceedings'
-                ? 'bg-surface text-fg shadow-xs ring-1 ring-accent/30'
+                ? 'bg-surface text-fg shadow-xs'
                 : 'text-muted hover:text-fg'
             }`}
           >
-            <FileTextIcon size={16} weight={activeTab === 'proceedings' ? 'bold' : 'regular'} />
-            <span>Recueils d'actes & Articles ({events.length})</span>
+            <BooksIcon size={15} weight={activeTab === 'proceedings' ? 'bold' : 'regular'} />
+            <span>{t('archives.tabs.proceedings', { count: events.length })}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('papers')}
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
+              activeTab === 'papers'
+                ? 'bg-surface text-fg shadow-xs'
+                : 'text-muted hover:text-fg'
+            }`}
+          >
+            <FileTextIcon size={15} weight={activeTab === 'papers' ? 'bold' : 'regular'} />
+            <span>{t('archives.tabs.publishedPapers', { count: allPosters.length })}</span>
           </button>
 
           <button
             type="button"
             onClick={() => setActiveTab('posters')}
-            className={`flex items-center gap-2 px-4 sm:px-6 py-2 rounded-lg text-xs sm:text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs sm:text-sm font-medium whitespace-nowrap transition-all cursor-pointer ${
               activeTab === 'posters'
-                ? 'bg-surface text-fg shadow-xs ring-1 ring-accent/30'
+                ? 'bg-surface text-fg shadow-xs'
                 : 'text-muted hover:text-fg'
             }`}
           >
-            <PresentationChartIcon size={16} weight={activeTab === 'posters' ? 'bold' : 'regular'} />
-            <span>Galerie des Posters ({allPosters.length})</span>
+            <PresentationChartIcon size={15} weight={activeTab === 'posters' ? 'bold' : 'regular'} />
+            <span>{t('archives.tabs.posters', { count: allPosters.length })}</span>
           </button>
         </div>
       </div>
@@ -244,7 +402,7 @@ export default function ArchivesPage({ onOpenEvent }) {
           <div className="relative">
             <MagnifyingGlassIcon
               size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+              className="absolute start-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
               aria-hidden="true"
             />
             <input
@@ -253,10 +411,12 @@ export default function ArchivesPage({ onOpenEvent }) {
               onChange={(e) => setSearch(e.target.value)}
               placeholder={
                 activeTab === 'proceedings'
-                  ? 'Rechercher par titre de conférence, article, auteur, mot-clé…'
-                  : 'Rechercher un poster par titre, auteur, résumé ou conférence…'
+                  ? t('archives.searchProceedingsPlaceholder')
+                  : activeTab === 'papers'
+                    ? t('archives.searchPapersPlaceholder')
+                    : t('archives.searchPostersPlaceholder')
               }
-              className="input-field pl-10 text-sm"
+              className="input-field ps-10 text-sm"
             />
           </div>
 
@@ -265,14 +425,18 @@ export default function ArchivesPage({ onOpenEvent }) {
             value={selectedType}
             onChange={(e) => setSelectedType(e.target.value)}
             className="select-field text-xs h-10 w-full md:w-auto"
-            aria-label="Filtrer par type de manifestation"
+            aria-label={t('archives.filterByTypeAria')}
           >
-            <option value="all">Tous les types de rencontres</option>
-            {Object.entries(TYPE_LABELS).map(([v, l]) => (
-              <option key={v} value={v}>
-                {l}
-              </option>
-            ))}
+            <option value="all">{t('archives.allTypes')}</option>
+            {Object.entries(TYPE_LABELS).map(([v, l]) => {
+              const typeKey = `eventCard.types.${v}`
+              const typeLabel = t(typeKey)
+              return (
+                <option key={v} value={v}>
+                  {typeLabel !== typeKey ? typeLabel : l}
+                </option>
+              )
+            })}
           </select>
 
           {/* Années selector */}
@@ -286,7 +450,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                   : 'bg-surface border border-line text-muted hover:text-fg'
               }`}
             >
-              Toutes les années
+              {t('archives.allYears')}
             </button>
             {years.map((yr) => (
               <button
@@ -309,9 +473,25 @@ export default function ArchivesPage({ onOpenEvent }) {
           <div className="flex items-center justify-between text-xs text-muted pt-1 border-t border-line/60">
             <span>
               {activeTab === 'proceedings'
-                ? `${filteredEvents.length} ${filteredEvents.length > 1 ? 'archives correspondent' : 'archive correspond'}`
-                : `${filteredPosters.length} ${filteredPosters.length > 1 ? 'posters correspondent' : 'poster correspond'}`}{' '}
-              aux critères.
+                ? t(
+                    filteredEvents.length > 1
+                      ? 'archives.resultsCount.proceedingsPlural'
+                      : 'archives.resultsCount.proceedingsSingular',
+                    { count: filteredEvents.length }
+                  )
+                : activeTab === 'papers'
+                  ? t(
+                      filteredPosters.length > 1
+                        ? 'archives.resultsCount.papersPlural'
+                        : 'archives.resultsCount.papersSingular',
+                      { count: filteredPosters.length }
+                    )
+                  : t(
+                      filteredPosters.length > 1
+                        ? 'archives.resultsCount.postersPlural'
+                        : 'archives.resultsCount.postersSingular',
+                      { count: filteredPosters.length }
+                    )}
             </span>
             <button
               type="button"
@@ -323,7 +503,7 @@ export default function ArchivesPage({ onOpenEvent }) {
               className="text-accent-ink hover:underline inline-flex items-center gap-1 font-semibold"
             >
               <ArrowCounterClockwiseIcon size={12} weight="bold" />
-              Réinitialiser les filtres
+              {t('archives.resetFilters')}
             </button>
           </div>
         )}
@@ -331,7 +511,7 @@ export default function ArchivesPage({ onOpenEvent }) {
 
       {/* VUE 1 : RECUEILS D'ACTES & VOLUMES (TEXTUEL & BIBTEX) */}
       {activeTab === 'proceedings' && (
-        <>
+        <div key="tab-proceedings" className="animate-panel-enter">
           {loading ? (
             <div className="space-y-6">
               <div className="skeleton h-48 rounded-2xl" />
@@ -340,11 +520,11 @@ export default function ArchivesPage({ onOpenEvent }) {
           ) : filteredEvents.length === 0 ? (
             <div className="card p-12 text-center border-dashed space-y-3">
               <BooksIcon size={36} className="text-muted mx-auto" weight="thin" />
-              <h3 className="text-base font-semibold text-fg">Aucun volume d'actes ne correspond à votre recherche</h3>
+              <h3 className="text-base font-semibold text-fg">{t('archives.emptyProceedings.title')}</h3>
               <p className="text-xs sm:text-sm text-muted max-w-[50ch] mx-auto">
                 {events.length === 0
-                  ? "Aucune conférence n'a encore été clôturée ou archivée. Dès qu'un colloque prend fin, ses actes et communications validées sont indexés ici."
-                  : 'Essayez de modifier vos mots-clés ou de réinitialiser les filtres par année.'}
+                  ? t('archives.emptyProceedings.noEvents')
+                  : t('archives.emptyProceedings.noMatches')}
               </p>
             </div>
           ) : (
@@ -367,13 +547,20 @@ export default function ArchivesPage({ onOpenEvent }) {
                               {year}
                             </span>
                             <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-fg/20 text-white backdrop-blur-xs">
-                              {ev.status === 'archived' ? 'Archivé' : 'Clôturé'}
+                              {ev.status === 'archived' ? t('eventCard.statuses.archived') : t('eventCard.statuses.closed')}
                             </span>
                           </div>
                           <div className="relative z-10 text-white">
-                            <span className="text-xs font-semibold block">{TYPE_LABELS[ev.type] || ev.type}</span>
+                            <span className="text-xs font-semibold block">
+                              {t(`eventCard.types.${ev.type}`) !== `eventCard.types.${ev.type}`
+                                ? t(`eventCard.types.${ev.type}`)
+                                : (TYPE_LABELS[ev.type] || ev.type)}
+                            </span>
                             <span className="text-[11px] text-white/75 block">
-                              {(FORMAT_LABELS[ev.format] || ev.format || '').toLowerCase()}
+                              {(t(`eventCard.formats.${ev.format}`) !== `eventCard.formats.${ev.format}`
+                                ? t(`eventCard.formats.${ev.format}`)
+                                : (FORMAT_LABELS[ev.format] || ev.format || '')
+                              ).toLowerCase()}
                             </span>
                           </div>
                         </EventCover>
@@ -384,12 +571,16 @@ export default function ArchivesPage({ onOpenEvent }) {
                           <div className="flex items-center gap-2 text-xs text-muted">
                             <span className="inline-flex items-center gap-1 font-mono">
                               <CalendarBlankIcon size={14} />
-                              {formatDateRange(ev.start_date, ev.end_date)}
+                              {ev.start_date
+                                ? (ev.end_date && ev.end_date !== ev.start_date
+                                  ? `${new Date(`${String(ev.start_date).slice(0, 10)}T00:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short' })} — ${new Date(`${String(ev.end_date).slice(0, 10)}T00:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' })}`
+                                  : new Date(`${String(ev.start_date).slice(0, 10)}T00:00:00`).toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' }))
+                                : '—'}
                             </span>
                             <span>&bull;</span>
                             <span className="inline-flex items-center gap-1">
                               <MapPinIcon size={14} />
-                              {ev.location || 'Campus USTO-MB'}
+                              {ev.location || t('dashboard.defaultLocation')}
                             </span>
                           </div>
 
@@ -397,10 +588,10 @@ export default function ArchivesPage({ onOpenEvent }) {
                             type="button"
                             onClick={() => onOpenEvent(ev.id)}
                             className="btn-ghost btn-sm text-xs font-semibold inline-flex items-center gap-1"
-                            title="Consulter la fiche complète"
+                            title={t('archives.viewFullSheetTitle')}
                           >
-                            <span>Fiche officielle</span>
-                            <ArrowUpRightIcon size={13} weight="bold" />
+                            <span>{t('archives.officialSheet')}</span>
+                            <ArrowUpRightIcon size={13} weight="bold" className="rtl:rotate-180" />
                           </button>
                         </div>
 
@@ -416,11 +607,12 @@ export default function ArchivesPage({ onOpenEvent }) {
 
                         <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-line/60">
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-mono font-bold px-2.5 py-1 rounded-md bg-accent/12 text-accent-ink border border-accent/25">
-                              Actes USTO-MB &bull; Vol. {year}-{ev.id.slice(0, 4).toUpperCase()}
+                            <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-md bg-neutral-100/80 text-neutral-700 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10">
+                              {t('archives.proceedingsVol', { vol: `${year}-${ev.id.slice(0, 4).toUpperCase()}` })}
                             </span>
                             <span className="text-xs text-muted">
-                              <strong>{subs.length}</strong> {subs.length > 1 ? 'articles validés' : 'article validé'}
+                              <strong>{subs.length}</strong>{' '}
+                              {subs.length > 1 ? t('archives.validatedPaperPlural') : t('archives.validatedPaperSingular')}
                             </span>
                           </div>
 
@@ -431,13 +623,13 @@ export default function ArchivesPage({ onOpenEvent }) {
                           >
                             {isExpanded ? (
                               <>
-                                <span>Masquer les actes</span>
+                                <span>{t('archives.hideProceedings')}</span>
                                 <CaretUpIcon size={13} weight="bold" />
                               </>
                             ) : (
                               <>
                                 <FileTextIcon size={14} />
-                                <span>Consulter les actes ({subs.length})</span>
+                                <span>{t('archives.viewProceedings', { count: subs.length })}</span>
                                 <CaretDownIcon size={13} weight="bold" />
                               </>
                             )}
@@ -451,14 +643,14 @@ export default function ArchivesPage({ onOpenEvent }) {
                         <div className="flex items-center justify-between">
                           <h3 className="text-xs font-bold uppercase tracking-wider text-muted flex items-center gap-1.5">
                             <QuotesIcon size={14} className="text-accent-ink" weight="bold" />
-                            Table des matières & Articles scientifiques publiés
+                            {t('archives.tocTitle')}
                           </h3>
-                          <span className="text-[11px] text-muted">Indexation conforme aux normes académiques</span>
+                          <span className="text-[11px] text-muted">{t('archives.tocSubtitle')}</span>
                         </div>
 
                         {subs.length === 0 ? (
                           <p className="text-xs text-muted py-3 italic">
-                            Aucune communication individuelle n'est enregistrée pour ce volume d'actes.
+                            {t('archives.noPapersInVolume')}
                           </p>
                         ) : (
                           <ul className="divide-y divide-line/60 rounded-xl border border-line bg-surface overflow-hidden">
@@ -473,7 +665,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                                       #{idx + 1}
                                     </span>
                                     <span className="text-xs font-medium text-accent-ink">
-                                      {article.profiles?.full_name || 'Chercheur affilié USTO-MB'}
+                                      {article.profiles?.full_name || t('archives.affiliatedResearcher')}
                                     </span>
                                   </div>
 
@@ -497,12 +689,12 @@ export default function ArchivesPage({ onOpenEvent }) {
                                         ? 'bg-ok/15 text-ok border-ok/40 font-bold'
                                         : 'text-fg'
                                     }`}
-                                    title="Copier la référence au format BibTeX"
+                                    title={t('archives.copyBibtexTitle')}
                                   >
                                     {copiedKey === article.id ? (
                                       <>
                                         <CheckIcon size={13} weight="bold" />
-                                        <span>Copié !</span>
+                                        <span>{t('archives.copied')}</span>
                                       </>
                                     ) : (
                                       <>
@@ -523,18 +715,112 @@ export default function ArchivesPage({ onOpenEvent }) {
               })}
             </div>
           )}
-        </>
+        </div>
       )}
 
-      {/* VUE 2 : GALERIE VISUELLE DES POSTERS SCIENTIFIQUES (OPTION 3) */}
+      {/* VUE 2 : ARTICLES PUBLIÉS (ACCÈS DIRECT + BIBTEX & PDF) */}
+      {activeTab === 'papers' && (
+        <div key="tab-papers" className="space-y-4 animate-panel-enter">
+          <h2 className="text-base sm:text-lg font-semibold tracking-tight text-fg">
+            {t('archives.tabs.publishedPapers', { count: filteredPosters.length })}
+          </h2>
+
+          {loading ? (
+            <div className="space-y-3">
+              <div className="skeleton h-28 rounded-2xl" />
+              <div className="skeleton h-28 rounded-2xl" />
+              <div className="skeleton h-28 rounded-2xl" />
+            </div>
+          ) : filteredPosters.length === 0 ? (
+            <div className="card p-12 text-center border-dashed space-y-3">
+              <FileTextIcon size={36} className="text-muted mx-auto" weight="thin" />
+              <h3 className="text-base font-semibold text-fg">{t('archives.emptyPapers.title')}</h3>
+              <p className="text-xs sm:text-sm text-muted max-w-[50ch] mx-auto">
+                {t('archives.emptyPapers.body')}
+              </p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-line/60 rounded-2xl border border-line bg-surface overflow-hidden shadow-card">
+              {filteredPosters.map((article) => {
+                const year = article.event?.start_date ? article.event.start_date.slice(0, 4) : ''
+                return (
+                  <li
+                    key={`paper-${article.id}`}
+                    className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 hover:bg-neutral-50/70 dark:hover:bg-white/[0.02] transition-colors"
+                  >
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+                        <span className="font-medium text-fg">
+                          {article.profiles?.full_name || t('archives.affiliatedResearcher')}
+                        </span>
+                        <span className="text-neutral-300 dark:text-neutral-700" aria-hidden="true">·</span>
+                        <span className="truncate">{article.event?.title}</span>
+                        {year && (
+                          <>
+                            <span className="text-neutral-300 dark:text-neutral-700" aria-hidden="true">·</span>
+                            <span className="font-mono num">{year}</span>
+                          </>
+                        )}
+                      </div>
+
+                      <h3 className="text-sm sm:text-base font-semibold text-fg leading-snug">
+                        {article.title}
+                      </h3>
+
+                      {article.abstract && (
+                        <p className="text-xs text-muted line-clamp-2 leading-relaxed">
+                          {article.abstract}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2 self-end md:self-center">
+                      <button
+                        type="button"
+                        onClick={() => copyCitation(article, article.event)}
+                        className="btn-outline btn-sm text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        {copiedKey === article.id ? (
+                          <span className="font-medium text-fg">{t('archives.copiedCheck')}</span>
+                        ) : (
+                          <>
+                            <CopyIcon size={13} />
+                            <span>{t('archives.copyBibtex')}</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          const { exportProceedingsPDF } = await import('../certificates/pdf')
+                          exportProceedingsPDF({
+                            eventTitle: article.event?.title || 'CONFERA',
+                            submissions: [article],
+                          })
+                        }}
+                        className="btn-outline btn-sm text-xs inline-flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <FileTextIcon size={13} />
+                        <span>{t('archives.pdfAction')}</span>
+                      </button>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* VUE 3 : GALERIE VISUELLE DES POSTERS SCIENTIFIQUES */}
       {activeTab === 'posters' && (
-        <div className="space-y-6">
+        <div key="tab-posters" className="space-y-6 animate-panel-enter">
           {filteredPosters.length === 0 ? (
             <div className="card p-12 text-center border-dashed space-y-3">
               <PresentationChartIcon size={36} className="text-muted mx-auto" weight="thin" />
-              <h3 className="text-base font-semibold text-fg">Aucun poster scientifique répertorié</h3>
+              <h3 className="text-base font-semibold text-fg">{t('archives.emptyPosters.title')}</h3>
               <p className="text-xs sm:text-sm text-muted max-w-[50ch] mx-auto">
-                Les planches de posters des communications acceptées s'affichent automatiquement ici dès la fin des sessions.
+                {t('archives.emptyPosters.body')}
               </p>
             </div>
           ) : (
@@ -545,14 +831,14 @@ export default function ArchivesPage({ onOpenEvent }) {
                 return (
                   <article
                     key={poster.id}
-                    className="group card overflow-hidden border border-line bg-surface flex flex-col justify-between shadow-card hover:border-accent/50 hover:shadow-xl transition-all duration-200"
+                    className="group card overflow-hidden border border-line bg-surface flex flex-col justify-between shadow-card hover:border-neutral-300 dark:hover:border-white/20 hover:shadow-lift transition-all duration-200"
                   >
                     {/* PLANCHE POSTER SIMULÉE HAUTE FIDÉLITÉ (FORMAT A0 SCIENTIFIQUE) */}
                     <div className="p-4 bg-gradient-to-br from-surface-2 via-surface to-surface-sunken border-b border-line relative overflow-hidden flex flex-col justify-between min-h-[220px]">
                       {/* Bandeau d'en-tête du poster académique */}
                       <div className="flex items-center justify-between pb-2 border-b border-line/60">
                         <span className="text-[10px] font-mono font-bold tracking-wider text-accent-ink uppercase">
-                          USTO-MB &bull; Poster P-{String(index + 1).padStart(2, '0')}
+                          {t('archives.posterBadge', { number: String(index + 1).padStart(2, '0') })}
                         </span>
                         <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-fg/10 text-muted">
                           {year}
@@ -565,23 +851,23 @@ export default function ArchivesPage({ onOpenEvent }) {
                           {poster.title}
                         </h4>
                         <p className="text-[11px] font-semibold text-accent-ink truncate">
-                          {poster.profiles?.full_name || 'Équipe de Recherche USTO-MB'}
+                          {poster.profiles?.full_name || t('archives.researchTeamFallback')}
                         </p>
                         <p className="text-[10.5px] text-muted line-clamp-3 leading-relaxed">
-                          {poster.abstract || 'Communication scientifique présentée en session poster lors de la conférence officielle.'}
+                          {poster.abstract || t('archives.posterAbstractFallback')}
                         </p>
                       </div>
 
                       {/* Mini grille de colonnes scientifiques (Abstract / Méthodologie / Résultats) */}
                       <div className="grid grid-cols-3 gap-1.5 pt-2 border-t border-line/50 text-[9px] text-muted font-mono">
                         <div className="bg-surface/80 p-1 rounded border border-line/50 text-center">
-                          Introduction
+                          {t('archives.posterSections.introduction')}
                         </div>
                         <div className="bg-surface/80 p-1 rounded border border-line/50 text-center text-accent-ink font-semibold">
-                          Méthodes
+                          {t('archives.posterSections.methods')}
                         </div>
                         <div className="bg-surface/80 p-1 rounded border border-line/50 text-center text-ok font-semibold">
-                          Résultats
+                          {t('archives.posterSections.results')}
                         </div>
                       </div>
 
@@ -593,7 +879,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                           className="btn-accent btn-sm text-xs font-semibold inline-flex items-center gap-1.5 shadow-lg active:scale-95 transition-all"
                         >
                           <EyeIcon size={14} weight="bold" />
-                          <span>Visionner en grand</span>
+                          <span>{t('archives.viewLarge')}</span>
                         </button>
                       </div>
                     </div>
@@ -614,7 +900,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                           className="btn-outline btn-sm text-xs font-semibold inline-flex items-center gap-1"
                         >
                           <ArrowsOutIcon size={13} weight="bold" />
-                          <span>Plein écran</span>
+                          <span>{t('archives.fullscreen')}</span>
                         </button>
 
                         <button
@@ -622,8 +908,8 @@ export default function ArchivesPage({ onOpenEvent }) {
                           onClick={() => onOpenEvent(poster.event_id)}
                           className="btn-ghost btn-sm text-xs font-semibold inline-flex items-center gap-1 text-muted hover:text-fg"
                         >
-                          <span>Conférence</span>
-                          <ArrowUpRightIcon size={12} weight="bold" />
+                          <span>{t('archives.conference')}</span>
+                          <ArrowUpRightIcon size={12} weight="bold" className="rtl:rotate-180" />
                         </button>
                       </div>
                     </div>
@@ -640,20 +926,20 @@ export default function ArchivesPage({ onOpenEvent }) {
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-view-fade"
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-fade-in"
         >
-          <div className="bg-surface border border-line rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6">
+          <div className="bg-surface border border-line rounded-2xl max-w-4xl w-full max-h-[92vh] overflow-y-auto shadow-2xl p-6 sm:p-8 space-y-6 animate-modal-enter">
             {/* Header lightbox */}
             <div className="flex items-start justify-between gap-4 pb-4 border-b border-line">
               <div>
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-accent-ink px-2.5 py-0.5 rounded bg-accent/15 border border-accent/30 inline-block mb-1.5">
-                  Poster Académique Validé
+                  {t('archives.validatedPoster')}
                 </span>
                 <h3 className="text-base sm:text-xl font-bold text-fg leading-snug">
                   {previewPoster.title}
                 </h3>
                 <p className="text-xs sm:text-sm text-muted mt-1">
-                  Par <strong>{previewPoster.profiles?.full_name || 'Auteur non renseigné'}</strong>
+                  {t('common.by')} <strong>{previewPoster.profiles?.full_name || t('archives.unknownAuthor')}</strong>
                   {previewPoster.profiles?.affiliation ? ` (${previewPoster.profiles.affiliation})` : ''}
                   {previewPoster.event?.title ? ` • ${previewPoster.event.title}` : ''}
                 </p>
@@ -663,7 +949,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                 type="button"
                 onClick={() => setPreviewPoster(null)}
                 className="btn-ghost btn-sm text-muted hover:text-fg p-1.5 rounded-lg"
-                aria-label="Fermer"
+                aria-label={t('common.close')}
               >
                 <XIcon size={22} />
               </button>
@@ -683,7 +969,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                 </h2>
                 <div className="text-xs text-muted flex flex-wrap items-center justify-center gap-2">
                   <span className="font-semibold text-fg">
-                    {previewPoster.profiles?.full_name || 'Auteur non renseigné'}
+                    {previewPoster.profiles?.full_name || t('archives.unknownAuthor')}
                   </span>
                   {previewPoster.profiles?.affiliation && (
                     <>
@@ -694,7 +980,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                   {previewPoster.event?.start_date && (
                     <>
                       <span>&bull;</span>
-                      <span>{new Date(previewPoster.event.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                      <span>{new Date(previewPoster.event.start_date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                     </>
                   )}
                 </div>
@@ -703,29 +989,35 @@ export default function ArchivesPage({ onOpenEvent }) {
               {/* Résumé officiel de la soumission */}
               <div className="card p-5 border-line bg-surface space-y-2">
                 <h4 className="font-bold text-accent-ink uppercase tracking-wide text-xs pb-1 border-b border-line">
-                  Résumé scientifique (Abstract)
+                  {t('archives.scientificAbstract')}
                 </h4>
                 <p className="text-fg/85 leading-relaxed text-sm whitespace-pre-line">
-                  {previewPoster.abstract || "Aucun résumé n'a été fourni pour cet article."}
+                  {previewPoster.abstract || t('archives.noAbstractProvided')}
                 </p>
               </div>
 
               {/* Métadonnées réelles de l'événement et de la publication */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <div className="card p-4 border-line bg-surface space-y-1">
-                  <span className="text-muted block text-[11px] font-semibold uppercase">Conférence organisatrice</span>
-                  <span className="text-fg font-medium">{previewPoster.event?.title || 'Conférence archivée'}</span>
+                  <span className="text-muted block text-[11px] font-semibold uppercase">{t('archives.organizingConference')}</span>
+                  <span className="text-fg font-medium">{previewPoster.event?.title || t('archives.archivedConferenceFallback')}</span>
                   {previewPoster.event?.location && (
                     <span className="text-muted text-[11px] block">{previewPoster.event.location}</span>
                   )}
                 </div>
                 <div className="card p-4 border-line bg-surface space-y-1">
-                  <span className="text-muted block text-[11px] font-semibold uppercase">Statut & Présentation</span>
-                  <span className="text-fg font-medium">Communication acceptée par les pairs</span>
+                  <span className="text-muted block text-[11px] font-semibold uppercase">{t('archives.statusAndPresentation')}</span>
+                  <span className="text-fg font-medium">{t('archives.peerAccepted')}</span>
                   <span className="text-muted text-[11px] block">
                     {previewPoster.event?.start_date
-                      ? `Présenté le ${new Date(previewPoster.event.start_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                      : 'Actes officiels archivés'}
+                      ? t('archives.presentedOn', {
+                          date: new Date(previewPoster.event.start_date).toLocaleDateString(locale, {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          }),
+                        })
+                      : t('archives.officialProceedingsArchived')}
                   </span>
                 </div>
               </div>
@@ -741,8 +1033,8 @@ export default function ArchivesPage({ onOpenEvent }) {
                 }}
                 className="btn-outline btn-sm text-xs font-semibold inline-flex items-center gap-1.5"
               >
-                <span>Accéder à la conférence complète</span>
-                <ArrowUpRightIcon size={13} weight="bold" />
+                <span>{t('archives.accessFullConference')}</span>
+                <ArrowUpRightIcon size={13} weight="bold" className="rtl:rotate-180" />
               </button>
 
               <button
@@ -750,7 +1042,7 @@ export default function ArchivesPage({ onOpenEvent }) {
                 onClick={() => setPreviewPoster(null)}
                 className="btn-primary btn-sm text-xs font-semibold"
               >
-                Fermer la vue plein écran
+                {t('common.close')}
               </button>
             </div>
           </div>

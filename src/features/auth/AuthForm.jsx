@@ -15,17 +15,11 @@ import { frError } from '../../lib/errors'
 import { AUTH_PHOTO } from '../../lib/constants'
 import Logo from '../../components/ui/Logo'
 import ThemeToggle from '../../components/ui/ThemeToggle'
-
-const MODES = {
-  signin: { title: 'Se connecter', submit: 'Se connecter' },
-  signup: { title: 'Créer un compte', submit: 'Créer mon compte' },
-  reset: { title: 'Mot de passe oublié', submit: 'Envoyer le lien' },
-}
+import { useLanguage } from '../../context/LanguageContext'
 
 const DEMO_ACCOUNTS = [
   {
     roleKey: 'organizer',
-    roleLabel: 'Organisateur',
     name: 'Pr. Amine Khelil',
     email: 'demo-organisateur@usto-mb.dz',
     password: 'ConferaDemo2026!',
@@ -35,7 +29,6 @@ const DEMO_ACCOUNTS = [
   },
   {
     roleKey: 'reviewer',
-    roleLabel: 'Relecteur / Expert',
     name: 'Dr. Samia Benali',
     email: 'demo-reviewer@usto-mb.dz',
     password: 'ConferaDemo2026!',
@@ -45,7 +38,6 @@ const DEMO_ACCOUNTS = [
   },
   {
     roleKey: 'participant',
-    roleLabel: 'Chercheur / Auteur',
     name: 'Yacine Meziane',
     email: 'demo-chercheur@usto-mb.dz',
     password: 'ConferaDemo2026!',
@@ -55,7 +47,6 @@ const DEMO_ACCOUNTS = [
   },
   {
     roleKey: 'admin',
-    roleLabel: 'Admin Campus',
     name: 'Dr. Karim Benmansour',
     email: 'demo-admin@confera.dz',
     password: 'ConferaDemo2026!',
@@ -92,7 +83,14 @@ function BadgePreview() {
 }
 
 export default function AuthForm() {
+  const { t } = useLanguage()
   const [mode, setMode] = useState('signin')
+
+  const modes = {
+    signin: { title: t('auth.signinTitle'), submit: t('auth.signinSubmit') },
+    signup: { title: t('auth.signupTitle'), submit: t('auth.signupSubmit') },
+    reset: { title: t('auth.resetTitle'), submit: t('auth.resetSubmit') },
+  }
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -123,7 +121,7 @@ export default function AuthForm() {
         redirectTo: window.location.origin,
       })
       if (resetError) setError(frError(resetError))
-      else setSuccess("Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé.")
+      else setSuccess(t('auth.resetSent'))
     } else {
       const { data, error: signUpError } = await supabase.auth.signUp({ email: email.trim(), password })
       if (signUpError) {
@@ -134,7 +132,7 @@ export default function AuthForm() {
           .insert({ id: data.user.id, full_name: fullName.trim(), email: email.trim() })
         if (profileError) setError(frError(profileError))
         else if (!data.session)
-          setSuccess('Compte créé. Ouvre le lien reçu par email pour confirmer ton adresse, puis connecte-toi.')
+          setSuccess(t('auth.accountCreated'))
       }
     }
     setLoading(false)
@@ -170,10 +168,10 @@ export default function AuthForm() {
 
         <div className="relative max-w-md">
           <h1 className="text-4xl xl:text-5xl font-semibold tracking-tight leading-[1.08]">
-            Du dépôt des articles au badge d'entrée.
+            {t('auth.heroTitle')}
           </h1>
           <p className="mt-5 text-white/70 text-lg leading-relaxed max-w-[38ch]">
-            Soumissions, reviews, programme, inscriptions et présences de vos conférences scientifiques, au même endroit.
+            {t('auth.heroSubtitle')}
           </p>
         </div>
 
@@ -192,7 +190,7 @@ export default function AuthForm() {
 
       {/* Formulaire */}
       <main className="relative flex items-center justify-center px-4 py-8 sm:px-10">
-        <div className="absolute top-3 right-3 sm:top-5 sm:right-5 z-10">
+        <div className="absolute top-3 end-3 sm:top-5 sm:end-5 z-10">
           <ThemeToggle className="icon-btn" />
         </div>
         <div className="w-full max-w-[440px]">
@@ -201,24 +199,24 @@ export default function AuthForm() {
           </div>
 
           {mode === 'reset' && (
-            <button type="button" onClick={() => switchMode('signin')} className="btn-ghost -ml-3 mb-4">
-              <ArrowLeftIcon size={16} aria-hidden="true" />
-              Retour à la connexion
+            <button type="button" onClick={() => switchMode('signin')} className="btn-ghost -ms-3 mb-4">
+              <ArrowLeftIcon size={16} className="rtl:rotate-180" aria-hidden="true" />
+              {t('auth.backToSignIn')}
             </button>
           )}
 
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-fg">{MODES[mode].title}</h2>
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-fg">{modes[mode].title}</h2>
           <p className="text-muted text-sm mt-1.5">
-            {mode === 'signin' && 'Accède à tes événements, articles et inscriptions.'}
-            {mode === 'signup' && 'Un seul compte suffit pour soumettre, relire ou organiser.'}
-            {mode === 'reset' && 'Indique ton adresse : tu recevras un lien pour choisir un nouveau mot de passe.'}
+            {mode === 'signin' && t('auth.signinDesc')}
+            {mode === 'signup' && t('auth.signupDesc')}
+            {mode === 'reset' && t('auth.resetDesc')}
           </p>
 
           <form onSubmit={handleSubmit} className="mt-6 space-y-4" noValidate={false}>
             {mode === 'signup' && (
               <div>
                 <label htmlFor="fullName" className="form-label">
-                  Nom complet
+                  {t('auth.fullName')}
                 </label>
                 <input
                   id="fullName"
@@ -229,13 +227,13 @@ export default function AuthForm() {
                   className="input-field"
                   required
                 />
-                <p className="form-hint">Il apparaîtra sur ton badge et ton certificat.</p>
+                <p className="form-hint">{t('auth.fullNameHint')}</p>
               </div>
             )}
 
             <div>
               <label htmlFor="email" className="form-label">
-                Adresse email
+                {t('auth.email')}
               </label>
               <input
                 id="email"
@@ -253,7 +251,7 @@ export default function AuthForm() {
               <div>
                 <div className="flex items-baseline justify-between">
                   <label htmlFor="password" className="form-label">
-                    Mot de passe
+                    {t('auth.password')}
                   </label>
                   {mode === 'signin' && (
                     <button
@@ -261,7 +259,7 @@ export default function AuthForm() {
                       onClick={() => switchMode('reset')}
                       className="text-[13px] text-accent-ink hover:underline underline-offset-4"
                     >
-                      Mot de passe oublié ?
+                      {t('auth.forgotPassword')}
                     </button>
                   )}
                 </div>
@@ -273,19 +271,19 @@ export default function AuthForm() {
                     minLength={mode === 'signup' ? 6 : undefined}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="input-field pr-12"
+                    className="input-field pe-12"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((v) => !v)}
-                    className="absolute right-1 top-1/2 -translate-y-1/2 icon-btn w-9 h-9"
-                    aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+                    className="absolute end-1 top-1/2 -translate-y-1/2 icon-btn w-9 h-9"
+                    aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                   >
                     {showPassword ? <EyeSlashIcon size={18} /> : <EyeIcon size={18} />}
                   </button>
                 </div>
-                {mode === 'signup' && <p className="form-hint">Au moins 6 caractères.</p>}
+                {mode === 'signup' && <p className="form-hint">{t('auth.minPasswordHint')}</p>}
               </div>
             )}
 
@@ -301,19 +299,19 @@ export default function AuthForm() {
             )}
 
             <button type="submit" disabled={loading || Boolean(quickLoadingKey)} className="btn-primary w-full min-h-10">
-              {loading ? 'Un instant…' : MODES[mode].submit}
+              {loading ? t('auth.wait') : modes[mode].submit}
             </button>
           </form>
 
           {mode !== 'reset' && (
             <p className="mt-5 text-xs text-muted text-center">
-              {mode === 'signin' ? "Pas encore de compte ? " : 'Déjà un compte ? '}
+              {mode === 'signin' ? `${t('auth.noAccount')} ` : `${t('auth.hasAccount')} `}
               <button
                 type="button"
                 onClick={() => switchMode(mode === 'signin' ? 'signup' : 'signin')}
                 className="font-medium text-fg underline underline-offset-4 decoration-accent decoration-2 hover:text-accent-ink"
               >
-                {mode === 'signin' ? 'Créer un compte' : 'Se connecter'}
+                {mode === 'signin' ? t('auth.signupTitle') : t('auth.signinTitle')}
               </button>
             </p>
           )}
@@ -324,14 +322,14 @@ export default function AuthForm() {
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
-                    Comptes de test pour évaluation
+                    {t('auth.demoHeading')}
                   </p>
                   <p className="text-xs text-muted/80 mt-0.5">
-                    Accès direct en 1 clic par profil de rôle
+                    {t('auth.demoSubheading')}
                   </p>
                 </div>
                 <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded-full bg-accent/10 text-accent-ink border border-accent/20">
-                  Prototype
+                  {t('auth.prototype')}
                 </span>
               </div>
 
@@ -339,10 +337,11 @@ export default function AuthForm() {
                 {DEMO_ACCOUNTS.map((acc) => {
                   const Icon = acc.icon
                   const isCurrentLoading = quickLoadingKey === acc.roleKey
+                  const roleLabel = t(`roles.${acc.roleKey}`)
                   return (
                     <div
                       key={acc.roleKey}
-                      className="card p-2.5 sm:p-3 border-line/70 bg-surface/50 hover:bg-surface hover:border-line hover:shadow-xs transition-all flex items-center justify-between gap-3 text-left"
+                      className="card p-2.5 sm:p-3 border-line/70 bg-surface/50 hover:bg-surface hover:border-line hover:shadow-xs transition-all flex items-center justify-between gap-3 text-start"
                     >
                       <div className="min-w-0 flex items-center gap-2.5">
                         <div className="w-8 h-8 rounded-lg bg-fg/5 text-fg flex items-center justify-center shrink-0">
@@ -352,7 +351,7 @@ export default function AuthForm() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-xs font-semibold text-fg truncate">{acc.name}</span>
                             <span className={`text-[10px] font-medium px-1.5 py-0.2 rounded ${acc.badgeClass}`}>
-                              {acc.roleLabel}
+                              {roleLabel}
                             </span>
                           </div>
                           <p className="text-[11px] text-muted truncate mt-0.5">{acc.desc}</p>
@@ -364,14 +363,14 @@ export default function AuthForm() {
                         disabled={loading || Boolean(quickLoadingKey)}
                         onClick={() => handleQuickLogin(acc)}
                         className="btn-outline btn-sm shrink-0 text-xs inline-flex items-center gap-1 active:scale-95 py-1 px-2.5"
-                        title={`Connexion 1 clic en tant que ${acc.roleLabel}`}
+                        title={roleLabel}
                       >
                         {isCurrentLoading ? (
-                          <span className="text-xs text-accent-ink font-semibold">Connexion…</span>
+                          <span className="text-xs text-accent-ink font-semibold">{t('auth.connecting')}</span>
                         ) : (
                           <>
-                            <span>Tester</span>
-                            <ArrowRightIcon size={12} />
+                            <span>{t('auth.testBtn')}</span>
+                            <ArrowRightIcon size={12} className="rtl:rotate-180" />
                           </>
                         )}
                       </button>

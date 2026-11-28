@@ -8,15 +8,17 @@ import SectionTitle from '../../components/ui/SectionTitle'
 import EmptyState from '../../components/ui/EmptyState'
 import Collapsible from '../../components/ui/Collapsible'
 import { BarList } from '../../components/charts/Charts'
+import { useLanguage } from '../../context/LanguageContext'
 
 const RESULT_CLASS = { ok: 'alert-success', warn: 'alert-info', error: 'alert-error' }
 
-const sessionLabel = (s) =>
+const sessionLabel = (s, locale) =>
   s.start_time
-    ? `${s.title} (${new Date(s.start_time).toLocaleString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})`
+    ? `${s.title} (${new Date(s.start_time).toLocaleString(locale, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })})`
     : s.title
 
 export default function AttendancePanel({ eventId, participants }) {
+  const { t, locale } = useLanguage()
   const [sessions, setSessions] = useState([])
   const [sessionId, setSessionId] = useState('')
   const [records, setRecords] = useState([])
@@ -65,14 +67,17 @@ export default function AttendancePanel({ eventId, participants }) {
     setResult({
       type: row.was_already ? 'warn' : 'ok',
       text: row.was_already
-        ? `${row.person_name} est déjà enregistré(e) dans cette session.`
-        : `Présence enregistrée : ${row.person_name} (${n} session${n > 1 ? 's' : ''} suivie${n > 1 ? 's' : ''}).`,
+        ? t('attendancePanel.alreadyCheckedIn', { name: row.person_name })
+        : t(n > 1 ? 'attendancePanel.checkedInSuccessMany' : 'attendancePanel.checkedInSuccessOne', {
+            name: row.person_name,
+            count: n,
+          }),
     })
   }
 
   const checkInToken = async (token) => {
     if (!sessionIdRef.current) {
-      setResult({ type: 'error', text: "Choisis d'abord une session." })
+      setResult({ type: 'error', text: t('attendancePanel.chooseSessionFirst') })
       return
     }
     if (busyRef.current) return
@@ -110,10 +115,10 @@ export default function AttendancePanel({ eventId, participants }) {
     setBusy(true)
     const res = await supabase.from('attendance').delete().eq('id', recordId).select('id')
     setBusy(false)
-    const msg = writeError(res, 'Retrait refusé.')
+    const msg = writeError(res, t('attendancePanel.removeRefused'))
     if (msg) setResult({ type: 'error', text: msg })
     else {
-      setResult({ type: 'warn', text: 'Présence retirée.' })
+      setResult({ type: 'warn', text: t('attendancePanel.attendanceRemoved') })
       loadRecords()
     }
   }
@@ -136,7 +141,7 @@ export default function AttendancePanel({ eventId, participants }) {
         }
       } catch (err) {
         if (!cancelled) {
-          setError(`Caméra inaccessible : ${err?.message || err}. Utilise le pointage manuel.`)
+          setError(t('attendancePanel.cameraError', { err: err?.message || err }))
           setScanning(false)
         }
       }
@@ -157,7 +162,7 @@ export default function AttendancePanel({ eventId, participants }) {
         }
       }
     }
-  }, [scanning])
+  }, [scanning, t])
 
   const sessionRecords = records.filter((r) => r.session_id === sessionId)
   const recordByUser = new Map(sessionRecords.map((r) => [r.profile_id, r]))
@@ -175,32 +180,32 @@ export default function AttendancePanel({ eventId, participants }) {
 
   return (
     <section className="space-y-6">
-      <SectionTitle title="Présences & Émargement" />
+      <SectionTitle title={t('attendancePanel.title')} />
 
       {/* Rideau rétractable : Guide pour l'accueil & le pointage */}
       <Collapsible
-        title="Guide d'émargement & Conseils d'accueil"
-        subtitle="Mode Kiosque, carillon sonore et secours manuel"
+        title={t('attendancePanel.guideTitle')}
+        subtitle={t('attendancePanel.guideSubtitle')}
         variant="subtle"
         defaultOpen={false}
       >
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
           <div className="p-3 rounded-lg bg-surface border border-line">
-            <span className="font-semibold text-fg block mb-1">1. Scan caméra instantané</span>
+            <span className="font-semibold text-fg block mb-1">{t('attendancePanel.guide1Title')}</span>
             <p className="text-muted leading-relaxed">
-              Pointez la caméra du smartphone vers le QR code du participant. Le carillon confirme la présence.
+              {t('attendancePanel.guide1Body')}
             </p>
           </div>
           <div className="p-3 rounded-lg bg-surface border border-line">
-            <span className="font-semibold text-fg block mb-1">2. Alerte doublon</span>
+            <span className="font-semibold text-fg block mb-1">{t('attendancePanel.guide2Title')}</span>
             <p className="text-muted leading-relaxed">
-              Si le participant a déjà été pointé dans la même session, un son d'avertissement vous le signale.
+              {t('attendancePanel.guide2Body')}
             </p>
           </div>
           <div className="p-3 rounded-lg bg-surface border border-line">
-            <span className="font-semibold text-fg block mb-1">3. Pointage manuel de secours</span>
+            <span className="font-semibold text-fg block mb-1">{t('attendancePanel.guide3Title')}</span>
             <p className="text-muted leading-relaxed">
-              En cas d'écran fissuré ou de batterie vide, cherchez le nom dans la liste et cliquez sur « Pointer ».
+              {t('attendancePanel.guide3Body')}
             </p>
           </div>
         </div>
@@ -213,13 +218,13 @@ export default function AttendancePanel({ eventId, participants }) {
       )}
 
       {sessions.length === 0 ? (
-        <EmptyState icon={PresentationChartIcon} title="Aucune session" body="Crée d'abord des sessions dans l'onglet Programme." />
+        <EmptyState icon={PresentationChartIcon} title={t('attendancePanel.emptyTitle')} body={t('attendancePanel.emptyBody')} />
       ) : (
         <div className="card-panel space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_auto] gap-4 md:items-end">
             <div>
               <label htmlFor="attendance-session" className="form-label">
-                Session
+                {t('attendancePanel.sessionLabel')}
               </label>
               <select
                 id="attendance-session"
@@ -230,10 +235,10 @@ export default function AttendancePanel({ eventId, participants }) {
                   setResult(null)
                 }}
               >
-                <option value="">Choisir une session…</option>
+                <option value="">{t('attendancePanel.chooseSessionOption')}</option>
                 {sessions.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {sessionLabel(s)}
+                    {sessionLabel(s, locale)}
                   </option>
                 ))}
               </select>
@@ -248,7 +253,7 @@ export default function AttendancePanel({ eventId, participants }) {
               }}
             >
               {scanning ? <StopIcon size={17} aria-hidden="true" /> : <QrCodeIcon size={17} aria-hidden="true" />}
-              {scanning ? 'Arrêter le scan' : 'Scanner les badges'}
+              {scanning ? t('attendancePanel.stopScan') : t('attendancePanel.scanBadges')}
             </button>
           </div>
 
@@ -259,15 +264,15 @@ export default function AttendancePanel({ eventId, participants }) {
                   {presentMembers}
                   <span className="text-xl sm:text-2xl text-faint font-normal"> / {members.length}</span>
                 </p>
-                <p className="text-xs sm:text-sm text-muted pb-1">participants émargés dans cette session</p>
+                <p className="text-xs sm:text-sm text-muted pb-1">{t('attendancePanel.checkedInParticipants')}</p>
               </div>
 
               {members.length > 0 && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs text-muted">
                     <span className="font-medium text-fg flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-ok animate-pulse" />
-                      Affluence en temps réel
+                      <span className="w-2 h-2 rounded-full bg-ok" />
+                      {t('attendancePanel.realtimeAttendance')}
                     </span>
                     <span className="num font-bold text-accent-ink">
                       {Math.round((presentMembers / members.length) * 100)}%
@@ -288,10 +293,10 @@ export default function AttendancePanel({ eventId, participants }) {
             <div className="relative w-full max-w-md mx-auto p-4 rounded-2xl bg-surface-2/80 border-2 border-accent/40 shadow-xl overflow-hidden space-y-3 animate-in fade-in-0 duration-200">
               <div className="flex items-center justify-between text-xs font-semibold">
                 <span className="flex items-center gap-2 text-fg">
-                  <span className="w-2.5 h-2.5 rounded-full bg-ok animate-ping" />
-                  Mode Émargement Rapide (Scan continu)
+                  <span className="w-2.5 h-2.5 rounded-full bg-ok" />
+                  {t('attendancePanel.fastScanMode')}
                 </span>
-                <span className="text-accent-ink font-mono text-[11px]">Caméra active</span>
+                <span className="text-accent-ink font-mono text-[11px]">{t('attendancePanel.cameraActive')}</span>
               </div>
 
               <div className="relative overflow-hidden rounded-xl border border-line bg-black flex items-center justify-center">
@@ -299,7 +304,7 @@ export default function AttendancePanel({ eventId, participants }) {
               </div>
 
               <p className="text-[11px] text-center text-muted">
-                Présentez le pass mobile d'un participant devant l'objectif pour valider son entrée.
+                {t('attendancePanel.scanInstruction')}
               </p>
             </div>
           )}
@@ -312,14 +317,14 @@ export default function AttendancePanel({ eventId, participants }) {
 
           {sessionId && (
             <div className="pt-2">
-              <h3 className="font-medium text-fg mb-3">Pointage manuel</h3>
+              <h3 className="font-medium text-fg mb-3">{t('attendancePanel.manualCheckIn')}</h3>
               <label className="relative block mb-3">
-                <span className="sr-only">Rechercher un inscrit</span>
-                <MagnifyingGlassIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none" aria-hidden="true" />
-                <input className="input-field pl-10" type="search" placeholder="Rechercher un inscrit…" value={search} onChange={(e) => setSearch(e.target.value)} />
+                <span className="sr-only">{t('attendancePanel.searchPlaceholder')}</span>
+                <MagnifyingGlassIcon size={16} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none" aria-hidden="true" />
+                <input className="input-field ps-10" type="search" placeholder={t('attendancePanel.searchPlaceholder')} value={search} onChange={(e) => setSearch(e.target.value)} />
               </label>
               {filtered.length === 0 ? (
-                <p className="text-sm text-muted">Aucun inscrit validé.</p>
+                <p className="text-sm text-muted">{t('attendancePanel.noValidatedParticipant')}</p>
               ) : (
                 <ul className="space-y-2">
                   {filtered.map((p) => {
@@ -332,7 +337,7 @@ export default function AttendancePanel({ eventId, participants }) {
                             <p className="text-sm font-medium text-fg truncate">{p.profiles?.full_name}</p>
                             {rec && (
                               <p className="text-xs text-ok">
-                                Présent{rec.method === 'manual' ? ', pointé à la main' : ', badge scanné'}
+                                {rec.method === 'manual' ? t('attendancePanel.presentManual') : t('attendancePanel.presentScanned')}
                               </p>
                             )}
                           </div>
@@ -340,12 +345,12 @@ export default function AttendancePanel({ eventId, participants }) {
                         {rec ? (
                           <button type="button" className="btn-ghost btn-sm" disabled={busy} onClick={() => removeRecord(rec.id)}>
                             <ArrowCounterClockwiseIcon size={15} aria-hidden="true" />
-                            Annuler
+                            {t('common.cancel')}
                           </button>
                         ) : (
                           <button type="button" className="btn-outline btn-sm" disabled={busy} onClick={() => checkInMember(p.user_id)}>
                             <CheckIcon size={15} weight="bold" aria-hidden="true" />
-                            Présent
+                            {t('attendancePanel.presentBtn')}
                           </button>
                         )}
                       </li>
@@ -360,7 +365,7 @@ export default function AttendancePanel({ eventId, participants }) {
 
       {records.length > 0 && (
         <section className="card-panel">
-          <h3 className="font-semibold text-fg mb-5">Assiduité par participant</h3>
+          <h3 className="font-semibold text-fg mb-5">{t('attendancePanel.attendanceByParticipant')}</h3>
           <BarList
             max={Math.max(1, sessions.length)}
             items={[...members]
@@ -369,7 +374,9 @@ export default function AttendancePanel({ eventId, participants }) {
                 key: p.id,
                 label: p.profiles?.full_name,
                 value: countByUser.get(p.user_id) || 0,
-                detail: `/ ${sessions.length} session${sessions.length > 1 ? 's' : ''}`,
+                detail: t(sessions.length > 1 ? 'attendancePanel.sessionsDetailMany' : 'attendancePanel.sessionsDetailOne', {
+                  count: sessions.length,
+                }),
               }))}
           />
         </section>

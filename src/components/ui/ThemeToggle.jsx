@@ -1,101 +1,67 @@
-import { useState, useEffect, useRef } from 'react'
-import { SunIcon, MoonIcon, CircleHalfIcon, CheckIcon } from '@phosphor-icons/react'
+import { useState } from 'react'
+import { SunIcon, MoonIcon } from '@phosphor-icons/react'
 import { applyTheme, readThemePref } from '../../lib/theme'
+import { useLanguage } from '../../context/LanguageContext'
 
 const OPTIONS = [
-  { id: 'system', label: 'Système', icon: CircleHalfIcon },
-  { id: 'light', label: 'Clair', icon: SunIcon },
-  { id: 'dark', label: 'Sombre', icon: MoonIcon },
+  { id: 'light', key: 'theme.light', icon: SunIcon },
+  { id: 'dark', key: 'theme.dark', icon: MoonIcon },
 ]
 
+function resolveInitialTheme() {
+  const pref = readThemePref()
+  if (pref === 'light' || pref === 'dark') return pref
+  if (typeof document !== 'undefined') {
+    const attr = document.documentElement.getAttribute('data-theme')
+    if (attr === 'dark' || attr === 'light') return attr
+  }
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export default function ThemeToggle({ className = '' }) {
-  const [pref, setPref] = useState(readThemePref)
-  const [open, setOpen] = useState(false)
-  const ref = useRef(null)
-  const timeoutRef = useRef(null)
-  const current = OPTIONS.find((o) => o.id === pref) || OPTIONS[0]
-  const Icon = current.icon
-
-  useEffect(() => {
-    if (!open) return undefined
-    const onDown = (e) => {
-      if (!ref.current?.contains(e.target)) setOpen(false)
-    }
-    const onKey = (e) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
-
-  const handleMouseEnter = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    setOpen(true)
-  }
-
-  const handleMouseLeave = () => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(() => {
-      setOpen(false)
-    }, 280)
-  }
+  const { t } = useLanguage()
+  const [theme, setTheme] = useState(resolveInitialTheme)
 
   const choose = (id) => {
     applyTheme(id)
-    setPref(id)
-    setOpen(false)
+    setTheme(id)
   }
 
   return (
     <div
-      className="relative inline-flex items-center"
-      ref={ref}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      dir="ltr"
+      role="group"
+      aria-label={t('theme.label')}
+      className={`group inline-flex items-center rounded-full border border-neutral-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 p-0.5 text-[11.5px] font-medium ${className}`}
     >
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className={`${className} transition-transform duration-150 active:scale-95`}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label={`Thème : ${current.label.toLowerCase()}`}
-        title={`Thème : ${current.label.toLowerCase()}`}
-      >
-        <Icon size={18} aria-hidden="true" className="transition-transform duration-300 hover:rotate-12" />
-      </button>
-
-      {open && (
-        <div
-          role="menu"
-          aria-label="Thème"
-          className="absolute right-0 top-11 z-50 w-38 card p-1 shadow-[var(--shadow-lift)] border border-line bg-surface/98 backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 origin-top-right space-y-0.5"
-        >
-          {OPTIONS.map(({ id, label, icon: OptIcon }) => {
-            const active = id === pref
-            return (
-              <button
-                key={id}
-                type="button"
-                role="menuitemradio"
-                aria-checked={active}
-                onClick={() => choose(id)}
-                className={`w-full flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] transition-all duration-150 cursor-pointer active:scale-95 ${
-                  active
-                    ? 'bg-black/[0.06] dark:bg-white/10 text-fg dark:text-white font-semibold shadow-xs'
-                    : 'text-muted hover:text-fg hover:bg-fg/5'
-                }`}
-              >
-                <OptIcon size={16} aria-hidden="true" className={active ? 'text-fg dark:text-white' : ''} />
-                <span className="flex-1 text-left">{label}</span>
-                {active && <CheckIcon size={14} weight="bold" className="text-fg dark:text-white animate-in zoom-in-75 duration-150" aria-hidden="true" />}
-              </button>
-            )
-          })}
-        </div>
-      )}
+      {OPTIONS.map(({ id, key, icon: OptIcon }) => {
+        const active = id === theme
+        const label = t(key)
+        return (
+          <button
+            key={id}
+            type="button"
+            onClick={() => choose(id)}
+            aria-pressed={active}
+            aria-label={label}
+            title={label}
+            className={
+              active
+                ? 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 rounded-full p-1 group-hover:px-2.5 group-hover:py-0.5 transition-all duration-200 cursor-pointer shrink-0 inline-flex items-center justify-center whitespace-nowrap'
+                : 'max-w-0 overflow-hidden opacity-0 p-0 pointer-events-none group-hover:max-w-[6.5rem] group-hover:opacity-100 group-hover:px-2.5 group-hover:py-0.5 group-hover:pointer-events-auto text-neutral-500 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-white transition-all duration-200 cursor-pointer shrink-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap'
+            }
+          >
+            <OptIcon size={14} weight={active ? 'fill' : 'regular'} className="shrink-0" aria-hidden="true" />
+            {active ? (
+              <span className="max-w-0 overflow-hidden opacity-0 group-hover:max-w-[4.5rem] group-hover:opacity-100 group-hover:ms-1.5 transition-all duration-200">
+                {label}
+              </span>
+            ) : (
+              <span>{label}</span>
+            )}
+          </button>
+        )
+      })}
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { SparkleIcon, LockSimpleIcon, ImageSquareIcon } from '@phosphor-icons/react'
 import { TYPE_LABELS, FORMAT_LABELS } from '../../lib/constants'
 import { GENERATIVE_THEMES, PHOTO_THEMES, THEMES, cleanDescription, extractCoverKey } from '../../lib/cover'
+import { useLanguage } from '../../context/LanguageContext'
 import EventCard from './EventCard'
 
 const EMPTY_EVENT = {
@@ -25,6 +26,7 @@ export default function EventForm({
   showPreview = true,
   lockedFields = [],
 }) {
+  const { t } = useLanguage()
   const initialKey = extractCoverKey(initial.description)
   const isCustom = initialKey && (initialKey.startsWith('http://') || initialKey.startsWith('https://'))
   const initialThemeMode = isCustom ? 'custom' : initialKey && THEMES[initialKey] ? initialKey : 'auto'
@@ -48,7 +50,7 @@ export default function EventForm({
     e.preventDefault()
     setLocalError(null)
     if (form.end_date && form.start_date && form.end_date < form.start_date) {
-      setLocalError('La date de fin doit être le même jour ou après la date de début.')
+      setLocalError(t('eventForm.endDateBeforeStart'))
       return
     }
 
@@ -59,7 +61,7 @@ export default function EventForm({
     if (themeMode === 'custom' && customCoverUrl.trim()) {
       const trimmedUrl = customCoverUrl.trim()
       if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
-        setLocalError("L'URL de l'affiche personnalisée doit débuter par http:// ou https://")
+        setLocalError(t('eventForm.customUrlError'))
         return
       }
       desc = desc ? `${desc}\n\n<!-- cover:${trimmedUrl} -->` : `<!-- cover:${trimmedUrl} -->`
@@ -98,7 +100,7 @@ export default function EventForm({
   // Modèle d'aperçu dynamique instantané
   const previewEvent = {
     id: initial.id || 'preview-mock-seed',
-    title: form.title.trim() || 'Titre de votre événement ou conférence',
+    title: form.title.trim() || t('eventForm.previewTitleFallback'),
     description: form.description.trim() || '',
     type: form.type || 'conference',
     format: form.format || 'onsite',
@@ -106,7 +108,7 @@ export default function EventForm({
     phase: initial.phase || 'scientific',
     start_date: form.start_date || new Date().toISOString().slice(0, 10),
     end_date: form.end_date || form.start_date || new Date().toISOString().slice(0, 10),
-    location: form.location.trim() || 'Campus USTO-MB, Oran',
+    location: form.location.trim() || t('eventForm.previewLocationFallback'),
     themeKey: themeMode !== 'auto' && themeMode !== 'custom' ? themeMode : null,
     cover_url: themeMode === 'custom' && customCoverUrl.trim() ? customCoverUrl.trim() : null,
   }
@@ -116,12 +118,12 @@ export default function EventForm({
       <form onSubmit={submit} className="space-y-5">
         <div>
           <label htmlFor="event-title" className="form-label">
-            Titre de la conférence
+            {t('eventForm.titleLabel')}
           </label>
           <input
             id="event-title"
             className="input-field"
-            placeholder="ex. Congrès International de Biotechnologie & IA"
+            placeholder={t('eventForm.titlePlaceholder')}
             required
             {...field('title')}
           />
@@ -129,30 +131,30 @@ export default function EventForm({
 
         <div>
           <label htmlFor="event-desc" className="form-label">
-            Description & Thématiques
+            {t('eventForm.descLabel')}
           </label>
           <textarea
             id="event-desc"
             className="textarea-field"
             rows={4}
-            placeholder="Présentation des axes de recherche, public visé, appel à communications scientifiques..."
+            placeholder={t('eventForm.descPlaceholder')}
             {...field('description')}
           />
-          <p className="form-hint">Axes de recherche, public visé et appel à communications.</p>
+          <p className="form-hint">{t('eventForm.descHint')}</p>
         </div>
 
         {/* Sélecteur de visuel : Automatique, Nature/ArXiv Génératif, Photos HD ou Affiche */}
         <div className="space-y-3 pt-1">
           <div className="flex items-center justify-between">
-            <label className="form-label mb-0">Style visuel & Couverture</label>
-            <span className="text-[11px] text-muted">Photos HD ou Illustrations Nature / ArXiv</span>
+            <label className="form-label mb-0">{t('eventForm.coverHeading')}</label>
+            <span className="text-[11px] text-muted">{t('eventForm.coverSubheading')}</span>
           </div>
 
           {/* Mode automatique */}
           <button
             type="button"
             onClick={() => setThemeMode('auto')}
-            className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all ${
+            className={`w-full p-2.5 rounded-xl border text-start flex items-center justify-between transition-all ${
               themeMode === 'auto'
                 ? 'border-accent bg-accent/12 ring-1 ring-accent'
                 : 'border-line/70 bg-surface/70 hover:bg-surface-sunken'
@@ -161,9 +163,9 @@ export default function EventForm({
             <div className="flex items-center gap-2.5">
               <SparkleIcon size={16} className="text-accent-ink shrink-0" weight="bold" />
               <div>
-                <span className="text-xs font-semibold text-fg block">Automatique intelligent</span>
+                <span className="text-xs font-semibold text-fg block">{t('eventForm.autoTitle')}</span>
                 <span className="text-[10.5px] text-muted block">
-                  Détecte les mots-clés ou applique une illustration ArXiv / Nature par défaut (ex. pour "test_event")
+                  {t('eventForm.autoDesc')}
                 </span>
               </div>
             </div>
@@ -172,29 +174,29 @@ export default function EventForm({
                 themeMode === 'auto' ? 'bg-accent text-on-accent' : 'bg-surface-sunken text-muted'
               }`}
             >
-              Par défaut
+              {t('eventForm.defaultBadge')}
             </span>
           </button>
 
           {/* Illustrations scientifiques Nature / ArXiv */}
           <div className="space-y-1.5">
             <span className="block text-[11px] font-semibold text-fg/80 uppercase tracking-wider">
-              Illustrations scientifiques vectorielles (Style ArXiv & Nature)
+              {t('eventForm.generativeHeading')}
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {Object.entries(GENERATIVE_THEMES).map(([key, t]) => (
+              {Object.entries(GENERATIVE_THEMES).map(([key, th]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setThemeMode(key)}
-                  className={`p-2 rounded-xl border text-left transition-all ${
+                  className={`p-2 rounded-xl border text-start transition-all ${
                     themeMode === key
                       ? 'border-accent bg-accent/12 ring-1 ring-accent'
                       : 'border-line/70 bg-surface/70 hover:bg-surface-sunken'
                   }`}
                 >
-                  <span className="block text-xs font-semibold text-fg truncate">{t.label}</span>
-                  <span className="block text-[10px] text-accent-ink truncate mt-0.5 font-medium">{t.badge}</span>
+                  <span className="block text-xs font-semibold text-fg truncate">{th.label}</span>
+                  <span className="block text-[10px] text-accent-ink truncate mt-0.5 font-medium">{th.badge}</span>
                 </button>
               ))}
             </div>
@@ -203,22 +205,22 @@ export default function EventForm({
           {/* Photographies scientifiques réelles */}
           <div className="space-y-1.5">
             <span className="block text-[11px] font-semibold text-fg/80 uppercase tracking-wider">
-              Photographies scientifiques en bichromie USTO
+              {t('eventForm.photoHeading')}
             </span>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {Object.entries(PHOTO_THEMES).map(([key, t]) => (
+              {Object.entries(PHOTO_THEMES).map(([key, th]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => setThemeMode(key)}
-                  className={`p-2 rounded-xl border text-left transition-all ${
+                  className={`p-2 rounded-xl border text-start transition-all ${
                     themeMode === key
                       ? 'border-accent bg-accent/12 ring-1 ring-accent'
                       : 'border-line/70 bg-surface/70 hover:bg-surface-sunken'
                   }`}
                 >
-                  <span className="block text-xs font-semibold text-fg truncate">{t.label}</span>
-                  <span className="block text-[10px] text-muted truncate mt-0.5">{t.badge}</span>
+                  <span className="block text-xs font-semibold text-fg truncate">{th.label}</span>
+                  <span className="block text-[10px] text-muted truncate mt-0.5">{th.badge}</span>
                 </button>
               ))}
             </div>
@@ -228,7 +230,7 @@ export default function EventForm({
           <button
             type="button"
             onClick={() => setThemeMode('custom')}
-            className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between transition-all ${
+            className={`w-full p-2.5 rounded-xl border text-start flex items-center justify-between transition-all ${
               themeMode === 'custom'
                 ? 'border-accent bg-accent/12 ring-1 ring-accent'
                 : 'border-line/70 bg-surface/70 hover:bg-surface-sunken'
@@ -237,11 +239,11 @@ export default function EventForm({
             <div className="flex items-center gap-2.5">
               <ImageSquareIcon size={18} className="text-accent-ink" weight="duotone" />
               <div>
-                <span className="text-xs font-semibold text-fg block">Affiche officielle personnalisée</span>
-                <span className="text-[10.5px] text-muted block">Renseigner une URL d'image ou d'affiche officielle</span>
+                <span className="text-xs font-semibold text-fg block">{t('eventForm.customTitle')}</span>
+                <span className="text-[10.5px] text-muted block">{t('eventForm.customDesc')}</span>
               </div>
             </div>
-            <span className="text-[10px] text-muted font-medium">Lien web</span>
+            <span className="text-[10px] text-muted font-medium">{t('eventForm.webLink')}</span>
           </button>
 
           {themeMode === 'custom' && (
@@ -249,12 +251,12 @@ export default function EventForm({
               <input
                 type="url"
                 className="input-field text-xs"
-                placeholder="https://... (URL directe de votre affiche PNG, JPG ou WebP)"
+                placeholder={t('eventForm.customPlaceholder')}
                 value={customCoverUrl}
                 onChange={(e) => setCustomCoverUrl(e.target.value)}
                 autoFocus
               />
-              <p className="form-hint text-[11px]">L'affiche sera automatiquement cadrée en couverture de la carte.</p>
+              <p className="form-hint text-[11px]">{t('eventForm.customHint')}</p>
             </div>
           )}
         </div>
@@ -262,10 +264,10 @@ export default function EventForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label htmlFor="event-type" className="form-label flex items-center justify-between">
-              <span>Type</span>
+              <span>{t('eventForm.typeLabel')}</span>
               {lockedFields.includes('type') && (
                 <span className="text-[11px] text-muted flex items-center gap-1 font-normal">
-                  <LockSimpleIcon size={12} weight="bold" /> Verrouillé
+                  <LockSimpleIcon size={12} weight="bold" /> {t('eventForm.locked')}
                 </span>
               )}
             </label>
@@ -275,19 +277,19 @@ export default function EventForm({
               disabled={lockedFields.includes('type')}
               {...field('type')}
             >
-              {Object.entries(TYPE_LABELS).map(([v, l]) => (
+              {Object.keys(TYPE_LABELS).map((v) => (
                 <option key={v} value={v}>
-                  {l}
+                  {t(`eventCard.types.${v}`)}
                 </option>
               ))}
             </select>
           </div>
           <div>
             <label htmlFor="event-format" className="form-label flex items-center justify-between">
-              <span>Format</span>
+              <span>{t('eventForm.formatLabel')}</span>
               {lockedFields.includes('format') && (
                 <span className="text-[11px] text-muted flex items-center gap-1 font-normal">
-                  <LockSimpleIcon size={12} weight="bold" /> Verrouillé
+                  <LockSimpleIcon size={12} weight="bold" /> {t('eventForm.locked')}
                 </span>
               )}
             </label>
@@ -297,9 +299,9 @@ export default function EventForm({
               disabled={lockedFields.includes('format')}
               {...field('format')}
             >
-              {Object.entries(FORMAT_LABELS).map(([v, l]) => (
+              {Object.keys(FORMAT_LABELS).map((v) => (
                 <option key={v} value={v}>
-                  {l}
+                  {t(`eventCard.formats.${v}`)}
                 </option>
               ))}
             </select>
@@ -309,10 +311,10 @@ export default function EventForm({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <div>
             <label htmlFor="event-start" className="form-label flex items-center justify-between">
-              <span>Début</span>
+              <span>{t('eventForm.startLabel')}</span>
               {lockedFields.includes('start_date') && (
                 <span className="text-[11px] text-muted flex items-center gap-1 font-normal">
-                  <LockSimpleIcon size={12} weight="bold" /> Verrouillé
+                  <LockSimpleIcon size={12} weight="bold" /> {t('eventForm.locked')}
                 </span>
               )}
             </label>
@@ -327,10 +329,10 @@ export default function EventForm({
           </div>
           <div>
             <label htmlFor="event-end" className="form-label flex items-center justify-between">
-              <span>Fin</span>
+              <span>{t('eventForm.endLabel')}</span>
               {lockedFields.includes('end_date') && (
                 <span className="text-[11px] text-muted flex items-center gap-1 font-normal">
-                  <LockSimpleIcon size={12} weight="bold" /> Verrouillé
+                  <LockSimpleIcon size={12} weight="bold" /> {t('eventForm.locked')}
                 </span>
               )}
             </label>
@@ -343,21 +345,21 @@ export default function EventForm({
               {...field('end_date')}
             />
             {!lockedFields.includes('end_date') && (
-              <p className="form-hint">Laisse vide pour un événement d'une journée.</p>
+              <p className="form-hint">{t('eventForm.endHint')}</p>
             )}
           </div>
         </div>
 
         <div>
           <label htmlFor="event-location" className="form-label flex items-center justify-between">
-            <span>Lieu & Accès</span>
-            <span className="text-[11px] text-muted font-normal">Campus, amphi ou adresse</span>
+            <span>{t('eventForm.locationLabel')}</span>
+            <span className="text-[11px] text-muted font-normal">{t('eventForm.locationSublabel')}</span>
           </label>
           <input
             id="event-location"
             list="venue-suggestions"
             className="input-field"
-            placeholder="ex. Campus USTO-MB (Amphi Central), Oran"
+            placeholder={t('eventForm.locationPlaceholder')}
             {...field('location')}
           />
           <datalist id="venue-suggestions">
@@ -407,7 +409,7 @@ export default function EventForm({
           </button>
           {onCancel && (
             <button type="button" onClick={onCancel} className="btn-ghost">
-              Annuler
+              {t('common.cancel')}
             </button>
           )}
         </div>
@@ -416,8 +418,8 @@ export default function EventForm({
       {showPreview && (
         <aside className="hidden lg:flex flex-col gap-3 sticky top-24">
           <div className="flex items-center justify-between text-xs text-muted px-1">
-            <span className="font-semibold uppercase tracking-wider text-fg/75">Aperçu en direct</span>
-            <span className="badge-ok text-[10px] tracking-wide">Miroir instantané</span>
+            <span className="font-semibold uppercase tracking-wider text-fg/75">{t('eventForm.livePreview')}</span>
+            <span className="badge-ok text-[10px] tracking-wide">{t('eventForm.instantMirror')}</span>
           </div>
 
           <div className="p-3 bg-surface-sunken/60 rounded-2xl border border-line/70 shadow-xs pointer-events-none">
@@ -427,10 +429,10 @@ export default function EventForm({
           <div className="card p-3.5 bg-surface/70 border-line/70 text-xs text-muted space-y-1.5">
             <div className="flex items-center gap-1.5 font-medium text-fg">
               <SparkleIcon size={14} className="text-accent" weight="fill" />
-              <span>Rendu catalogue officiel</span>
+              <span>{t('eventForm.catalogRenderTitle')}</span>
             </div>
             <p className="text-[11.5px] leading-relaxed text-faint">
-              Basculez librement entre les styles. Les illustrations ArXiv et Nature se génèrent instantanément à 0ms de latence.
+              {t('eventForm.catalogRenderDesc')}
             </p>
           </div>
         </aside>

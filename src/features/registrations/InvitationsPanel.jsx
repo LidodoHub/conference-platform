@@ -15,13 +15,22 @@ import {
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
-import { REGISTRATION_LABELS, REGISTRATION_COLOR, formatDate } from '../../lib/constants'
+import { useConfirm } from '../../context/ConfirmContext'
+import { useLanguage } from '../../context/LanguageContext'
+import { REGISTRATION_LABELS, REGISTRATION_COLOR } from '../../lib/constants'
 import Avatar from '../../components/ui/Avatar'
 import Pill from '../../components/ui/Pill'
 import Stat from '../../components/ui/Stat'
 import SectionTitle from '../../components/ui/SectionTitle'
 import EmptyState from '../../components/ui/EmptyState'
 import Collapsible from '../../components/ui/Collapsible'
+
+const parseDay = (d) => {
+  if (!d) return null
+  const str = String(d)
+  return str.length <= 10 ? new Date(`${str}T00:00:00`) : new Date(str)
+}
+const fmtDate = (d, locale, opts) => parseDay(d)?.toLocaleDateString(locale, opts) || ''
 
 
 function parsePaymentInstructions(text) {
@@ -94,9 +103,9 @@ function parsePaymentInstructions(text) {
 const STATUS_ORDER = { payment_submitted: 0, invited: 1, validated: 2 }
 const dateOf = (p) => p.validated_at || p.invited_at || p.registered_at || ''
 
-export default function InvitationsPanel({ eventId, event, phase, submissions, participants, onRefresh }) {
-  const [email, setEmail] = useState('')
-  const [role, setRole] = useState('reviewer')
+export default function InvitationsPanel({ eventId, event, phase, submissions, participants, onRefresh, onOpenInviteModal }) {
+  const confirm = useConfirm()
+  const { t, locale } = useLanguage()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [info, setInfo] = useState(null)
@@ -185,13 +194,18 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
     callRpc(
       'invite_member',
       { p_event_id: eventId, p_role: inviteRole, p_user_id: userId, p_email: mail },
-      inviteRole === 'reviewer' ? 'Reviewer ajouté.' : 'Invitation enregistrée : elle apparaît dans le tableau de bord de la personne.',
+      inviteRole === 'reviewer' ? t('invitations.reviewerAdded') : t('invitations.invitationSaved'),
     )
 
   const inviteAll = async () => {
     if (!toInvite.length) return
-    if (!window.confirm(`Inviter les ${toInvite.length} auteurs acceptés ? Ils recevront une invitation pour déclarer leur inscription.`))
-      return
+    const ok = await confirm({
+      title: t('invitations.inviteAllTitle', { count: toInvite.length }),
+      description: t('invitations.inviteAllDesc'),
+      confirmLabel: t('invitations.invite'),
+      variant: 'default',
+    })
+    if (!ok) return
     setError(null)
     setInfo(null)
     setBusy(true)
@@ -203,22 +217,15 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
         p_email: null,
       })
       if (rpcError) {
-        setError(`Erreur lors de l'invitation de ${a.name} : ${frError(rpcError)}`)
+        setError(t('invitations.inviteError', { name: a.name, error: frError(rpcError) }))
         setBusy(false)
         onRefresh()
         return
       }
     }
     setBusy(false)
-    setInfo(`${toInvite.length} auteur(s) invité(s).`)
+    setInfo(t('invitations.invitedCountMsg', { count: toInvite.length }))
     onRefresh()
-  }
-
-  const handleAddByEmail = async (e) => {
-    e.preventDefault()
-    if (!email.trim()) return
-    const ok = await invite({ mail: email.trim(), inviteRole: role })
-    if (ok) setEmail('')
   }
 
   const saveSettings = async (e) => {
@@ -262,7 +269,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
       .eq('id', eventId)
       .select('id')
     setBusy(false)
-    const msg = writeError(res, 'Mise à jour refusée.')
+    const msg = writeError(res, t('errors.saveRefused'))
     if (msg) setError(msg)
     else {
       setEditingSettings(false)
@@ -270,20 +277,26 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
     }
   }
 
-  const validate = (p) => callRpc('validate_registration', { p_event_id: eventId, p_user_id: p.user_id }, `Inscription de ${p.profiles?.full_name} validée.`)
-  const refuse = (p) => {
-    if (!window.confirm(`Refuser le paiement de ${p.profiles?.full_name} ? La personne pourra déclarer une nouvelle référence.`)) return
-    callRpc('reject_payment', { p_event_id: eventId, p_user_id: p.user_id }, 'Paiement refusé : la personne peut le redéclarer.')
+  const validate = (p) => callRpc('validate_registration', { p_event_id: eventId, p_user_id: p.user_id }, t('invitations.registrationValidated', { name: p.profiles?.full_name }))
+  const refuse = async (p) => {
+    const ok = await confirm({
+      title: t('invitations.refuseTitle', { name: p.profiles?.full_name }),
+      description: t('invitations.refuseDesc'),
+      confirmLabel: t('invitations.refuseConfirm'),
+      variant: 'danger',
+    })
+    if (!ok) return
+    callRpc('reject_payment', { p_event_id: eventId, p_user_id: p.user_id }, t('invitations.paymentRejected'))
   }
 
   return (
     <div className="space-y-10">
       <div>
-        <SectionTitle title="Inscriptions & Paiements" />
+        <SectionTitle title={t('invitations.title')} />
         <div className="grid grid-cols-3 gap-3">
-          <Stat label="Invités" value={countStatus('invited')} />
-          <Stat label="À valider" value={countStatus('payment_submitted')} tone={countStatus('payment_submitted') ? 'var(--color-warn)' : undefined} />
-          <Stat label="Validés" value={countStatus('validated')} />
+          <Stat label={t('invitations.invited')} value={countStatus('invited')} />
+          <Stat label={t('invitations.toValidate')} value={countStatus('payment_submitted')} tone={countStatus('payment_submitted') ? 'var(--color-warn)' : undefined} />
+          <Stat label={t('invitations.validated')} value={countStatus('validated')} />
         </div>
       </div>
 
@@ -301,35 +314,35 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
       {/* Inscrits */}
       <section className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <SectionTitle title="Inscrits" count={registrants.length} />
+          <SectionTitle title={t('invitations.registrantsTitle')} count={registrants.length} />
 
           <div className="flex items-center gap-2.5">
             <label className="relative sm:w-60">
-              <span className="sr-only">Rechercher un inscrit</span>
+              <span className="sr-only">{t('common.search')}</span>
               <MagnifyingGlassIcon
                 size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+                className="absolute start-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
                 aria-hidden="true"
               />
               <input
                 type="search"
-                className="input-field pl-9.5 text-xs py-1.5"
-                placeholder="Nom, email, bordereau…"
+                className="input-field ps-9.5 text-xs py-1.5"
+                placeholder={t('invitations.searchPlaceholder')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
             </label>
 
             {/* Commutateur Tableau vs Cartes */}
-            <div className="flex items-center rounded-xl border border-line bg-surface/80 p-0.5 shrink-0" aria-label="Format d'affichage">
+            <div className="flex items-center rounded-xl border border-line bg-surface/80 p-0.5 shrink-0" aria-label={t('invitations.displayMode')}>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'table' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                  viewMode === 'table' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
                 }`}
-                title="Affichage en tableau"
-                aria-label="Affichage en tableau"
+                title={t('invitations.tableView')}
+                aria-label={t('invitations.tableView')}
               >
                 <TableIcon size={17} weight={viewMode === 'table' ? 'fill' : 'regular'} aria-hidden="true" />
               </button>
@@ -337,10 +350,10 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                 type="button"
                 onClick={() => setViewMode('cards')}
                 className={`p-1.5 rounded-lg transition-colors ${
-                  viewMode === 'cards' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                  viewMode === 'cards' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
                 }`}
-                title="Affichage en lignes"
-                aria-label="Affichage en lignes"
+                title={t('invitations.listView')}
+                aria-label={t('invitations.listView')}
               >
                 <SquaresFourIcon size={17} weight={viewMode === 'cards' ? 'fill' : 'regular'} aria-hidden="true" />
               </button>
@@ -349,22 +362,31 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
         </div>
 
         {registrants.length === 0 ? (
-          <EmptyState compact icon={CoinsIcon} title="Personne n'est encore invité" body="Invite les auteurs acceptés une fois la phase scientifique close." />
+          <EmptyState
+            compact
+            icon={CoinsIcon}
+            title={t('invitations.emptyInvitedTitle')}
+            body={t('invitations.emptyInvitedBody')}
+          />
         ) : filteredRegistrants.length === 0 ? (
-          <EmptyState compact title="Aucun inscrit trouvé" body="Modifiez vos critères de recherche." />
+          <EmptyState
+            compact
+            title={t('invitations.emptyFilteredTitle')}
+            body={t('invitations.emptyFilteredBody')}
+          />
         ) : viewMode === 'table' ? (
           /* --- VUE TABLEAU PLEINE LARGEUR --- */
           <div className="card overflow-hidden border-line rise">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm">
+              <table className="w-full text-start text-xs sm:text-sm">
                 <thead className="bg-surface border-b border-line text-faint text-[11px] uppercase tracking-wider font-semibold">
                   <tr>
-                    <th scope="col" className="px-4 py-3">Participant</th>
-                    <th scope="col" className="px-4 py-3">Bordereau / Référence</th>
-                    <th scope="col" className="px-4 py-3">Montant</th>
-                    <th scope="col" className="px-4 py-3">Date</th>
-                    <th scope="col" className="px-4 py-3">Statut</th>
-                    <th scope="col" className="px-4 py-3 text-right">Décision</th>
+                    <th scope="col" className="px-4 py-3">{t('roles.participant')}</th>
+                    <th scope="col" className="px-4 py-3">{t('invitations.colSlip')}</th>
+                    <th scope="col" className="px-4 py-3">{t('invitations.colAmount')}</th>
+                    <th scope="col" className="px-4 py-3">{t('invitations.colDate')}</th>
+                    <th scope="col" className="px-4 py-3">{t('invitations.colStatus')}</th>
+                    <th scope="col" className="px-4 py-3 text-end">{t('invitations.colDecision')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -377,7 +399,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                           <div className="flex items-center gap-3">
                             <Avatar name={p.profiles?.full_name} size={32} />
                             <div>
-                              <p className="font-semibold text-fg leading-tight">{p.profiles?.full_name || 'Sans nom'}</p>
+                              <p className="font-semibold text-fg leading-tight">{p.profiles?.full_name || t('profile.unnamed')}</p>
                               <p className="text-xs text-muted leading-tight mt-0.5">{p.profiles?.email}</p>
                             </div>
                           </div>
@@ -392,28 +414,28 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                           )}
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap text-xs font-medium num">
-                          {pay?.amount != null ? `${Number(pay.amount).toLocaleString('fr-FR')} DA` : '—'}
+                          {pay?.amount != null ? `${Number(pay.amount).toLocaleString(locale)} DA` : '—'}
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap text-xs text-muted num">
-                          {formatDate(dateOf(p), { day: 'numeric', month: 'short', year: 'numeric' })}
+                          {fmtDate(dateOf(p), locale, { day: 'numeric', month: 'short', year: 'numeric' })}
                         </td>
                         <td className="px-4 py-3.5 whitespace-nowrap">
                           <Pill color={color}>{REGISTRATION_LABELS[p.registration_status] || p.registration_status}</Pill>
                         </td>
-                        <td className="px-4 py-3.5 whitespace-nowrap text-right">
+                        <td className="px-4 py-3.5 whitespace-nowrap text-end">
                           {p.registration_status === 'payment_submitted' ? (
                             <div className="inline-flex items-center gap-1.5">
                               <button type="button" className="btn-danger btn-sm text-xs py-1" disabled={busy} onClick={() => refuse(p)}>
                                 <XIcon size={13} weight="bold" aria-hidden="true" />
-                                Refuser
+                                {t('invitations.reject')}
                               </button>
                               <button type="button" className="btn-success btn-sm text-xs py-1" disabled={busy} onClick={() => validate(p)}>
                                 <CheckIcon size={13} weight="bold" aria-hidden="true" />
-                                Valider
+                                {t('invitations.validate')}
                               </button>
                             </div>
                           ) : (
-                            <span className="text-xs text-faint font-medium">À jour</span>
+                            <span className="text-xs text-faint font-medium">{t('invitations.upToDate')}</span>
                           )}
                         </td>
                       </tr>
@@ -438,11 +460,11 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                       <p className="text-[13px] text-muted truncate">
                         {pay ? (
                           <>
-                            Bordereau <span className="num font-medium text-fg">{pay.reference}</span>
-                            {pay.amount != null && <span className="num"> · {Number(pay.amount).toLocaleString('fr-FR')} DA</span>}
+                            {t('invitations.slip')} <span className="num font-medium text-fg">{pay.reference}</span>
+                            {pay.amount != null && <span className="num"> · {Number(pay.amount).toLocaleString(locale)} DA</span>}
                           </>
                         ) : (
-                          <span className="num">{formatDate(dateOf(p), { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          <span className="num">{fmtDate(dateOf(p), locale, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                         )}
                       </p>
                     </div>
@@ -452,11 +474,11 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                       <>
                         <button type="button" className="btn-danger btn-sm" disabled={busy} onClick={() => refuse(p)}>
                           <XIcon size={14} weight="bold" aria-hidden="true" />
-                          Refuser
+                          {t('invitations.reject')}
                         </button>
                         <button type="button" className="btn-success btn-sm" disabled={busy} onClick={() => validate(p)}>
                           <CheckIcon size={14} weight="bold" aria-hidden="true" />
-                          Valider
+                          {t('invitations.validate')}
                         </button>
                       </>
                     ) : (
@@ -473,20 +495,20 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
       {/* Auteurs acceptés */}
       <section>
         <SectionTitle
-          title="Auteurs acceptés"
+          title={t('invitations.acceptedAuthors')}
           count={acceptedAuthors.length}
-          description={!organizational ? "Les invitations s'ouvrent à la clôture de la phase scientifique." : null}
+          description={!organizational ? t('invitations.invitationsOpenAfterSci') : null}
           actions={
             organizational &&
             toInvite.length > 1 && (
               <button type="button" className="btn-outline btn-sm" disabled={busy} onClick={inviteAll}>
-                Inviter les {toInvite.length}
+                {t('invitations.inviteAllBtn', { count: toInvite.length })}
               </button>
             )
           }
         />
         {acceptedAuthors.length === 0 ? (
-          <p className="text-sm text-muted">Aucun article accepté pour le moment.</p>
+          <p className="text-sm text-muted">{t('invitations.noAcceptedPapers')}</p>
         ) : (
           <ul className="space-y-2">
             {acceptedAuthors.map((a) => {
@@ -498,7 +520,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-fg truncate">{a.name}</p>
                       <p className="text-[13px] text-muted">
-                        {a.count} article{a.count > 1 ? 's' : ''} accepté{a.count > 1 ? 's' : ''}
+                        {t(a.count > 1 ? 'invitations.acceptedPaperPlural' : 'invitations.acceptedPaperSingle', { count: a.count })}
                       </p>
                     </div>
                   </div>
@@ -508,7 +530,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                         {REGISTRATION_LABELS[existing.registration_status] || existing.registration_status}
                       </Pill>
                     ) : (
-                      <span className="text-[13px] text-muted">Déjà membre</span>
+                      <span className="text-[13px] text-muted">{t('invitations.alreadyMember')}</span>
                     )
                   ) : (
                     <button
@@ -517,7 +539,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                       disabled={busy || !organizational}
                       onClick={() => invite({ userId: a.userId, inviteRole: 'participant' })}
                     >
-                      Inviter
+                      {t('invitations.invite')}
                     </button>
                   )}
                 </li>
@@ -602,7 +624,7 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
                         key={m.id}
                         type="button"
                         onClick={() => setPayMethod(m.id)}
-                        className={`p-2.5 rounded-xl border text-left transition-all flex flex-col gap-1 ${
+                        className={`p-2.5 rounded-xl border text-start transition-all flex flex-col gap-1 ${
                           active
                             ? 'bg-accent/15 border-accent text-fg shadow-xs ring-1 ring-accent/30'
                             : 'bg-surface/50 border-line text-muted hover:border-fg/20'
@@ -816,11 +838,11 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
 
             <div className="flex gap-2 pt-2">
               <button type="submit" disabled={busy} className="btn-primary">
-                Enregistrer les frais
+                {t('common.save')}
               </button>
               {(Number(event?.registration_fee) > 0 || event?.payment_instructions) && (
                 <button type="button" className="btn-ghost" onClick={() => setEditingSettings(false)}>
-                  Annuler
+                  {t('common.cancel')}
                 </button>
               )}
             </div>
@@ -829,20 +851,20 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
           <section className="card-panel space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <span className="text-xs font-semibold uppercase tracking-wider text-muted">Frais d'inscription</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-muted">{t('invitations.feeTitle')}</span>
                 <p className="num text-3xl font-semibold tracking-tight text-fg mt-1">
-                  {Number(event?.registration_fee) > 0 ? `${Number(event.registration_fee).toLocaleString('fr-FR')} DA` : 'Gratuit'}
+                  {Number(event?.registration_fee) > 0 ? `${Number(event.registration_fee).toLocaleString(locale)} DA` : t('invitations.free')}
                 </p>
               </div>
               <button type="button" className="btn-outline btn-sm" onClick={() => setEditingSettings(true)}>
                 <PencilSimpleIcon size={15} aria-hidden="true" />
-                Modifier
+                {t('common.edit')}
               </button>
             </div>
             {event?.payment_instructions ? (
               <Collapsible
-                title="Consignes de règlement communiquées aux auteurs"
-                subtitle="RIB, CCP ou modalités sur place"
+                title={t('invitations.paymentInstructionsTitle')}
+                subtitle={t('invitations.paymentInstructionsSubtitle')}
                 variant="subtle"
                 defaultOpen={false}
               >
@@ -852,38 +874,29 @@ export default function InvitationsPanel({ eventId, event, phase, submissions, p
               </Collapsible>
             ) : (
               <p className="text-xs text-muted">
-                Aucune instruction configurée. Cliquez sur Modifier pour sélectionner le compte CCP ou le mode de paiement.
+                {t('invitations.noInstructionsConfigured')}
               </p>
             )}
           </section>
         )}
 
-        {/* Ajout par email */}
-        <form onSubmit={handleAddByEmail} className="card-panel space-y-5">
-          <h3 className="font-semibold text-fg">Ajouter une personne</h3>
-          <div>
-            <label htmlFor="invite-email" className="form-label">
-              Email du compte
-            </label>
-            <input id="invite-email" type="email" inputMode="email" className="input-field" value={email} onChange={(e) => setEmail(e.target.value)} required />
-            <p className="form-hint">La personne doit déjà avoir un compte CONFERA.</p>
+        {/* Ouverture de la modale unifiée d'invitation */}
+        {onOpenInviteModal && (
+          <div className="card-panel flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-fg">{t('invitations.addPerson')}</h3>
+              <p className="text-xs text-muted">{t('network.openInviteModalHint')}</p>
+            </div>
+            <button
+              type="button"
+              onClick={onOpenInviteModal}
+              className="btn-primary shrink-0 inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <UserPlusIcon size={16} aria-hidden="true" />
+              <span>{t('network.inviteBtn')}</span>
+            </button>
           </div>
-          <div>
-            <label htmlFor="invite-role" className="form-label">
-              Rôle
-            </label>
-            <select id="invite-role" className="select-field" value={role} onChange={(e) => setRole(e.target.value)}>
-              <option value="reviewer">Reviewer (à tout moment)</option>
-              <option value="participant" disabled={!organizational}>
-                Participant{!organizational ? ' (après clôture de la phase scientifique)' : ''}
-              </option>
-            </select>
-          </div>
-          <button type="submit" disabled={busy} className="btn-primary">
-            <UserPlusIcon size={16} aria-hidden="true" />
-            Ajouter
-          </button>
-        </form>
+        )}
       </div>
     </div>
   )

@@ -9,7 +9,9 @@ import {
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
 import { writeError } from '../../lib/errors'
-import { ROLE_LABELS, ROLE_COLOR } from '../../lib/constants'
+import { useConfirm } from '../../context/ConfirmContext'
+import { useLanguage } from '../../context/LanguageContext'
+import { ROLE_COLOR } from '../../lib/constants'
 import Avatar from '../../components/ui/Avatar'
 import Tabs from '../../components/ui/Tabs'
 import SectionTitle from '../../components/ui/SectionTitle'
@@ -18,6 +20,8 @@ import EmptyState from '../../components/ui/EmptyState'
 const ROLES = ['organizer', 'reviewer', 'participant']
 
 export default function ManageParticipants({ participants, onUpdated }) {
+  const confirm = useConfirm()
+  const { t } = useLanguage()
   const myId = useAuth().user?.id ?? null
   const [updatingId, setUpdatingId] = useState(null)
   const [error, setError] = useState(null)
@@ -26,27 +30,37 @@ export default function ManageParticipants({ participants, onUpdated }) {
   const [viewMode, setViewMode] = useState('table') // 'table' | 'cards'
 
   const handleRoleChange = async (p, newRole) => {
-    if (
-      newRole === 'organizer' &&
-      !window.confirm(`Donner le rôle d'organisateur à ${p.profiles?.full_name} ? Il pourra tout gérer.`)
-    )
-      return
+    if (newRole === 'organizer') {
+      const ok = await confirm({
+        title: t('participants.promoteTitle', { name: p.profiles?.full_name }),
+        description: t('participants.promoteDesc'),
+        confirmLabel: t('participants.promoteConfirm'),
+        variant: 'default',
+      })
+      if (!ok) return
+    }
     setUpdatingId(p.id)
     setError(null)
     const res = await supabase.from('event_participants').update({ role_in_event: newRole }).eq('id', p.id).select('id')
     setUpdatingId(null)
-    const msg = writeError(res, 'Changement de rôle refusé par la base.')
+    const msg = writeError(res, t('errors.saveRefused'))
     if (msg) setError(msg)
     else onUpdated()
   }
 
   const handleRemove = async (p) => {
-    if (!window.confirm(`Retirer ${p.profiles?.full_name || 'ce participant'} de l'événement ?`)) return
+    const ok = await confirm({
+      title: t('participants.removeTitle', { name: p.profiles?.full_name || t('participants.thisParticipant') }),
+      description: t('participants.removeDesc'),
+      confirmLabel: t('participants.removeConfirm'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setUpdatingId(p.id)
     setError(null)
     const res = await supabase.from('event_participants').delete().eq('id', p.id).select('id')
     setUpdatingId(null)
-    const msg = writeError(res, 'Retrait refusé : seul un organisateur peut retirer un participant.')
+    const msg = writeError(res, t('errors.deleteRefused'))
     if (msg) setError(msg)
     else onUpdated()
   }
@@ -65,9 +79,9 @@ export default function ManageParticipants({ participants, onUpdated }) {
   return (
     <section className="space-y-6">
       <SectionTitle
-        title="Membres & Rôles"
+        title={t('event.members')}
         count={participants.length}
-        description="Gérez les organisateurs, membres du comité scientifique (reviewers) et participants inscrits."
+        description={t('participants.description')}
       />
 
       {/* Barre d'outils : Filtres rôles + Recherche + Commutateur de vue */}
@@ -75,42 +89,42 @@ export default function ManageParticipants({ participants, onUpdated }) {
         <Tabs
           variant="pill"
           wrap
-          label="Filtrer par rôle"
+          label={t('participants.filterByRole')}
           active={role}
           onChange={setRole}
           tabs={[
-            { id: 'all', label: 'Tous' },
-            ...ROLES.map((r) => ({ id: r, label: `${ROLE_LABELS[r]}s`, badge: countOf(r) || null })),
+            { id: 'all', label: t('common.all') },
+            ...ROLES.map((r) => ({ id: r, label: t(`roles.${r}`), badge: countOf(r) || null })),
           ]}
         />
 
         <div className="flex items-center gap-2.5">
           <label className="relative flex-1 sm:w-64">
-            <span className="sr-only">Rechercher une personne</span>
+            <span className="sr-only">{t('common.search')}</span>
             <MagnifyingGlassIcon
               size={15}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
+              className="absolute start-3.5 top-1/2 -translate-y-1/2 text-faint pointer-events-none"
               aria-hidden="true"
             />
             <input
               type="search"
-              className="input-field pl-9.5 text-xs sm:text-sm py-1.5"
-              placeholder="Nom ou email…"
+              className="input-field ps-9.5 text-xs sm:text-sm py-1.5"
+              placeholder={t('participants.searchPlaceholder')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
           </label>
 
           {/* Commutateur de vue : Tableau vs Cartes */}
-          <div className="flex items-center rounded-xl border border-line bg-surface/80 p-0.5 shrink-0" aria-label="Format d'affichage">
+          <div className="flex items-center rounded-xl border border-line bg-surface/80 p-0.5 shrink-0" aria-label={t('participants.displayMode')}>
             <button
               type="button"
               onClick={() => setViewMode('table')}
               className={`p-1.5 rounded-lg transition-colors ${
-                viewMode === 'table' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                viewMode === 'table' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
               }`}
-              title="Affichage en tableau"
-              aria-label="Affichage en tableau"
+              title={t('participants.tableView')}
+              aria-label={t('participants.tableView')}
             >
               <TableIcon size={17} weight={viewMode === 'table' ? 'fill' : 'regular'} aria-hidden="true" />
             </button>
@@ -118,10 +132,10 @@ export default function ManageParticipants({ participants, onUpdated }) {
               type="button"
               onClick={() => setViewMode('cards')}
               className={`p-1.5 rounded-lg transition-colors ${
-                viewMode === 'cards' ? 'bg-accent/20 text-accent-ink shadow-xs' : 'text-muted hover:text-fg'
+                viewMode === 'cards' ? 'bg-surface text-fg shadow-xs ring-1 ring-line' : 'text-muted hover:text-fg'
               }`}
-              title="Affichage en cartes horizontales"
-              aria-label="Affichage en cartes"
+              title={t('participants.cardView')}
+              aria-label={t('participants.cardViewAria')}
             >
               <SquaresFourIcon size={17} weight={viewMode === 'cards' ? 'fill' : 'regular'} aria-hidden="true" />
             </button>
@@ -136,18 +150,23 @@ export default function ManageParticipants({ participants, onUpdated }) {
       )}
 
       {listed.length === 0 ? (
-        <EmptyState compact icon={UsersThreeIcon} title="Aucun membre trouvé" body="Aucune personne ne correspond à ces critères." />
+        <EmptyState
+          compact
+          icon={UsersThreeIcon}
+          title={t('participants.emptyTitle')}
+          body={t('participants.emptyBody')}
+        />
       ) : viewMode === 'table' ? (
         /* --- 1. VUE TABLEAU PLEINE LARGEUR (DATA TABLE SAAS) --- */
         <div className="card overflow-hidden border-line rise">
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs sm:text-sm">
+            <table className="w-full text-start text-xs sm:text-sm">
               <thead className="bg-surface border-b border-line text-faint text-[11px] uppercase tracking-wider font-semibold">
                 <tr>
-                  <th scope="col" className="px-4 py-3">Membre</th>
-                  <th scope="col" className="px-4 py-3">Email</th>
-                  <th scope="col" className="px-4 py-3">Rôle attribué</th>
-                  <th scope="col" className="px-4 py-3 text-right">Actions</th>
+                  <th scope="col" className="px-4 py-3">{t('participants.colMember')}</th>
+                  <th scope="col" className="px-4 py-3">{t('participants.colEmail')}</th>
+                  <th scope="col" className="px-4 py-3">{t('participants.colRole')}</th>
+                  <th scope="col" className="px-4 py-3 text-end">{t('participants.colActions')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -161,9 +180,9 @@ export default function ManageParticipants({ participants, onUpdated }) {
                           <Avatar name={p.profiles?.full_name} size={32} />
                           <div>
                             <span className="font-semibold text-fg">
-                              {p.profiles?.full_name || 'Sans nom'}
+                              {p.profiles?.full_name || t('profile.unnamed')}
                             </span>
-                            {isMe && <span className="text-accent-ink text-xs font-normal"> (toi)</span>}
+                            {isMe && <span className="text-accent-ink text-xs font-normal"> ({t('participants.you')})</span>}
                           </div>
                         </div>
                       </td>
@@ -178,26 +197,26 @@ export default function ManageParticipants({ participants, onUpdated }) {
                             value={p.role_in_event}
                             onChange={(e) => handleRoleChange(p, e.target.value)}
                             disabled={updatingId === p.id || isMe}
-                            aria-label={`Rôle de ${p.profiles?.full_name}`}
+                            aria-label={`${t('roles.' + p.role_in_event)} ${p.profiles?.full_name}`}
                             className="select-field w-auto py-1 text-xs"
                           >
                             {ROLES.map((r) => (
                               <option key={r} value={r}>
-                                {ROLE_LABELS[r]}
+                                {t(`roles.${r}`)}
                               </option>
                             ))}
                           </select>
                         </div>
                       </td>
-                      <td className="px-4 py-3.5 whitespace-nowrap text-right">
+                      <td className="px-4 py-3.5 whitespace-nowrap text-end">
                         {!isMe && (
                           <button
                             type="button"
                             className="icon-btn w-8 h-8 text-faint hover:text-bad inline-flex items-center justify-center"
                             disabled={updatingId === p.id}
                             onClick={() => handleRemove(p)}
-                            aria-label={`Retirer ${p.profiles?.full_name}`}
-                            title="Retirer de l'événement"
+                            aria-label={`${t('participants.removeConfirm')} ${p.profiles?.full_name}`}
+                            title={t('participants.removeFromEvent')}
                           >
                             <UserMinusIcon size={16} />
                           </button>
@@ -222,7 +241,7 @@ export default function ManageParticipants({ participants, onUpdated }) {
                 className="card p-4 border-line bg-surface/70 flex flex-col justify-between gap-3 relative overflow-hidden"
               >
                 <span
-                  className="absolute left-0 top-0 bottom-0 w-1"
+                  className="absolute start-0 top-0 bottom-0 w-1"
                   style={{ background: color }}
                   aria-hidden="true"
                 />
@@ -231,8 +250,8 @@ export default function ManageParticipants({ participants, onUpdated }) {
                   <Avatar name={p.profiles?.full_name} size={38} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-fg truncate">
-                      {p.profiles?.full_name || 'Sans nom'}
-                      {isMe && <span className="text-accent-ink text-xs font-normal"> (toi)</span>}
+                      {p.profiles?.full_name || t('profile.unnamed')}
+                      {isMe && <span className="text-accent-ink text-xs font-normal"> ({t('participants.you')})</span>}
                     </p>
                     <p className="text-xs text-muted truncate mt-0.5">{p.profiles?.email}</p>
                   </div>
@@ -244,12 +263,12 @@ export default function ManageParticipants({ participants, onUpdated }) {
                     value={p.role_in_event}
                     onChange={(e) => handleRoleChange(p, e.target.value)}
                     disabled={updatingId === p.id || isMe}
-                    aria-label={`Rôle de ${p.profiles?.full_name}`}
+                    aria-label={`${t('roles.' + p.role_in_event)} ${p.profiles?.full_name}`}
                     className="select-field w-auto py-1 text-xs"
                   >
                     {ROLES.map((r) => (
                       <option key={r} value={r}>
-                        {ROLE_LABELS[r]}
+                        {t(`roles.${r}`)}
                       </option>
                     ))}
                   </select>
@@ -260,8 +279,8 @@ export default function ManageParticipants({ participants, onUpdated }) {
                       className="icon-btn w-8 h-8 text-faint hover:text-bad"
                       disabled={updatingId === p.id}
                       onClick={() => handleRemove(p)}
-                      aria-label={`Retirer ${p.profiles?.full_name}`}
-                      title="Retirer de l'événement"
+                      aria-label={`${t('participants.removeConfirm')} ${p.profiles?.full_name}`}
+                      title={t('participants.removeFromEvent')}
                     >
                       <UserMinusIcon size={16} />
                     </button>

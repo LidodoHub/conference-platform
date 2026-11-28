@@ -12,6 +12,7 @@ import {
   WarningCircleIcon,
   PresentationChartIcon,
 } from '@phosphor-icons/react'
+import { useLanguage } from '../../context/LanguageContext'
 
 export default function PhaseGuidanceBanner({
   event,
@@ -29,6 +30,7 @@ export default function PhaseGuidanceBanner({
   activeTab,
   onNavigateTab,
 }) {
+  const { t } = useLanguage()
   const [expanded, setExpanded] = useState(false)
   const isScientific = event.phase === 'scientific'
 
@@ -44,133 +46,148 @@ export default function PhaseGuidanceBanner({
   if (canManage) {
     if (isScientific) {
       if (pendingCount > 0) {
-        priorityTitle = `${pendingCount} communication${pendingCount > 1 ? 's' : ''} en attente d'arbitrage`
-        priorityDetail = 'Les avis des pairs sont déposés. Prononcez les acceptations ou demandes de révision.'
-        actionLabel = 'Examiner les articles'
+        priorityTitle = t(
+          pendingCount > 1 ? 'phaseGuidance.mgrSciPendingTitleMany' : 'phaseGuidance.mgrSciPendingTitleOne',
+          { count: pendingCount },
+        )
+        priorityDetail = t('phaseGuidance.mgrSciPendingDetail')
+        actionLabel = t('phaseGuidance.mgrSciPendingAction')
         targetTab = 'scientific'
         Icon = ArticleIcon
-        statusBadge = 'Arbitrage requis'
+        statusBadge = t('phaseGuidance.mgrSciPendingBadge')
         badgeTone = 'accent'
       } else if (submissions.length > 0) {
-        priorityTitle = 'Sélection scientifique finalisée'
-        priorityDetail = `${acceptedCount} article${acceptedCount > 1 ? 's' : ''} retenu${acceptedCount > 1 ? 's' : ''}. Vous pouvez basculer l’événement en phase organisationnelle pour ouvrir les inscriptions.`
-        actionLabel = 'Paramètres de phase'
+        priorityTitle = t('phaseGuidance.mgrSciDoneTitle')
+        priorityDetail = t(
+          acceptedCount > 1 ? 'phaseGuidance.mgrSciDoneDetailMany' : 'phaseGuidance.mgrSciDoneDetailOne',
+          { count: acceptedCount },
+        )
+        actionLabel = t('phaseGuidance.mgrSciDoneAction')
         targetTab = 'org-settings'
         Icon = CheckCircleIcon
-        statusBadge = 'Prêt pour la logistique'
+        statusBadge = t('phaseGuidance.mgrSciDoneBadge')
         badgeTone = 'ok'
       } else {
-        priorityTitle = 'Appel à communications en cours'
-        priorityDetail = 'La plateforme reçoit les dépôts de résumés scientifiques des chercheurs.'
-        actionLabel = 'Consulter les soumissions'
+        priorityTitle = t('phaseGuidance.mgrSciOpenTitle')
+        priorityDetail = t('phaseGuidance.mgrSciOpenDetail')
+        actionLabel = t('phaseGuidance.mgrSciOpenAction')
         targetTab = 'scientific'
         Icon = ClockIcon
-        statusBadge = 'Dépôts ouverts'
+        statusBadge = t('phaseGuidance.mgrSciOpenBadge')
         badgeTone = 'muted'
       }
     } else {
       // Phase Organisationnelle
       if (paymentsToValidate > 0) {
-        priorityTitle = `${paymentsToValidate} règlement${paymentsToValidate > 1 ? 's' : ''} à valider`
-        priorityDetail = 'Des participants ont déclaré leur paiement par virement ou bon de commande.'
-        actionLabel = 'Vérifier les inscriptions'
+        priorityTitle = t(
+          paymentsToValidate > 1 ? 'phaseGuidance.mgrOrgPayTitleMany' : 'phaseGuidance.mgrOrgPayTitleOne',
+          { count: paymentsToValidate },
+        )
+        priorityDetail = t('phaseGuidance.mgrOrgPayDetail')
+        actionLabel = t('phaseGuidance.mgrOrgPayAction')
         targetTab = 'org-registrations'
         Icon = TicketIcon
-        statusBadge = 'Comptabilité'
+        statusBadge = t('phaseGuidance.mgrOrgPayBadge')
         badgeTone = 'warn'
       } else {
-        priorityTitle = 'Préparation logistique & Programme'
-        priorityDetail = `${validatedCount} participant${validatedCount > 1 ? 's' : ''} validé${validatedCount > 1 ? 's' : ''}. Répartissez les communications dans les sessions et amphis.`
-        actionLabel = 'Gérer le programme'
+        priorityTitle = t('phaseGuidance.mgrOrgReadyTitle')
+        priorityDetail = t(
+          validatedCount > 1 ? 'phaseGuidance.mgrOrgReadyDetailMany' : 'phaseGuidance.mgrOrgReadyDetailOne',
+          { count: validatedCount },
+        )
+        actionLabel = t('phaseGuidance.mgrOrgReadyAction')
         targetTab = 'program'
         Icon = PresentationChartIcon
-        statusBadge = 'Logistique active'
+        statusBadge = t('phaseGuidance.mgrOrgReadyBadge')
         badgeTone = 'ok'
       }
     }
   } else if (isReviewer) {
     if (isScientific) {
       if (reviewsToCount > 0) {
-        priorityTitle = `${reviewsToCount} article${reviewsToCount > 1 ? 's' : ''} assigné${reviewsToCount > 1 ? 's' : ''} à relire`
-        priorityDetail = 'Votre expertise est sollicitée par le comité scientifique pour noter ces communications.'
-        actionLabel = 'Accéder aux relectures'
+        priorityTitle = t(
+          reviewsToCount > 1 ? 'phaseGuidance.revSciTodoTitleMany' : 'phaseGuidance.revSciTodoTitleOne',
+          { count: reviewsToCount },
+        )
+        priorityDetail = t('phaseGuidance.revSciTodoDetail')
+        actionLabel = t('phaseGuidance.revSciTodoAction')
         targetTab = 'scientific'
         Icon = ArticleIcon
-        statusBadge = 'Action requise'
+        statusBadge = t('phaseGuidance.revSciTodoBadge')
         badgeTone = 'accent'
       } else {
-        priorityTitle = 'Relectures à jour'
-        priorityDetail = 'Vos évaluations ont bien été enregistrées par le comité de programme.'
-        actionLabel = 'Voir mes avis'
+        priorityTitle = t('phaseGuidance.revSciDoneTitle')
+        priorityDetail = t('phaseGuidance.revSciDoneDetail')
+        actionLabel = t('phaseGuidance.revSciDoneAction')
         targetTab = 'scientific'
         Icon = CheckCircleIcon
-        statusBadge = 'Finalisé'
+        statusBadge = t('phaseGuidance.revSciDoneBadge')
         badgeTone = 'ok'
       }
     } else {
-      priorityTitle = 'Phase d’évaluation close'
-      priorityDetail = 'Le processus de sélection scientifique est terminé. Consultez le programme officiel.'
-      actionLabel = 'Voir les sessions'
+      priorityTitle = t('phaseGuidance.revOrgTitle')
+      priorityDetail = t('phaseGuidance.revOrgDetail')
+      actionLabel = t('phaseGuidance.revOrgAction')
       targetTab = 'program'
       Icon = PresentationChartIcon
-      statusBadge = 'Sélection close'
+      statusBadge = t('phaseGuidance.revOrgBadge')
       badgeTone = 'muted'
     }
   } else {
     // Participant / Auteur
     if (isScientific) {
       if (myPendingRevision.length > 0) {
-        priorityTitle = `Révision requise : « ${myPendingRevision[0].title} »`
-        priorityDetail = 'Prenez connaissance des retours formulés par les reviewers et déposez votre version modifiée.'
-        actionLabel = 'Déposer la révision'
+        priorityTitle = t('phaseGuidance.authorRevisionTitle', { title: myPendingRevision[0].title })
+        priorityDetail = t('phaseGuidance.authorRevisionDetail')
+        actionLabel = t('phaseGuidance.authorRevisionAction')
         targetTab = 'scientific'
         Icon = WarningCircleIcon
-        statusBadge = 'Correction attendue'
+        statusBadge = t('phaseGuidance.authorRevisionBadge')
         badgeTone = 'warn'
       } else if (submissions.length > 0) {
-        priorityTitle = 'Communication soumise au comité'
-        priorityDetail = 'Votre résumé est en cours d’examen par les membres du comité scientifique.'
-        actionLabel = 'Suivre ma soumission'
+        priorityTitle = t('phaseGuidance.authorSubmittedTitle')
+        priorityDetail = t('phaseGuidance.authorSubmittedDetail')
+        actionLabel = t('phaseGuidance.authorSubmittedAction')
         targetTab = 'scientific'
         Icon = ClockIcon
-        statusBadge = 'En évaluation'
+        statusBadge = t('phaseGuidance.authorSubmittedBadge')
         badgeTone = 'muted'
       } else {
-        priorityTitle = 'Appel à communications ouvert'
-        priorityDetail = 'Vous pouvez soumettre un titre et un résumé scientifique pour participer à cette conférence.'
-        actionLabel = 'Soumettre un article'
+        priorityTitle = t('phaseGuidance.authorOpenTitle')
+        priorityDetail = t('phaseGuidance.authorOpenDetail')
+        actionLabel = t('phaseGuidance.authorOpenAction')
         targetTab = 'scientific'
         Icon = SparkleIcon
-        statusBadge = 'Appel en cours'
+        statusBadge = t('phaseGuidance.authorOpenBadge')
         badgeTone = 'accent'
       }
     } else {
       // Phase Organisationnelle
       if (myAccepted.length > 0) {
         if (isParticipantValidated) {
-          priorityTitle = 'Inscription confirmée • Pass actif'
-          priorityDetail = 'Votre communication est retenue et votre badge d’accès numérique est prêt.'
-          actionLabel = 'Afficher mon pass'
+          priorityTitle = t('phaseGuidance.authorValidatedTitle')
+          priorityDetail = t('phaseGuidance.authorValidatedDetail')
+          actionLabel = t('phaseGuidance.authorValidatedAction')
           targetTab = 'overview'
           Icon = ShieldCheckIcon
-          statusBadge = 'Accès accordé'
+          statusBadge = t('phaseGuidance.authorValidatedBadge')
           badgeTone = 'ok'
         } else {
-          priorityTitle = `Article retenu : « ${myAccepted[0].title} »`
-          priorityDetail = 'Félicitations. Veuillez finaliser le règlement de vos droits d’inscription pour obtenir votre badge.'
-          actionLabel = 'Régler mon inscription'
+          priorityTitle = t('phaseGuidance.authorAcceptedTitle', { title: myAccepted[0].title })
+          priorityDetail = t('phaseGuidance.authorAcceptedDetail')
+          actionLabel = t('phaseGuidance.authorAcceptedAction')
           targetTab = 'overview'
           Icon = TicketIcon
-          statusBadge = 'Paiement requis'
+          statusBadge = t('phaseGuidance.authorAcceptedBadge')
           badgeTone = 'accent'
         }
       } else {
-        priorityTitle = 'Programme des sessions publié'
-        priorityDetail = 'Consultez les horaires de passage, les amphithéâtres et les keynotes prévues.'
-        actionLabel = 'Consulter le programme'
+        priorityTitle = t('phaseGuidance.authorProgramTitle')
+        priorityDetail = t('phaseGuidance.authorProgramDetail')
+        actionLabel = t('phaseGuidance.authorProgramAction')
         targetTab = 'program'
         Icon = PresentationChartIcon
-        statusBadge = 'Accessible'
+        statusBadge = t('phaseGuidance.authorProgramBadge')
         badgeTone = 'muted'
       }
     }
@@ -179,33 +196,36 @@ export default function PhaseGuidanceBanner({
   // Checklist des jalons de la phase en cours (sobre et académique)
   const checklistItems = isScientific
     ? [
-        { label: 'Publication de l’appel à communications', done: true },
-        { label: 'Dépôt des résumés par les auteurs', done: submissions.length > 0 },
-        { label: 'Évaluation par les pairs (Relectures)', done: submissions.some((s) => (s.reviews || []).length > 0) },
+        { label: t('phaseGuidance.checkSciPublish'), done: true },
+        { label: t('phaseGuidance.checkSciSubmit'), done: submissions.length > 0 },
+        { label: t('phaseGuidance.checkSciReview'), done: submissions.some((s) => (s.reviews || []).length > 0) },
         {
-          label: `Arbitrage final du comité (${submissions.length - pendingCount}/${submissions.length || 0})`,
+          label: t('phaseGuidance.checkSciDecision', {
+            done: submissions.length - pendingCount,
+            total: submissions.length || 0,
+          }),
           done: submissions.length > 0 && pendingCount === 0,
         },
       ]
     : [
-        { label: 'Validation de la sélection scientifique', done: true },
-        { label: 'Ouverture des inscriptions & règlements', done: true },
-        { label: `Vérification comptable des paiements (${validatedCount} validés)`, done: paymentsToValidate === 0 },
-        { label: 'Affectation des articles aux sessions & amphis', done: acceptedCount > 0 },
-        { label: 'Publication du recueil officiel des actes (PDF)', done: true },
+        { label: t('phaseGuidance.checkOrgSelection'), done: true },
+        { label: t('phaseGuidance.checkOrgRegistrations'), done: true },
+        { label: t('phaseGuidance.checkOrgPayments', { count: validatedCount }), done: paymentsToValidate === 0 },
+        { label: t('phaseGuidance.checkOrgAssign'), done: acceptedCount > 0 },
+        { label: t('phaseGuidance.checkOrgProceedings'), done: true },
       ]
 
-  const toneClasses = {
-    accent: 'border-accent/40 bg-accent/8 text-accent-ink',
-    warn: 'border-warn/40 bg-warn/8 text-warn',
-    ok: 'border-ok/40 bg-ok/8 text-ok',
-    muted: 'border-line bg-surface-2/60 text-muted',
+  const toneDots = {
+    accent: 'bg-accent',
+    warn: 'bg-accent',
+    ok: 'bg-emerald-500',
+    muted: 'bg-neutral-400',
   }
 
   return (
     <section
-      aria-label="Guidage de phase et actions prioritaires"
-      className="card border-line bg-surface/90 shadow-xs overflow-hidden transition-all duration-200"
+      aria-label={t('phaseGuidance.ariaLabel')}
+      className="card border-line bg-surface/90 shadow-card overflow-hidden transition-all duration-200"
     >
       {/* Barre compacte rétractable avec flèche à gauche */}
       <div className="p-3 sm:px-4 sm:py-3 flex items-center justify-between gap-3">
@@ -213,7 +233,7 @@ export default function PhaseGuidanceBanner({
           type="button"
           onClick={() => setExpanded((v) => !v)}
           aria-expanded={expanded}
-          className="flex items-center gap-2.5 min-w-0 text-left group cursor-pointer select-none"
+          className="flex items-center gap-2.5 min-w-0 text-start group cursor-pointer select-none"
         >
           {/* Flèche à gauche rotative */}
           <span
@@ -224,15 +244,16 @@ export default function PhaseGuidanceBanner({
             }`}
             aria-hidden="true"
           >
-            <CaretRightIcon size={14} weight="bold" />
+            <CaretRightIcon size={14} weight="bold" className={expanded ? '' : 'rtl:rotate-180'} />
           </span>
 
           <div className="min-w-0 flex items-center gap-2 flex-wrap">
             <span className="text-[11px] font-mono uppercase tracking-wider text-faint shrink-0">
-              {isScientific ? 'Phase 1 • Scientifique' : 'Phase 2 • Logistique'}
+              {isScientific ? t('phaseGuidance.phaseScientific') : t('phaseGuidance.phaseOrganizational')}
             </span>
-            <span className={`text-[11px] font-semibold px-2 py-0.2 rounded-full border shrink-0 ${toneClasses[badgeTone]}`}>
-              {statusBadge}
+            <span className="inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-0.5 rounded-full bg-white text-neutral-800 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10 shrink-0">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${toneDots[badgeTone] || 'bg-neutral-400'}`} aria-hidden="true" />
+              <span>{statusBadge}</span>
             </span>
             <span className="font-semibold text-xs sm:text-sm text-fg truncate">
               {priorityTitle}
@@ -249,7 +270,7 @@ export default function PhaseGuidanceBanner({
               className="btn-accent btn-sm text-xs gap-1.5 shadow-xs active:scale-95 transition-all"
             >
               <span>{actionLabel}</span>
-              <ArrowRightIcon size={13} weight="bold" />
+              <ArrowRightIcon size={13} weight="bold" className="rtl:rotate-180" />
             </button>
           )}
 
@@ -258,9 +279,9 @@ export default function PhaseGuidanceBanner({
             onClick={() => setExpanded((v) => !v)}
             aria-expanded={expanded}
             className="text-[11px] font-medium text-faint hover:text-muted hidden sm:inline-block px-1"
-            title="Déplier ou replier les détails et la checklist des jalons"
+            title={t('phaseGuidance.drawerTitleAttr')}
           >
-            {expanded ? 'Masquer le rideau' : 'Objectifs & Jalons'}
+            {expanded ? t('phaseGuidance.hideDrawer') : t('phaseGuidance.showDrawer')}
           </button>
         </div>
       </div>
@@ -292,10 +313,15 @@ export default function PhaseGuidanceBanner({
           <div className="pt-2 border-t border-line/40 space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-fg">
-                Objectifs & Jalons de la {isScientific ? 'Phase Scientifique' : 'Phase Organisationnelle'}
+                {t('phaseGuidance.objectivesHeading', {
+                  phase: isScientific ? t('phaseGuidance.phaseScientificName') : t('phaseGuidance.phaseOrganizationalName'),
+                })}
               </span>
               <span className="text-[11px] font-mono text-faint">
-                {checklistItems.filter((i) => i.done).length} / {checklistItems.length} complétés
+                {t('phaseGuidance.completedRatio', {
+                  done: checklistItems.filter((i) => i.done).length,
+                  total: checklistItems.length,
+                })}
               </span>
             </div>
 
@@ -324,7 +350,7 @@ export default function PhaseGuidanceBanner({
             <div className="flex items-center gap-2 pt-1 text-[11px] text-muted border-t border-line/40">
               <LockIcon size={13} className="text-accent-ink shrink-0" />
               <span>
-                <strong>Condition pour passer à l’étape suivante :</strong> prononcer toutes les décisions d'arbitrage sur les articles déposés.
+                <strong>{t('phaseGuidance.nextStepConditionLabel')}</strong> {t('phaseGuidance.nextStepConditionBody')}
               </span>
             </div>
           )}

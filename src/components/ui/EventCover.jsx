@@ -31,7 +31,7 @@ export default function EventCover({
       {isGenerative && (
         <ScientificPattern
           patternKey={resolved.patternKey}
-          className="transition-transform duration-700 ease-out group-hover:scale-105 group-hover/cover:scale-105"
+          className="transition-transform duration-300 ease-out group-hover:scale-[1.03] group-hover/cover:scale-[1.03]"
         />
       )}
 
@@ -44,7 +44,7 @@ export default function EventCover({
           loading="lazy"
           referrerPolicy="no-referrer"
           onError={() => setFailedUrls((prev) => ({ ...prev, [photo]: true }))}
-          className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105 group-hover/cover:scale-105 pointer-events-none"
+          className="absolute inset-0 w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.03] group-hover/cover:scale-[1.03] pointer-events-none"
         />
       )}
 

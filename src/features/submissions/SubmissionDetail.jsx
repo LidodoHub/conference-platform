@@ -16,14 +16,23 @@ import {
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError, writeError } from '../../lib/errors'
+import { useConfirm } from '../../context/ConfirmContext'
+import { useLanguage } from '../../context/LanguageContext'
 import {
   SUBMISSION_COLOR,
   REVISION_LABELS,
   RECOMMENDATION_LABELS,
   RECOMMENDATION_COLOR,
   MAX_ACCEPTED_PER_AUTHOR,
-  formatDate,
 } from '../../lib/constants'
+
+const parseDay = (d) => {
+  if (!d) return null
+  const str = String(d)
+  return str.length <= 10 ? new Date(`${str}T00:00:00`) : new Date(str)
+}
+const fmtDate = (d, locale) =>
+  parseDay(d)?.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) || ''
 import Pill from '../../components/ui/Pill'
 import Avatar from '../../components/ui/Avatar'
 import { StackedBar } from '../../components/charts/Charts'
@@ -130,7 +139,7 @@ function ReviewItem({ name, review, sessionTitle, canManage, myId, chairNote }) 
               <span className="font-semibold text-ok flex items-center gap-1">
                 <span>Points forts (E1) :</span>
               </span>
-              <p className="text-fg/85 whitespace-pre-line pl-3 border-l-2 border-ok/40 leading-relaxed">
+              <p className="text-fg/85 whitespace-pre-line ps-3 border-s-2 border-ok/40 leading-relaxed">
                 {ideas.e1}
               </p>
             </div>
@@ -141,7 +150,7 @@ function ReviewItem({ name, review, sessionTitle, canManage, myId, chairNote }) 
               <span className="font-semibold text-warn flex items-center gap-1">
                 <span>Axes d'amelioration / Faiblesses (E2) :</span>
               </span>
-              <p className="text-fg/85 whitespace-pre-line pl-3 border-l-2 border-warn/40 leading-relaxed">
+              <p className="text-fg/85 whitespace-pre-line ps-3 border-s-2 border-warn/40 leading-relaxed">
                 {ideas.e2}
               </p>
             </div>
@@ -152,7 +161,7 @@ function ReviewItem({ name, review, sessionTitle, canManage, myId, chairNote }) 
               <span className="font-semibold text-fg flex items-center gap-1">
                 <span>Suggestions concretes (E3) :</span>
               </span>
-              <p className="text-fg/85 whitespace-pre-line pl-3 border-l-2 border-line leading-relaxed">
+              <p className="text-fg/85 whitespace-pre-line ps-3 border-s-2 border-line leading-relaxed">
                 {ideas.e3}
               </p>
             </div>
@@ -165,7 +174,7 @@ function ReviewItem({ name, review, sessionTitle, canManage, myId, chairNote }) 
                 <EyeSlashIcon size={14} />
                 <span>Remarques confidentielles pour les chaires (E4)</span>
               </div>
-              <p className="text-fg/90 whitespace-pre-line pl-1 leading-relaxed">
+              <p className="text-fg/90 whitespace-pre-line ps-1 leading-relaxed">
                 {confidentialText}
               </p>
             </div>
@@ -250,11 +259,16 @@ export default function SubmissionDetail({
   canReview,
   frozen,
   atLimit,
+  assignments = [],
+  doubleBlind = false,
   reviewerName,
   sessionTitle,
+  onUnassign,
   onBack,
   onRefresh,
 }) {
+  const confirm = useConfirm()
+  const { t, locale } = useLanguage()
   const [revisionPicker, setRevisionPicker] = useState(false)
   const [reviewing, setReviewing] = useState(false)
   const [resubmitting, setResubmitting] = useState(false)
@@ -296,10 +310,17 @@ export default function SubmissionDetail({
 
   const decide = async (status, revisionType = null) => {
     const label =
-      status === 'accepted' ? 'Accepter' : status === 'rejected' ? 'Rejeter' : REVISION_LABELS[revisionType] || 'Demander une révision'
-    const final = status !== 'revision_requested' ? "\nLa décision ne pourra plus être modifiée depuis l'interface." : ''
-    const warning = reviews.length === 0 ? "\n\nCet article n'a encore aucune review." : ''
-    if (!window.confirm(`${label} « ${s.title} » ?${final}${warning}`)) return
+      status === 'accepted' ? t('submissions.accept') : status === 'rejected' ? t('submissions.reject') : REVISION_LABELS[revisionType] || t('submissions.requestRevision')
+    const final = status !== 'revision_requested' ? t('submissionDetail.finalDecisionWarning') : ''
+    const warning = reviews.length === 0 ? t('submissionDetail.noReviewsWarning') : ''
+    const description = [final, warning].filter(Boolean).join('\n\n')
+    const ok = await confirm({
+      title: `${label} « ${s.title} » ?`,
+      description,
+      confirmLabel: label,
+      variant: 'default',
+    })
+    if (!ok) return
     setError(null)
     setBusy(true)
     const { error: rpcError } = await supabase.rpc('decide_submission', {
@@ -316,10 +337,16 @@ export default function SubmissionDetail({
   }
 
   const remove = async () => {
-    if (!window.confirm(`Supprimer « ${s.title} » ? Ses reviews et ses décisions seront supprimées aussi.`)) return
+    const ok = await confirm({
+      title: `${t('common.delete')} « ${s.title} » ?`,
+      description: t('submissionDetail.deleteDesc'),
+      confirmLabel: t('common.delete'),
+      variant: 'danger',
+    })
+    if (!ok) return
     setError(null)
     const res = await supabase.from('submissions').delete().eq('id', s.id).select('id')
-    const msg = writeError(res, 'Suppression refusée : aucune ligne supprimée.')
+    const msg = writeError(res, t('errors.deleteRefused'))
     if (msg) setError(msg)
     else {
       onBack()
@@ -349,20 +376,20 @@ export default function SubmissionDetail({
       <div className="h-1.5" style={{ background: color }} aria-hidden="true" />
 
       <div className="p-4 sm:p-8">
-        <button type="button" onClick={onBack} className="btn-ghost btn-sm -ml-2 mb-4 lg:hidden">
-          <ArrowLeftIcon size={15} aria-hidden="true" />
-          Tous les articles
+        <button type="button" onClick={onBack} className="btn-ghost btn-sm -ms-2 mb-4 lg:hidden">
+          <ArrowLeftIcon size={15} className="rtl:rotate-180" aria-hidden="true" />
+          {t('submissionDetail.allPapers')}
         </button>
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <Pill color={color}>{statusLabel(s)}</Pill>
-            {isMine && <span className="text-xs font-medium text-accent-ink">Mon article</span>}
+            {isMine && !doubleBlind && <span className="text-xs font-medium text-accent-ink">{t('submissionDetail.myPaper')}</span>}
           </div>
           {s.submitted_at && (
             <span className="inline-flex items-center gap-1.5 text-xs text-faint num">
               <CalendarBlankIcon size={13} aria-hidden="true" />
-              Déposé le {formatDate(s.submitted_at)}
+              {t('submissionDetail.submittedOn')} {fmtDate(s.submitted_at, locale)}
             </span>
           )}
         </div>
@@ -371,10 +398,54 @@ export default function SubmissionDetail({
           {s.title}
         </h3>
 
-        {s.profiles?.full_name && (
+        {(doubleBlind || s.profiles?.full_name) && (
           <div className="flex items-center gap-2.5 mt-4">
-            <Avatar name={s.profiles.full_name} size={32} tone={isMine ? 'brand' : 'neutral'} />
-            <span className="text-sm text-fg">{s.profiles.full_name}</span>
+            <Avatar
+              name={doubleBlind ? t('submissionDetail.anonymizedAuthor') : s.profiles.full_name}
+              size={32}
+              tone={!doubleBlind && isMine ? 'brand' : 'neutral'}
+            />
+            <span className="text-sm text-fg">
+              {doubleBlind ? t('submissionDetail.anonymizedAuthorDoubleBlind') : s.profiles.full_name}
+            </span>
+          </div>
+        )}
+
+        {canManage && (
+          <div className="mt-4 pt-3 border-t border-line/60 flex flex-wrap items-center gap-2 text-xs">
+            <span className="font-medium text-muted">{t('submissionDetail.assignedReviewers')}</span>
+            {(() => {
+              const subAssignments = assignments.filter((a) => a.submission_id === String(s.id))
+              if (subAssignments.length === 0) {
+                return <span className="text-faint">{t('submissionDetail.noReviewerAssigned')}</span>
+              }
+              return subAssignments.map((a, idx) => {
+                const reviewed = reviews.some((r) => String(r.reviewer_id) === String(a.reviewer_id))
+                const label = doubleBlind ? `${t('submissionDetail.reviewerWord')} ${idx + 1}` : a.reviewer_name
+                return (
+                  <span
+                    key={a.reviewer_id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-2 border border-line text-fg"
+                  >
+                    <span className="font-medium">{label}</span>
+                    <span className={reviewed ? 'text-ok font-medium' : 'text-muted'}>
+                      · {reviewed ? t('submissionDetail.reviewed') : t('submissionDetail.pending')}
+                    </span>
+                    {onUnassign && (
+                      <button
+                        type="button"
+                        onClick={() => onUnassign(s.id, a.reviewer_id)}
+                        className="ms-0.5 text-muted hover:text-bad transition-colors leading-none cursor-pointer"
+                        title={`${t('submissionDetail.remove')} ${label}`}
+                        aria-label={`${t('submissionDetail.remove')} ${label}`}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </span>
+                )
+              })
+            })()}
           </div>
         )}
 
@@ -395,13 +466,13 @@ export default function SubmissionDetail({
               <Stars value={avg || 0} size={15} />
             </div>
             <span className="text-xs text-faint">
-              • {reviews.length} {reviews.length > 1 ? 'avis déposés' : 'avis déposé'}
+              • {reviews.length} {t(reviews.length > 1 ? 'submissionDetail.reviewsSubmittedPlural' : 'submissionDetail.reviewsSubmittedSingle')}
             </span>
           </div>
 
           <div className="flex items-center gap-2">
             <span className="text-xs font-mono text-muted">
-              Consensus pairs :
+              {t('submissionDetail.peerConsensus')}
             </span>
             <Pill color={color}>
               {statusLabel(s)}
@@ -411,13 +482,13 @@ export default function SubmissionDetail({
 
         {s.abstract && (
           <section className="mt-7">
-            <div className="p-5 sm:p-6 rounded-2xl border border-line/80 bg-surface-2/30 space-y-2 border-l-4 border-l-accent">
+            <div className="p-5 sm:p-6 rounded-2xl border border-line/80 bg-surface-2/30 space-y-2 border-s-4 border-s-accent">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-semibold uppercase tracking-wider text-accent-ink">
-                  Résumé scientifique (Preprint View)
+                  {t('submissions.abstract')}
                 </h4>
                 <span className="text-[11px] font-mono text-faint">
-                  {s.abstract.length} caractères
+                  {s.abstract.length} {t('submissionDetail.characters')}
                 </span>
               </div>
               <p className="text-sm sm:text-base leading-relaxed text-fg/90 whitespace-pre-line max-w-prose">
@@ -432,45 +503,45 @@ export default function SubmissionDetail({
           <section className="mt-8 rounded-2xl border border-line bg-surface-2/60 p-4 sm:p-5">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <h4 className="font-semibold text-fg">Ta décision</h4>
+                <h4 className="font-semibold text-fg">{t('submissionDetail.yourDecision')}</h4>
                 <p className="text-[13px] text-muted mt-0.5">
                   {reviews.length
-                    ? `${reviews.length} review${reviews.length > 1 ? 's' : ''}, moyenne ${avg.toFixed(1)} / 5.`
-                    : 'Aucune review : une confirmation te sera demandée.'}
+                    ? t('submissionDetail.reviewsAverage', { count: reviews.length, avg: avg.toFixed(1) })
+                    : t('submissionDetail.noReviewsConfirm')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 {revisionPicker ? (
                   <>
                     <button type="button" className="btn-outline btn-sm" disabled={busy} onClick={() => decide('revision_requested', 'minor')}>
-                      Révision mineure
+                      {t('submissionDetail.minorRevision')}
                     </button>
                     <button type="button" className="btn-outline btn-sm" disabled={busy} onClick={() => decide('revision_requested', 'major')}>
-                      Révision majeure
+                      {t('submissionDetail.majorRevision')}
                     </button>
                     <button type="button" className="btn-ghost btn-sm" onClick={() => setRevisionPicker(false)}>
-                      Annuler
+                      {t('common.cancel')}
                     </button>
                   </>
                 ) : (
                   <>
                     <button type="button" className="btn-danger btn-sm" disabled={busy} onClick={() => decide('rejected')}>
                       <XIcon size={14} weight="bold" aria-hidden="true" />
-                      Rejeter
+                      {t('submissions.reject')}
                     </button>
                     <button type="button" className="btn-warning btn-sm" onClick={() => setRevisionPicker(true)}>
                       <ArrowCounterClockwiseIcon size={14} aria-hidden="true" />
-                      Révision
+                      {t('submissionDetail.revision')}
                     </button>
                     <button
                       type="button"
                       className="btn-success btn-sm"
                       disabled={busy || atLimit}
-                      title={atLimit ? `Déjà ${MAX_ACCEPTED_PER_AUTHOR} articles acceptés pour cet auteur` : undefined}
+                      title={atLimit ? t('submissionDetail.atLimitTitle', { max: MAX_ACCEPTED_PER_AUTHOR }) : undefined}
                       onClick={() => decide('accepted')}
                     >
                       <CheckIcon size={14} weight="bold" aria-hidden="true" />
-                      Accepter
+                      {t('submissions.accept')}
                     </button>
                   </>
                 )}
@@ -478,7 +549,7 @@ export default function SubmissionDetail({
             </div>
             {atLimit && (
               <p className="text-[13px] text-bad mt-3">
-                Cet auteur a déjà {MAX_ACCEPTED_PER_AUTHOR} articles acceptés : l'acceptation est bloquée.
+                {t('submissionDetail.atLimitDesc', { max: MAX_ACCEPTED_PER_AUTHOR })}
               </p>
             )}
           </section>
@@ -488,7 +559,9 @@ export default function SubmissionDetail({
         {(canManage || mine.length > 0) && (
           <section className="mt-8">
             <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-              <h4 className="font-semibold text-fg">{canManage ? `Avis des reviewers (${reviews.length})` : 'Ma review'}</h4>
+              <h4 className="font-semibold text-fg">
+                {canManage ? `${t('submissionDetail.reviewerFeedback')} (${reviews.length})` : t('submissionDetail.myReview')}
+              </h4>
               {canManage && avg != null && (
                 <span className="flex items-center gap-2">
                   <span className="num text-2xl font-semibold tracking-tight text-fg">{avg.toFixed(1)}</span>
@@ -500,9 +573,9 @@ export default function SubmissionDetail({
             {canManage && reviews.length > 1 && (
               <div className="mb-5">
                 <StackedBar
-                  label="Recommandations des reviewers"
+                  label={t('submissionDetail.reviewerRecommendations')}
                   segments={['accept', 'revise', 'reject'].map((k) => ({
-                    label: { accept: 'Accepter', revise: 'Réviser', reject: 'Rejeter' }[k],
+                    label: { accept: t('submissions.accept'), revise: t('submissionDetail.revise'), reject: t('submissions.reject') }[k],
                     value: reviews.filter((r) => r.recommendation === k).length,
                     color: RECOMMENDATION_COLOR[k],
                   }))}
@@ -511,13 +584,13 @@ export default function SubmissionDetail({
             )}
 
             {(canManage ? reviews : mine).length === 0 ? (
-              <p className="text-sm text-muted">Aucune review pour le moment.</p>
+              <p className="text-sm text-muted">{t('submissionDetail.noReviewsYet')}</p>
             ) : (
               <ul className="space-y-2.5">
-                {(canManage ? reviews : mine).map((r) => (
+                {(canManage ? reviews : mine).map((r, idx) => (
                   <ReviewItem
                     key={r.id}
-                    name={canManage ? reviewerName(r.reviewer_id) : 'Mon avis'}
+                    name={canManage ? (doubleBlind ? `${t('submissionDetail.reviewerWord')} ${idx + 1}` : reviewerName(r.reviewer_id)) : doubleBlind ? t('submissionDetail.myReviewAnonymous') : t('submissionDetail.myReviewShort')}
                     review={r}
                     sessionTitle={sessionTitle}
                     canManage={canManage}
@@ -534,7 +607,7 @@ export default function SubmissionDetail({
         {s.status === 'revision_requested' && isMine && (
           <section className="mt-8 rounded-2xl p-5 border border-warn/30 bg-warn/8">
             <h4 className="font-semibold text-warn">
-              {revision?.revision_type ? `${REVISION_LABELS[revision.revision_type]} demandée` : 'Révision demandée'}
+              {revision?.revision_type ? `${REVISION_LABELS[revision.revision_type]} ${t('submissionDetail.requested')}` : t('submissions.revisionRequested')}
             </h4>
             {revision?.revision_type && <p className="text-sm text-muted mt-1">{REVISION_HINTS[revision.revision_type]}</p>}
 
@@ -543,7 +616,7 @@ export default function SubmissionDetail({
                 {reviews.filter(realComment).map((r, i) => (
                   <ReviewItem
                     key={r.id}
-                    name={`Reviewer ${i + 1}`}
+                    name={`${t('submissionDetail.reviewerWord')} ${i + 1}`}
                     review={r}
                     sessionTitle={sessionTitle}
                     canManage={canManage}
@@ -556,12 +629,12 @@ export default function SubmissionDetail({
 
             <div className="mt-5">
               {frozen ? (
-                <p className="text-sm text-muted">La phase scientifique est close : la resoumission n'est plus possible.</p>
+                <p className="text-sm text-muted">{t('submissionDetail.closedResubmitBlocked')}</p>
               ) : resubmitting ? (
                 <form onSubmit={resubmit} className="space-y-4">
                   <div>
                     <label htmlFor={`rs-title-${s.id}`} className="form-label">
-                      Titre
+                      {t('submissions.title')}
                     </label>
                     <input
                       id={`rs-title-${s.id}`}
@@ -573,7 +646,7 @@ export default function SubmissionDetail({
                   </div>
                   <div>
                     <label htmlFor={`rs-abstract-${s.id}`} className="form-label">
-                      Résumé corrigé
+                      {t('submissions.abstract')}
                     </label>
                     <textarea
                       id={`rs-abstract-${s.id}`}
@@ -586,17 +659,17 @@ export default function SubmissionDetail({
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button type="submit" disabled={busy} className="btn-primary">
-                      {busy ? 'Envoi…' : 'Resoumettre'}
+                      {busy ? t('common.saving') : t('submissions.resubmit')}
                     </button>
                     <button type="button" className="btn-ghost" onClick={() => setResubmitting(false)}>
-                      Annuler
+                      {t('common.cancel')}
                     </button>
                   </div>
                 </form>
               ) : (
                 <button type="button" className="btn-primary" onClick={() => setResubmitting(true)}>
                   <ArrowCounterClockwiseIcon size={16} aria-hidden="true" />
-                  Corriger et resoumettre
+                  {t('submissions.resubmit')}
                 </button>
               )}
             </div>
@@ -613,7 +686,9 @@ export default function SubmissionDetail({
             >
               <NotePencilIcon size={17} aria-hidden="true" />
               <span>
-                {mine.length > 0 ? "Modifier ma grille d'évaluation IDEAS’2027" : "Remplir la grille d'évaluation IDEAS’2027"}
+                {mine.length > 0
+                  ? t('submissionDetail.editReviewForm')
+                  : t('submissionDetail.fillReviewForm')}
               </span>
             </button>
 
@@ -643,7 +718,7 @@ export default function SubmissionDetail({
           <div className="mt-10 pt-5 border-t border-line flex justify-end">
             <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={remove}>
               <TrashIcon size={15} aria-hidden="true" />
-              Retirer mon article
+              {t('submissionDetail.withdrawPaper')}
             </button>
           </div>
         )}
@@ -652,7 +727,7 @@ export default function SubmissionDetail({
           <div className="mt-10 pt-5 border-t border-line flex justify-end">
             <button type="button" className="btn-ghost btn-sm hover:text-bad" onClick={remove}>
               <TrashIcon size={15} aria-hidden="true" />
-              Supprimer l'article
+              {t('common.delete')}
             </button>
           </div>
         )}

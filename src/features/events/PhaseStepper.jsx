@@ -1,29 +1,63 @@
 import { CheckIcon, InfoIcon } from '@phosphor-icons/react'
+import { useLanguage } from '../../context/LanguageContext'
 
-const STEPS = [
-  {
-    label: '1. Phase scientifique',
-    short: 'Scientifique',
-    hint: 'Dépôts d’articles, relectures et décisions',
-    descNow: 'Appel à communication ouvert aux chercheurs',
-    descDone: 'Évaluations terminées et clôturées',
-  },
-  {
-    label: '2. Phase organisationnelle',
-    short: 'Organisation',
-    hint: 'Inscriptions, programme et badges',
-    descNow: 'Inscriptions ouvertes et planning des sessions',
-    descFuture: 'S’ouvre après la clôture des évaluations',
-  },
-]
+const STEPS_BY_LANG = {
+  fr: [
+    {
+      label: '1. Phase scientifique',
+      short: 'Scientifique',
+      descNow: 'Appel à communication ouvert aux chercheurs',
+      descDone: 'Évaluations terminées et clôturées',
+    },
+    {
+      label: '2. Phase organisationnelle',
+      short: 'Organisation',
+      descNow: 'Inscriptions ouvertes et planning des sessions',
+      descFuture: 'S’ouvre après la clôture des évaluations',
+    },
+  ],
+  en: [
+    {
+      label: '1. Scientific phase',
+      short: 'Scientific',
+      descNow: 'Call for papers open to researchers',
+      descDone: 'Reviews completed and closed',
+    },
+    {
+      label: '2. Organizational phase',
+      short: 'Organization',
+      descNow: 'Registrations open and session schedule active',
+      descFuture: 'Opens after reviews are closed',
+    },
+  ],
+  ar: [
+    {
+      label: '1. المرحلة العلمية',
+      short: 'العلمية',
+      descNow: 'الدعوة لتقديم الأوراق البحثية مفتوحة للباحثين',
+      descDone: 'تمت التقييمات وأُغلقت المرحلة',
+    },
+    {
+      label: '2. المرحلة التنظيمية',
+      short: 'التنظيم',
+      descNow: 'التسجيلات مفتوحة وبرمجة الجلسات نشطة',
+      descFuture: 'تُفتح بعد إغلاق التقييمات',
+    },
+  ],
+}
 
 export default function PhaseStepper({ phase }) {
+  const { t, lang } = useLanguage()
   const current = phase === 'organizational' ? 1 : 0
+  const steps = STEPS_BY_LANG[lang] || STEPS_BY_LANG.fr
 
   return (
     <div className="space-y-2">
-      <ol className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3" aria-label="Avancement de l'événement">
-        {STEPS.map((step, i) => {
+      <ol
+        className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3"
+        aria-label={lang === 'ar' ? 'تقدم التظاهرة' : lang === 'en' ? 'Event progress' : "Avancement de l'événement"}
+      >
+        {steps.map((step, i) => {
           const done = i < current
           const now = i === current
           return (
@@ -61,16 +95,22 @@ export default function PhaseStepper({ phase }) {
                 </div>
               </div>
 
-              <span className="shrink-0 text-[11px] font-medium px-2 py-0.5 rounded-full">
+              <span className="shrink-0 inline-flex items-center gap-1.5 text-[12px] font-medium px-2.5 py-0.5 rounded-full bg-white text-neutral-800 border border-neutral-200/80 dark:bg-white/[0.06] dark:text-neutral-200 dark:border-white/10">
                 {now ? (
-                  <span className="inline-flex items-center gap-1 text-accent-ink bg-accent/20 px-2 py-0.5 rounded-full font-semibold">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-                    En cours
-                  </span>
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" aria-hidden="true" />
+                    <span>{t('event.ongoingPhase')}</span>
+                  </>
                 ) : done ? (
-                  <span className="text-ok bg-ok/15 px-2 py-0.5 rounded-full font-medium">Terminée</span>
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
+                    <span>{t('event.finishedPhase')}</span>
+                  </>
                 ) : (
-                  <span className="text-muted bg-fg/6 px-2 py-0.5 rounded-full">À venir</span>
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-400 shrink-0" aria-hidden="true" />
+                    <span>{t('event.upcoming')}</span>
+                  </>
                 )}
               </span>
             </li>
@@ -82,11 +122,25 @@ export default function PhaseStepper({ phase }) {
         <InfoIcon size={14} className="text-accent-ink shrink-0" aria-hidden="true" />
         {phase === 'scientific' ? (
           <span>
-            <strong>Étape actuelle :</strong> Dépôt d’articles et évaluations par le comité. Les inscriptions des participants et le planning des sessions s’ouvriront en phase organisationnelle.
+            <strong>
+              {lang === 'ar' ? 'المرحلة الحالية:' : lang === 'en' ? 'Current step:' : 'Étape actuelle :'}
+            </strong>{' '}
+            {lang === 'ar'
+              ? 'إيداع الأوراق البحثية وتقييمها من طرف اللجنة العلمية. تُفتح تسجيلات المشاركين وبرمجة الجلسات في المرحلة التنظيمية.'
+              : lang === 'en'
+                ? 'Paper submissions and committee reviews. Participant registrations and session scheduling will open in the organizational phase.'
+                : 'Dépôt d’articles et évaluations par le comité. Les inscriptions des participants et le planning des sessions s’ouvriront en phase organisationnelle.'}
           </span>
         ) : (
           <span>
-            <strong>Étape actuelle :</strong> La phase scientifique est close. Les auteurs acceptés peuvent régler leurs frais et les sessions sont programmées en salle.
+            <strong>
+              {lang === 'ar' ? 'المرحلة الحالية:' : lang === 'en' ? 'Current step:' : 'Étape actuelle :'}
+            </strong>{' '}
+            {lang === 'ar'
+              ? 'أُغلقت المرحلة العلمية. يمكن للمؤلفين المقبولين تسديد الرسوم وتمت برمجة الجلسات في القاعات.'
+              : lang === 'en'
+                ? 'The scientific phase is closed. Accepted authors can pay their fees and sessions are scheduled in rooms.'
+                : 'La phase scientifique est close. Les auteurs acceptés peuvent régler leurs frais et les sessions sont programmées en salle.'}
           </span>
         )}
       </p>

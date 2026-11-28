@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { WarningIcon } from '@phosphor-icons/react'
 import { SESSION_TYPE_LABELS } from '../../lib/constants'
+import { useLanguage } from '../../context/LanguageContext'
 
 // ISO -> valeur d'un <input type="datetime-local"> en heure locale
 const toLocalInput = (iso) => {
@@ -15,6 +16,7 @@ const overlaps = (a, b) => a.start < b.end && b.start < a.end
 // Création et modification d'une session. Vérifie les conflits de salle avant l'envoi
 // (la base les refuse de toute façon : trigger check_session_room).
 export default function SessionForm({ initial, rooms, sessions, showMeeting, onSubmit, onCancel, submitLabel }) {
+  const { t } = useLanguage()
   const [form, setForm] = useState({
     title: initial?.title || '',
     description: initial?.description || '',
@@ -51,16 +53,16 @@ export default function SessionForm({ initial, rooms, sessions, showMeeting, onS
     e.preventDefault()
     setError(null)
     if (start && end && end <= start) {
-      setError('La fin doit être après le début.')
+      setError(t('sessionForm.endBeforeStart'))
       return
     }
     if (clash) {
-      setError(`Conflit de salle : « ${clash.title} » occupe déjà ${room.name} sur ce créneau.`)
+      setError(t('sessionForm.roomClashError', { title: clash.title, room: room.name }))
       return
     }
     const url = form.meeting_url.trim()
     if (url && !/^https?:\/\//i.test(url)) {
-      setError('Le lien de visioconférence doit commencer par https://')
+      setError(t('sessionForm.meetingUrlError'))
       return
     }
     setBusy(true)
@@ -83,18 +85,18 @@ export default function SessionForm({ initial, rooms, sessions, showMeeting, onS
       <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,1fr)_200px] gap-5">
         <div>
           <label htmlFor="session-title" className="form-label">
-            Titre
+            {t('sessionForm.titleLabel')}
           </label>
           <input id="session-title" className="input-field" value={form.title} onChange={set('title')} required />
         </div>
         <div>
           <label htmlFor="session-type" className="form-label">
-            Type
+            {t('sessionForm.typeLabel')}
           </label>
           <select id="session-type" className="select-field" value={form.session_type} onChange={set('session_type')}>
-            {Object.entries(SESSION_TYPE_LABELS).map(([value, label]) => (
+            {Object.keys(SESSION_TYPE_LABELS).map((value) => (
               <option key={value} value={value}>
-                {label}
+                {t(`sessionForm.types.${value}`)}
               </option>
             ))}
           </select>
@@ -104,13 +106,13 @@ export default function SessionForm({ initial, rooms, sessions, showMeeting, onS
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div>
           <label htmlFor="session-start" className="form-label">
-            Début
+            {t('sessionForm.startLabel')}
           </label>
           <input id="session-start" type="datetime-local" className="input-field num" value={form.start_time} onChange={set('start_time')} />
         </div>
         <div>
           <label htmlFor="session-end" className="form-label">
-            Fin
+            {t('sessionForm.endLabel')}
           </label>
           <input
             id="session-end"
@@ -126,21 +128,21 @@ export default function SessionForm({ initial, rooms, sessions, showMeeting, onS
       <div className="grid grid-cols-1 sm:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] gap-5">
         <div>
           <label htmlFor="session-room" className="form-label">
-            Salle
+            {t('sessionForm.roomLabel')}
           </label>
           <select id="session-room" className="select-field" value={form.room_id} onChange={set('room_id')}>
-            <option value="">{rooms.length ? 'Aucune salle' : 'Aucune salle créée (onglet Organisation)'}</option>
+            <option value="">{rooms.length ? t('sessionForm.noRoom') : t('sessionForm.noRoomCreated')}</option>
             {rooms.map((r) => (
               <option key={r.id} value={r.id}>
                 {r.name}
-                {r.capacity ? ` (${r.capacity} places)` : ''}
+                {r.capacity ? ` ${t('sessionForm.seatsCount', { count: r.capacity })}` : ''}
               </option>
             ))}
           </select>
         </div>
         <div>
           <label htmlFor="session-capacity" className="form-label">
-            Places
+            {t('sessionForm.capacityLabel')}
           </label>
           <input
             id="session-capacity"
@@ -158,13 +160,9 @@ export default function SessionForm({ initial, rooms, sessions, showMeeting, onS
         <div className="flex items-start gap-2.5 rounded-xl border border-warn/35 bg-warn/8 px-4 py-3 text-sm text-fg">
           <WarningIcon size={18} className="text-warn shrink-0 mt-px" aria-hidden="true" />
           <span>
-            {clash && (
-              <>
-                « {clash.title} » occupe déjà {room.name} sur ce créneau. Change l'horaire ou la salle.
-              </>
-            )}
+            {clash && t('sessionForm.clashWarning', { title: clash.title, room: room.name })}
             {clash && overCapacity && <br />}
-            {overCapacity && `La salle ne compte que ${room.capacity} places.`}
+            {overCapacity && t('sessionForm.overCapacityWarning', { capacity: room.capacity })}
           </span>
         </div>
       )}
@@ -172,24 +170,24 @@ export default function SessionForm({ initial, rooms, sessions, showMeeting, onS
       {showMeeting && (
         <div>
           <label htmlFor="session-meeting" className="form-label">
-            Lien de visioconférence
+            {t('sessionForm.meetingLabel')}
           </label>
           <input
             id="session-meeting"
             type="url"
             inputMode="url"
             className="input-field"
-            placeholder="https://meet.example.org/…"
+            placeholder={t('sessionForm.meetingPlaceholder')}
             value={form.meeting_url}
             onChange={set('meeting_url')}
           />
-          <p className="form-hint">Visible uniquement par les membres de l'événement (inscrits validés, reviewers, organisateurs).</p>
+          <p className="form-hint">{t('sessionForm.meetingHint')}</p>
         </div>
       )}
 
       <div>
         <label htmlFor="session-description" className="form-label">
-          Description
+          {t('sessionForm.descriptionLabel')}
         </label>
         <textarea id="session-description" className="textarea-field" rows={3} value={form.description} onChange={set('description')} />
       </div>
@@ -202,10 +200,10 @@ export default function SessionForm({ initial, rooms, sessions, showMeeting, onS
 
       <div className="flex gap-2">
         <button type="submit" disabled={busy} className="btn-primary">
-          {busy ? 'Enregistrement…' : submitLabel}
+          {busy ? t('common.saving') : submitLabel}
         </button>
         <button type="button" className="btn-ghost" onClick={onCancel}>
-          Annuler
+          {t('common.cancel')}
         </button>
       </div>
     </form>

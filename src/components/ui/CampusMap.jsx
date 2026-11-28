@@ -10,8 +10,10 @@ import {
   CheckIcon,
 } from '@phosphor-icons/react'
 import Collapsible from './Collapsible'
+import { useLanguage } from '../../context/LanguageContext'
 
 export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
+  const { t } = useLanguage()
   const [copied, setCopied] = useState(false)
   const query = location.trim() || 'Campus USTO-MB, Oran'
   const isUsto = /usto/i.test(query)
@@ -39,7 +41,7 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
           </span>
           <div className="min-w-0">
             <h3 id="venue-heading" className="font-semibold text-base sm:text-lg text-fg tracking-tight">
-              Plan d’Accès & Localisation
+              {t('campusMap.heading')}
             </h3>
             <p className="text-xs sm:text-sm text-muted truncate mt-0.5" title={query}>
               {query}
@@ -52,17 +54,17 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
             type="button"
             onClick={handleCopy}
             className="btn-outline btn-sm text-xs gap-1.5"
-            title="Copier l'adresse complète dans le presse-papier"
+            title={t('campusMap.copyTitle')}
           >
             {copied ? (
               <>
                 <CheckIcon size={14} className="text-ok font-bold" />
-                <span className="text-ok">Copié</span>
+                <span className="text-ok">{t('campusMap.copied')}</span>
               </>
             ) : (
               <>
                 <CopyIcon size={14} />
-                <span>Copier l'adresse</span>
+                <span>{t('campusMap.copyAddress')}</span>
               </>
             )}
           </button>
@@ -72,10 +74,10 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
             target="_blank"
             rel="noopener noreferrer"
             className="btn-accent btn-sm text-xs gap-1.5 shadow-xs"
-            title="Ouvrir l'itinéraire dans Google Maps / Waze / Apple Maps"
+            title={t('campusMap.gpsTitle')}
           >
             <NavigationArrowIcon size={14} weight="bold" />
-            <span>Itinéraire GPS</span>
+            <span>{t('campusMap.gpsLabel')}</span>
             <ArrowSquareOutIcon size={13} className="opacity-80" />
           </a>
         </div>
@@ -84,7 +86,7 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
       {/* Vraie carte interactive dynamique (100% responsive, zoom & déplacement) */}
       <div className="relative w-full h-64 sm:h-72 rounded-2xl overflow-hidden border border-line bg-surface-2 shadow-xs group">
         <iframe
-          title={`Carte interactive : ${query}`}
+          title={t('campusMap.iframeTitle', { query })}
           src={mapEmbedUrl}
           className="w-full h-full border-0 grayscale-[0.1] contrast-[1.02] dark:invert-[0.9] dark:hue-rotate-180 dark:contrast-[1.1] dark:brightness-[0.9]"
           loading="lazy"
@@ -93,16 +95,16 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
         />
 
         {/* Badge informatif discret sur la carte */}
-        <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-surface/90 border border-line backdrop-blur-md shadow-xs pointer-events-none text-[11px] font-medium text-fg flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-ok animate-pulse" />
-          <span>Carte interactive • Zoom & Déplacement</span>
+        <div className="absolute top-3 start-3 px-2.5 py-1 rounded-lg bg-surface/90 border border-line backdrop-blur-md shadow-xs pointer-events-none text-[11px] font-medium text-fg flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-ok" />
+          <span>{t('campusMap.interactiveBadge')}</span>
         </div>
       </div>
 
       {/* Guide d'accès & Précisions pratiques rétractables sous rideau */}
       <Collapsible
-        title="Guide d'accès & commodités pratiques"
-        subtitle="Tramway, parkings & accueil"
+        title={t('campusMap.guideTitle')}
+        subtitle={t('campusMap.guideSubtitle')}
         variant="subtle"
         defaultOpen={false}
       >
@@ -113,11 +115,9 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
               <BuildingsIcon size={17} weight="duotone" />
             </span>
             <div className="min-w-0">
-              <p className="font-semibold text-xs text-fg">Lieu & Amphithéâtre</p>
+              <p className="font-semibold text-xs text-fg">{t('campusMap.venueTitle')}</p>
               <p className="text-xs text-muted mt-1 leading-snug">
-                {isUsto
-                  ? 'Amphithéâtre Central & Salles de commissions du campus USTO-MB.'
-                  : query}
+                {isUsto ? t('campusMap.venueUstoDesc') : query}
               </p>
             </div>
           </div>
@@ -128,11 +128,9 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
               <TrainIcon size={17} weight="duotone" />
             </span>
             <div className="min-w-0">
-              <p className="font-semibold text-xs text-fg">Transports & Accès</p>
+              <p className="font-semibold text-xs text-fg">{t('campusMap.transportTitle')}</p>
               <p className="text-xs text-muted mt-1 leading-snug">
-                {isUsto
-                  ? 'Tramway Ligne 1 : Arrêt direct Station USTO-MB (Portail d’honneur).'
-                  : 'Accès via les principaux axes urbains, transports publics et taxis.'}
+                {isUsto ? t('campusMap.transportUstoDesc') : t('campusMap.transportOtherDesc')}
               </p>
             </div>
           </div>
@@ -143,11 +141,9 @@ export default function CampusMap({ location = 'Campus USTO-MB, Oran' }) {
               <CarIcon size={17} weight="duotone" />
             </span>
             <div className="min-w-0">
-              <p className="font-semibold text-xs text-fg">Parking & Accueil</p>
+              <p className="font-semibold text-xs text-fg">{t('campusMap.parkingTitle')}</p>
               <p className="text-xs text-muted mt-1 leading-snug">
-                {isUsto
-                  ? 'Parking visiteurs & dépose-minute disponibles sur présentation du pass.'
-                  : 'Émargement et accueil des participants dès 8h30 à l’entrée principale.'}
+                {isUsto ? t('campusMap.parkingUstoDesc') : t('campusMap.parkingOtherDesc')}
               </p>
             </div>
           </div>

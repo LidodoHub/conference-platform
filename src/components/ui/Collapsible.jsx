@@ -29,10 +29,10 @@ export default function Collapsible({
   }
 
   const containerStyles = {
-    card: 'card border-line bg-surface/80 overflow-hidden shadow-xs transition-colors',
+    card: 'card border-line bg-surface/80 overflow-hidden shadow-card transition-colors',
     subtle: 'rounded-xl border border-line/70 bg-surface-2/40 overflow-hidden transition-colors',
     plain: 'border-b border-line/60 overflow-hidden',
-  }[variant] || 'card border-line bg-surface/80 overflow-hidden shadow-xs'
+  }[variant] || 'card border-line bg-surface/80 overflow-hidden shadow-card'
 
   return (
     <div className={`${containerStyles} ${className}`}>

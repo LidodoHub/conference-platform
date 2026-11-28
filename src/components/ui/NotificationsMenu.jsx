@@ -12,6 +12,8 @@ import {
 } from '@phosphor-icons/react'
 import { supabase } from '../../lib/supabaseClient'
 import { useAuth } from '../../lib/auth'
+import { usePendingCounts } from '../../context/PendingCountsContext'
+import { useLanguage } from '../../context/LanguageContext'
 
 const ICONS = {
   decision: GavelIcon,
@@ -23,7 +25,7 @@ const ICONS = {
   role: UserCircleIcon,
 }
 
-const ago = (iso) => {
+const ago = (iso, locale = 'fr-FR') => {
   const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
   if (min < 1) return "à l'instant"
   if (min < 60) return `il y a ${min} min`
@@ -31,13 +33,16 @@ const ago = (iso) => {
   if (h < 24) return `il y a ${h} h`
   const d = Math.round(h / 24)
   if (d < 30) return `il y a ${d} j`
-  return new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  return new Date(iso).toLocaleDateString(locale, { day: 'numeric', month: 'short' })
 }
 
 // Cloche de notifications : ouverture au survol ou au clic
 export default function NotificationsMenu({ onOpenEvent, className = '' }) {
   const { user } = useAuth()
+  const { t, locale } = useLanguage()
+  const { unreadNotifications, setUnreadNotifications } = usePendingCounts()
   const [items, setItems] = useState([])
+  const [itemsLoaded, setItemsLoaded] = useState(false)
   const [open, setOpen] = useState(false)
   const [available, setAvailable] = useState(true)
   const panelRef = useRef(null)
@@ -51,8 +56,12 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
       .order('sent_at', { ascending: false })
       .limit(30)
     if (error) setAvailable(false)
-    else setItems(data)
-  }, [user.id])
+    else {
+      setItems(data)
+      setItemsLoaded(true)
+      setUnreadNotifications(data.filter((n) => !n.read_at).length)
+    }
+  }, [user.id, setUnreadNotifications])
 
   useEffect(() => {
     load()
@@ -87,13 +96,15 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
     }, 280)
   }
 
-  const unread = items.filter((n) => !n.read_at).length
+  const unread = itemsLoaded ? items.filter((n) => !n.read_at).length : unreadNotifications
+  const hasUnread = unread !== null && unread > 0
 
   const markAllRead = async () => {
     const ids = items.filter((n) => !n.read_at).map((n) => n.id)
     if (!ids.length) return
     const now = new Date().toISOString()
     setItems((list) => list.map((n) => (n.read_at ? n : { ...n, read_at: now })))
+    setUnreadNotifications(0)
     await supabase.from('notifications').update({ read_at: now }).in('id', ids)
   }
 
@@ -101,7 +112,11 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
     setOpen(false)
     if (!n.read_at) {
       const now = new Date().toISOString()
-      setItems((list) => list.map((x) => (x.id === n.id ? { ...x, read_at: now } : x)))
+      setItems((list) => {
+        const next = list.map((x) => (x.id === n.id ? { ...x, read_at: now } : x))
+        setUnreadNotifications(next.filter((x) => !x.read_at).length)
+        return next
+      })
       await supabase.from('notifications').update({ read_at: now }).eq('id', n.id)
     }
     if (n.event_id) onOpenEvent(n.event_id, n.type === 'decision' || n.type === 'submission' ? { tab: 'scientific' } : null)
@@ -123,37 +138,40 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
           if (!open) load()
         }}
         className={`${className} relative transition-transform duration-150 active:scale-95`}
-        aria-label={unread ? `Notifications, ${unread} non lues` : 'Notifications'}
+        aria-label={hasUnread ? `${t('modals.notifications')}, ${unread}` : t('modals.notifications')}
         aria-expanded={open}
-        title="Notifications (survolez pour afficher)"
+        title={t('modals.notifications')}
       >
-        <BellIcon size={19} weight={unread ? 'fill' : 'regular'} aria-hidden="true" className="transition-transform duration-200 hover:rotate-6" />
-        {unread > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-4 h-4 px-1 rounded-full bg-accent text-on-accent text-[10px] font-semibold leading-4 text-center num animate-pulse shadow-xs">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        )}
+        <BellIcon size={19} weight={hasUnread ? 'fill' : 'regular'} aria-hidden="true" className="transition-transform duration-200 hover:rotate-6" />
+        <span
+          className={`absolute top-1.5 end-1.5 min-w-4 h-4 px-1 rounded-full bg-accent text-on-accent text-[10px] font-semibold leading-4 text-center num shadow-xs transition-opacity duration-200 ${
+            hasUnread ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+          aria-hidden={!hasUnread}
+        >
+          {hasUnread ? (unread > 9 ? '9+' : unread) : ''}
+        </span>
       </button>
 
       {open && (
         <div
-          className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-[72px] sm:top-12 sm:right-0 sm:w-[380px] z-50 card overflow-hidden shadow-[var(--shadow-lift)] border border-line bg-surface/98 backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150 origin-top-right"
+          className="fixed sm:absolute inset-x-3 sm:inset-x-auto top-[72px] sm:top-12 sm:end-0 sm:w-[380px] z-50 card overflow-hidden shadow-[var(--shadow-lift)] border border-line bg-surface/98 backdrop-blur-md animate-modal-enter origin-top-end"
           role="dialog"
-          aria-label="Notifications"
+          aria-label={t('modals.notifications')}
         >
           <div className="flex items-center justify-between px-4 py-3 border-b border-line bg-surface-2/40">
-            <p className="font-semibold text-fg text-sm">Notifications</p>
-            {unread > 0 && (
-              <button type="button" onClick={markAllRead} className="btn-ghost btn-sm -mr-2 text-xs">
+            <p className="font-semibold text-fg text-sm">{t('modals.notifications')}</p>
+            {hasUnread && (
+              <button type="button" onClick={markAllRead} className="btn-ghost btn-sm -me-2 text-xs">
                 <ChecksIcon size={15} aria-hidden="true" />
-                Tout marquer lu
+                {t('modals.markAllRead')}
               </button>
             )}
           </div>
           {items.length === 0 ? (
             <div className="px-6 py-10 text-center">
               <BellSimpleSlashIcon size={28} className="mx-auto text-faint" aria-hidden="true" />
-              <p className="mt-3 text-sm text-muted">Rien de nouveau. Décisions, invitations et paiements apparaîtront ici.</p>
+              <p className="mt-3 text-sm text-muted">{t('modals.noNotifications')}</p>
             </div>
           ) : (
             <ul className="max-h-[min(70dvh,460px)] overflow-y-auto divide-y divide-line/60">
@@ -164,7 +182,7 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
                     <button
                       type="button"
                       onClick={() => openItem(n)}
-                      className={`w-full text-left px-4 py-3.5 flex gap-3 hover:bg-fg/5 transition-all duration-150 ${n.read_at ? '' : 'bg-accent/6 font-medium'}`}
+                      className={`w-full text-start px-4 py-3.5 flex gap-3 hover:bg-fg/5 transition-all duration-150 ${n.read_at ? '' : 'bg-accent/6 font-medium'}`}
                     >
                       <span
                         className={`inline-flex w-9 h-9 shrink-0 items-center justify-center rounded-xl transition-transform duration-150 group-hover:scale-105 ${
@@ -176,10 +194,10 @@ export default function NotificationsMenu({ onOpenEvent, className = '' }) {
                       <span className="min-w-0 flex-1">
                         <span className="flex items-start justify-between gap-2">
                           <span className={`text-sm leading-snug ${n.read_at ? 'text-fg' : 'font-semibold text-fg'}`}>{n.title}</span>
-                          {!n.read_at && <span className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0" aria-label="non lue" />}
+                          {!n.read_at && <span className="mt-1.5 w-2 h-2 rounded-full bg-accent shrink-0" aria-label="unread" />}
                         </span>
                         <span className="block text-[13px] text-muted mt-0.5 leading-5">{n.message}</span>
-                        <span className="block text-xs text-faint mt-1">{ago(n.sent_at)}</span>
+                        <span className="block text-xs text-faint mt-1">{ago(n.sent_at, locale)}</span>
                       </span>
                     </button>
                   </li>

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabaseClient'
 import { frError } from '../../lib/errors'
-import { STATUS_LABELS, SUBMISSION_LABELS, SUBMISSION_COLOR } from '../../lib/constants'
+import { STATUS_LABELS, SUBMISSION_COLOR } from '../../lib/constants'
 import Stat from '../../components/ui/Stat'
 import { StackedBar, BarList, Columns } from '../../components/charts/Charts'
+import { useLanguage } from '../../context/LanguageContext'
 
 const count = (table, filter) => {
   let q = supabase.from(table).select('id', { count: 'exact', head: true })
@@ -18,6 +19,7 @@ const monthKey = (iso) => {
 
 // Vue plateforme pour l'administrateur. Les chiffres dépendent de ce que la RLS laisse lire à l'admin.
 export default function PlatformStats() {
+  const { t, locale } = useLanguage()
   const [data, setData] = useState(null)
   const [error, setError] = useState(null)
 
@@ -75,8 +77,8 @@ export default function PlatformStats() {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
     months.push({
       key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: d.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }),
-      short: d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''),
+      label: d.toLocaleDateString(locale, { month: 'long', year: 'numeric' }),
+      short: d.toLocaleDateString(locale, { month: 'short' }).replace('.', ''),
     })
   }
   const perMonth = data.subs.reduce((acc, s) => {
@@ -84,40 +86,46 @@ export default function PlatformStats() {
     return acc
   }, {})
 
+  const subStatusLabel = (k) => t(`submissions.${k === 'revision_requested' ? 'revisionRequested' : k}`)
+
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Stat label="Comptes" value={data.users} />
-        <Stat label="Événements" value={data.events.length} detail={`${eventStatus.published || 0} publiés`} />
-        <Stat label="Articles soumis" value={data.subs.length} detail={`${data.reviews} reviews`} />
-        <Stat label="Inscriptions validées" value={data.validated} />
+        <Stat label={t('platformStats.accounts')} value={data.users} />
+        <Stat label={t('platformStats.events')} value={data.events.length} detail={t('platformStats.publishedDetail', { count: eventStatus.published || 0 })} />
+        <Stat label={t('platformStats.submittedPapers')} value={data.subs.length} detail={t('platformStats.reviewsDetail', { count: data.reviews })} />
+        <Stat label={t('platformStats.validatedRegistrations')} value={data.validated} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-4">
         <section className="card-panel">
-          <h3 className="font-semibold text-fg">Articles déposés par mois</h3>
-          <p className="text-sm text-muted mb-8">Douze derniers mois, tous événements confondus.</p>
+          <h3 className="font-semibold text-fg">{t('platformStats.submissionsPerMonth')}</h3>
+          <p className="text-sm text-muted mb-8">{t('platformStats.lastTwelveMonths')}</p>
           <Columns
-            label="Articles déposés par mois"
+            label={t('platformStats.submissionsPerMonth')}
             points={months.map((m) => ({ ...m, value: perMonth[m.key] || 0 }))}
           />
         </section>
 
         <section className="card-panel">
-          <h3 className="font-semibold text-fg mb-5">Événements par statut</h3>
+          <h3 className="font-semibold text-fg mb-5">{t('platformStats.eventsByStatus')}</h3>
           <BarList
             color="var(--color-info)"
-            items={Object.entries(STATUS_LABELS).map(([k, label]) => ({ key: k, label, value: eventStatus[k] || 0 }))}
+            items={Object.keys(STATUS_LABELS).map((k) => ({
+              key: k,
+              label: t(`eventCard.statuses.${k}`),
+              value: eventStatus[k] || 0,
+            }))}
           />
         </section>
       </div>
 
       <section className="card-panel">
-        <h3 className="font-semibold text-fg mb-5">Décisions sur les articles</h3>
+        <h3 className="font-semibold text-fg mb-5">{t('platformStats.paperDecisions')}</h3>
         <StackedBar
-          label="Répartition des articles par statut"
+          label={t('platformStats.paperDistribution')}
           segments={['submitted', 'revision_requested', 'accepted', 'rejected'].map((k) => ({
-            label: SUBMISSION_LABELS[k],
+            label: subStatusLabel(k),
             value: subStatus[k] || 0,
             color: SUBMISSION_COLOR[k],
           }))}
